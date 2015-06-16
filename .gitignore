@@ -5,6 +5,9 @@
 *.ear
 hs_err_pid*
 
+# Assets - images and stuff
+assets/
+
 ## GWT
 war/
 html/war/gwt_bree/
