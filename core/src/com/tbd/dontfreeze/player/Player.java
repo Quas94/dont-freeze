@@ -2,10 +2,11 @@ package com.tbd.dontfreeze.player;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Intersector;
@@ -15,7 +16,8 @@ import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.Entity;
 import com.tbd.dontfreeze.WorldScreen;
 
-import java.awt.*;
+import java.util.ArrayList;
+
 
 /**
  * Player class for all things related to the fire elemental.
@@ -29,22 +31,24 @@ public class Player implements Entity {
 	private static final int SPRITE_HEIGHT = 82;
 	private static final int COLLISION_WIDTH = 20;
 	private static final int COLLISION_HEIGHT = 10;
-	private static final String PATH = "assets/player.png";
-	private static final int SPEED = 160;
+	private static final String PATH = "assets/player.atlas";
+	private static final int SPEED = 120;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	private static final float SCALE = 1F;
+	private static final float FRAME_RATE = 0.12F;
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
 
 	/** Animation related variables */
 	private float stateTime;
-	private Sprite sprite;
+	private Animation[] animations;
 
 	/** Heat (effective health) of the player */
 	private int heat;
 
 	/** Position and dimensions of the player */
+	private Direction dir;
 	private float x;
 	private float y;
 	private int width;
@@ -55,6 +59,7 @@ public class Player implements Entity {
 
 	public Player(WorldScreen world, float x, float y) {
 		this.world = world;
+		this.dir = Direction.DOWN;
 		setLocation(x, y);
 		this.width = SPRITE_WIDTH;
 		this.height = SPRITE_HEIGHT;
@@ -62,10 +67,25 @@ public class Player implements Entity {
 		this.rightmost = world.getWidth() - width;
 
 		this.stateTime = 0;
+		this.animations = new Animation[Direction.values().length];
 
-		// load sprite
-		Texture tex = new Texture(Gdx.files.internal(PATH));
-		this.sprite = new Sprite(tex);
+		ArrayList<Array<AtlasRegion>> framesList = new ArrayList<Array<AtlasRegion>>();
+		for (Direction d : Direction.values()) {
+			framesList.add(new Array<AtlasRegion>());
+		}
+		// load animations
+		TextureAtlas atlas = new TextureAtlas(Gdx.files.internal(PATH));
+		for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+			// find corresponding direction of this region/frame
+			Direction frameDir = Direction.getByChar(region.name.charAt(0));
+			// add this region to the list
+			framesList.get(frameDir.getIdx()).add(region);
+		}
+		for (Direction d : Direction.values()) {
+			int i = d.getIdx();
+			animations[i] = new Animation(FRAME_RATE, framesList.get(i));
+			animations[i].setPlayMode(Animation.PlayMode.LOOP);
+		}
 	}
 
 	@Override
@@ -91,6 +111,10 @@ public class Player implements Entity {
 	}
 
 	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+		// animation
+		stateTime += delta;
+
+		// movement
 		boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT);
 		boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
 		boolean upPressed = Gdx.input.isKeyPressed(Input.Keys.UP);
@@ -99,6 +123,7 @@ public class Player implements Entity {
 
 		float oldX = x;
 		float oldY = y;
+		Direction oldDir = dir;
 
 		// tentatively update x pos first
 		if (leftPressed) x -= dist;
@@ -126,10 +151,26 @@ public class Player implements Entity {
 			// going diagonally
 			dist *= DIAGONAL_MOVE_RATIO;
 		}
-		if (leftPressed) x -= dist;
-		if (rightPressed) x += dist;
-		if (upPressed) y += dist;
-		if (downPressed) y -= dist;
+		if (leftPressed) {
+			x -= dist;
+			dir = Direction.LEFT;
+		}
+		if (rightPressed) {
+			x += dist;
+			dir = Direction.RIGHT;
+		}
+		if (upPressed) {
+			y += dist;
+			dir = Direction.UP;
+		}
+		if (downPressed) {
+			y -= dist;
+			dir = Direction.DOWN;
+		}
+		if (oldDir != dir) {
+			// @TODO: fix up the direction changing method, make the first-pressed key have highest dir priority
+			stateTime = 0;
+		}
 
 		// keep within bounds of map
 		if (x < 0) x = 0;
@@ -163,12 +204,7 @@ public class Player implements Entity {
 	}
 
 	public void render(SpriteBatch batch) {
-		batch.draw(sprite, x, y, width * SCALE, height * SCALE);
-	}
-
-	// @TODO figure out if this is a good value
-	private static final float EPSILON = 0.00001F;
-	private boolean floatEquals(float a, float b) {
-		return Math.abs(a - b) <= EPSILON;
+		TextureRegion frame = animations[dir.getIdx()].getKeyFrame(stateTime);
+		batch.draw(frame, x, y, width * SCALE, height * SCALE);
 	}
 }

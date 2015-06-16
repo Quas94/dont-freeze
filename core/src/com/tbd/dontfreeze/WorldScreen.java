@@ -55,7 +55,7 @@ public class WorldScreen extends AbstractScreen {
 	private int width;
 	private int height;
 	/** Cameras - one for game stuff, other for UI/debug */
-	public OrthographicCamera camera;
+	private OrthographicCamera camera;
 	private Vector3 cameraPos;
 	private OrthographicCamera fixedCamera;
 	/** Time stepping accumulator */
