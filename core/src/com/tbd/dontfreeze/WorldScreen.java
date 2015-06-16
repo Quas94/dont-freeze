@@ -7,12 +7,19 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.maps.objects.PolygonMapObject;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.tbd.dontfreeze.player.Player;
+
+import java.util.Arrays;
 
 /**
  * In-game screen where the actual gameplaying will take place.
@@ -31,6 +38,7 @@ public class WorldScreen extends AbstractScreen {
 	private static final String MAP_LOCATION = "assets/map1.tmx";
 	private static final String MAP_WIDTH = "width";
 	private static final String MAP_HEIGHT = "height";
+	private static final String COLLISION_LAYER = "collision";
 
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
@@ -47,7 +55,7 @@ public class WorldScreen extends AbstractScreen {
 	private int width;
 	private int height;
 	/** Cameras - one for game stuff, other for UI/debug */
-	private OrthographicCamera camera;
+	public OrthographicCamera camera;
 	private Vector3 cameraPos;
 	private OrthographicCamera fixedCamera;
 	/** Time stepping accumulator */
@@ -102,16 +110,23 @@ public class WorldScreen extends AbstractScreen {
 		while (deltaAccumulator >= DELTA_STEP) {
 			// step through DELTA_STEP milliseconds, and subtract it off the accumulator
 			deltaAccumulator -= DELTA_STEP;
-			// update entities
-			player.update(DELTA_STEP);
 
-			// move camera depending on player position
-			float distSide = ((float) winWidth) / 4; // 20% of the window size
-			float distUd = ((float) winHeight) / 4; // also 20% of win size. ud = up/down
+			// get collision objects
+			MapLayer collisionLayer = tiledMap.getLayers().get(COLLISION_LAYER);
+			MapObjects objects = collisionLayer.getObjects();
+
+			// update entities
+			player.update(DELTA_STEP, objects.getByType(PolygonMapObject.class), objects.getByType(RectangleMapObject.class));
+
+			// get player details
 			float playerX = player.getX();
 			float playerY = player.getY();
 			int playerWidth = player.getWidth();
 			int playerHeight = player.getHeight();
+
+			// move camera depending on player position
+			float distSide = ((float) winWidth) / 4; // 20% of the window size
+			float distUd = ((float) winHeight) / 4; // also 20% of win size. ud = up/down
 			// difference between player sprite (nearest edge) and side of the window
 			float diffLeft = playerX - (cameraPos.x - (winWidth / 2));
 			float diffRight = (cameraPos.x + (winWidth / 2)) - (playerX + playerWidth);
@@ -140,10 +155,19 @@ public class WorldScreen extends AbstractScreen {
 
 	@Override
 	public void render(float delta) {
-		super.render(delta);
+		if (delta > DELTA_LIMIT) {
+			// delta too high, probably recovered from long freeze, skip it
+			return;
+		}
 
+		// call update() first
+		update(delta);
+
+		// clear screen
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+		// start actual rendering
 
 		// render background
 		tiledRenderer.render();
@@ -167,7 +191,7 @@ public class WorldScreen extends AbstractScreen {
 	@Override
 	public void show() {
 		font = new BitmapFont();
-		font.setColor(Color.BLACK);
+		font.setColor(Color.GREEN);
 
 		spriteBatch = new SpriteBatch();
 	}

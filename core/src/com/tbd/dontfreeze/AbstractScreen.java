@@ -11,7 +11,7 @@ import com.badlogic.gdx.Screen;
 public abstract class AbstractScreen implements Screen {
 
 	/** If delta exceeds this limit in milliseconds, update is skipped */
-	private static final int DELTA_LIMIT = 1000;
+	protected static final int DELTA_LIMIT = 1000;
 
 	/** protected because subclasses will require reference to the Game */
 	protected Game game;
@@ -24,11 +24,7 @@ public abstract class AbstractScreen implements Screen {
 	protected abstract void update(float delta);
 
 	@Override
-	public void render(float delta) {
-		if (delta <= DELTA_LIMIT) {
-			update(delta);
-		}
-	}
+	public abstract void render(float delta);
 
 	@Override
 	public void resize(int width, int height) {
