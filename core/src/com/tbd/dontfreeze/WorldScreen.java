@@ -11,6 +11,8 @@ import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.Vector3;
+import com.tbd.dontfreeze.player.Player;
 
 /**
  * In-game screen where the actual gameplaying will take place.
@@ -46,6 +48,7 @@ public class WorldScreen extends AbstractScreen {
 	private int height;
 	/** Cameras - one for game stuff, other for UI/debug */
 	private OrthographicCamera camera;
+	private Vector3 cameraPos;
 	private OrthographicCamera fixedCamera;
 	/** Time stepping accumulator */
 	private float deltaAccumulator;
@@ -53,6 +56,9 @@ public class WorldScreen extends AbstractScreen {
 	/** Graphics stuff */
 	private SpriteBatch spriteBatch;
 	private BitmapFont font;
+
+	/** Entities in this World */
+	private Player player;
 
 	public WorldScreen(Game game) {
 		super(game);
@@ -69,6 +75,7 @@ public class WorldScreen extends AbstractScreen {
 		this.winHeight = Gdx.graphics.getHeight();
 		this.camera = new OrthographicCamera();
 		camera.setToOrtho(false);
+		cameraPos = camera.position;
 		// the following line is because for some reason, when camera is (0, 0), tiled map (0, 0) is centre of screen...
 		camera.position.set(winWidth / 2, winHeight / 2, 0);
 		camera.translate(0, height - winHeight);
@@ -76,7 +83,16 @@ public class WorldScreen extends AbstractScreen {
 		this.fixedCamera = new OrthographicCamera();
 		fixedCamera.setToOrtho(false);
 
-		// @TODO set camera initial position
+		// @TODO un-hardcode starting positions etc
+		this.player = new Player(this, winWidth / 2, height - (winHeight / 2));
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public int getWidth() {
+		return width;
 	}
 
 	@Override
@@ -86,8 +102,35 @@ public class WorldScreen extends AbstractScreen {
 		while (deltaAccumulator >= DELTA_STEP) {
 			// step through DELTA_STEP milliseconds, and subtract it off the accumulator
 			deltaAccumulator -= DELTA_STEP;
-			// do stuff
-			// camera.translate(0, 0.2f);
+			// update entities
+			player.update(DELTA_STEP);
+
+			// move camera depending on player position
+			float distSide = ((float) winWidth) / 4; // 20% of the window size
+			float distUd = ((float) winHeight) / 4; // also 20% of win size. ud = up/down
+			float playerX = player.getX();
+			float playerY = player.getY();
+			int playerWidth = player.getWidth();
+			int playerHeight = player.getHeight();
+			// difference between player sprite (nearest edge) and side of the window
+			float diffLeft = playerX - (cameraPos.x - (winWidth / 2));
+			float diffRight = (cameraPos.x + (winWidth / 2)) - (playerX + playerWidth);
+			float diffDown = playerY - (cameraPos.y - (winHeight / 2));
+			float diffUp = (cameraPos.y + (winHeight / 2)) - (playerY + playerHeight);
+			// if player is getting too close to the edge of the screen, move the camera
+			float translateX = 0;
+			float translateY = 0;
+			if (diffLeft < distSide) {
+				translateX = -(distSide - diffLeft);
+			} else if (diffRight < distSide) {
+				translateX = distSide - diffRight;
+			}
+			if (diffUp < distUd) {
+				translateY = distUd - diffUp;
+			} else if (diffDown < distUd) {
+				translateY = -(distUd - diffDown);
+			}
+			camera.translate(translateX, translateY);
 		}
 
 		// update things that bind to camera
@@ -108,14 +151,16 @@ public class WorldScreen extends AbstractScreen {
 		// render game things
 		spriteBatch.setProjectionMatrix(camera.combined);
 		spriteBatch.begin();
-		// draw game stuff
+
+		player.render(spriteBatch);
+
 		spriteBatch.end();
 
 		// debug text
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);
 		spriteBatch.begin();
-		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, 460);
-		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, 440);
+		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
+		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
 		spriteBatch.end();
 	}
 
