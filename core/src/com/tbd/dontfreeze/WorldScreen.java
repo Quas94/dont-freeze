@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.MapProperties;
@@ -15,12 +14,9 @@ import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.tbd.dontfreeze.player.InputHandler;
 import com.tbd.dontfreeze.player.Player;
-
-import java.util.Arrays;
 
 /**
  * In-game screen where the actual gameplaying will take place.
@@ -53,7 +49,7 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Tiled Map tools */
 	private TiledMap tiledMap;
-	private OrthogonalTiledMapRenderer tiledRenderer;
+	private CustomTiledMapRenderer tiledRenderer;
 
 	/** Map dimensions */
 	private int width;
@@ -80,7 +76,7 @@ public class WorldScreen extends AbstractScreen {
 
 		// load Tiled stuffs
 		this.tiledMap = MAP_LOADER.load(MAP_LOCATION);
-		this.tiledRenderer = new OrthogonalTiledMapRenderer(tiledMap);
+		this.tiledRenderer = new CustomTiledMapRenderer(tiledMap);
 		MapProperties mapProps = tiledMap.getProperties();
 		// load in map dimensions
 		this.width = mapProps.get(MAP_WIDTH, Integer.class);
@@ -177,7 +173,10 @@ public class WorldScreen extends AbstractScreen {
 		// start actual rendering
 
 		// render background
-		tiledRenderer.render();
+		tiledRenderer.renderNonSpriteLayers();
+		// then render sprite layer
+		float playerY = player.getY();
+		tiledRenderer.renderSpriteLayer(true, playerY);
 
 		// render game things
 		spriteBatch.setProjectionMatrix(camera.combined);
@@ -186,6 +185,15 @@ public class WorldScreen extends AbstractScreen {
 		player.render(spriteBatch);
 
 		spriteBatch.end();
+
+		// render foreground of tiled map
+		tiledRenderer.renderSpriteLayer(false, playerY);
+
+		// delete
+		spriteBatch.begin();
+		//player.render(spriteBatch);
+		spriteBatch.end();
+		// delete
 
 		// debug text
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);

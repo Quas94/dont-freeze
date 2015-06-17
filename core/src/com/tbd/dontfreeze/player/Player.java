@@ -211,8 +211,8 @@ public class Player implements Entity {
 		return false;
 	}
 
-	public void render(SpriteBatch batch) {
+	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animations[dir.getIdx()].getKeyFrame(stateTime);
-		batch.draw(frame, x, y, width * SCALE, height * SCALE);
+		spriteBatch.draw(frame, x, y, width * SCALE, height * SCALE);
 	}
 }
