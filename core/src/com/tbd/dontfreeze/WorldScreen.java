@@ -17,6 +17,7 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector3;
+import com.tbd.dontfreeze.player.InputHandler;
 import com.tbd.dontfreeze.player.Player;
 
 import java.util.Arrays;
@@ -42,6 +43,9 @@ public class WorldScreen extends AbstractScreen {
 
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
+
+	/** Input handling */
+	private InputHandler inputHandler;
 
 	/** Screen dimensions */
 	private int winWidth;
@@ -71,6 +75,9 @@ public class WorldScreen extends AbstractScreen {
 	public WorldScreen(Game game) {
 		super(game);
 
+		this.inputHandler = new InputHandler();
+		Gdx.input.setInputProcessor(inputHandler);
+
 		// load Tiled stuffs
 		this.tiledMap = MAP_LOADER.load(MAP_LOCATION);
 		this.tiledRenderer = new OrthogonalTiledMapRenderer(tiledMap);
@@ -92,7 +99,7 @@ public class WorldScreen extends AbstractScreen {
 		fixedCamera.setToOrtho(false);
 
 		// @TODO un-hardcode starting positions etc
-		this.player = new Player(this, winWidth / 2, height - (winHeight / 2));
+		this.player = new Player(this, inputHandler, winWidth / 2, height - (winHeight / 2));
 	}
 
 	public int getHeight() {

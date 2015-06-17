@@ -39,6 +39,7 @@ public class Player implements Entity {
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
+	private InputHandler inputHandler;
 
 	/** Animation related variables */
 	private float stateTime;
@@ -57,8 +58,10 @@ public class Player implements Entity {
 	private float rightmost;
 	private float upmost;
 
-	public Player(WorldScreen world, float x, float y) {
+	public Player(WorldScreen world, InputHandler inputHandler, float x, float y) {
 		this.world = world;
+		this.inputHandler = inputHandler;
+
 		this.dir = Direction.DOWN;
 		setLocation(x, y);
 		this.width = SPRITE_WIDTH;
@@ -114,62 +117,67 @@ public class Player implements Entity {
 		// animation
 		stateTime += delta;
 
+		// set direction
+		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
+		if (newDir != null) dir = newDir;
+
 		// movement
-		boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT);
-		boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
-		boolean upPressed = Gdx.input.isKeyPressed(Input.Keys.UP);
-		boolean downPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN);
+		boolean leftPressed = inputHandler.isKeyDown(Key.LEFT);
+		boolean rightPressed = inputHandler.isKeyDown(Key.RIGHT);
+		boolean upPressed = inputHandler.isKeyDown(Key.UP);
+		boolean downPressed = inputHandler.isKeyDown(Key.DOWN);
 		float dist = delta * SPEED;
 
 		float oldX = x;
 		float oldY = y;
-		Direction oldDir = dir;
+		float oldDist = dist;
 
-		// tentatively update x pos first
-		if (leftPressed) x -= dist;
-		if (rightPressed) x += dist;
-		// check for collisions after updating x
-		if (collides(polys, rects)) {
-			leftPressed = false;
-			rightPressed = false;
-		}
-		// undo change
-		x = oldX;
-		// update y pos next
-		if (upPressed) y += dist;
-		if (downPressed) y -= dist;
-		// check for collisions after updating y
-		if (collides(polys, rects)) {
-			upPressed = false;
-			downPressed = false;
-		}
-		// undo change
-		y = oldY;
-
-		// now make actual changes
+		// first, try making both x and y changes at once. if it doesn't collide, everything is fine
 		if ((leftPressed || rightPressed) && (upPressed || downPressed)) {
 			// going diagonally
 			dist *= DIAGONAL_MOVE_RATIO;
 		}
-		if (leftPressed) {
-			x -= dist;
-			dir = Direction.LEFT;
-		}
-		if (rightPressed) {
-			x += dist;
-			dir = Direction.RIGHT;
-		}
-		if (upPressed) {
-			y += dist;
-			dir = Direction.UP;
-		}
-		if (downPressed) {
-			y -= dist;
-			dir = Direction.DOWN;
-		}
-		if (oldDir != dir) {
-			// @TODO: fix up the direction changing method, make the first-pressed key have highest dir priority
-			stateTime = 0;
+		if (leftPressed) x -= dist;
+		if (rightPressed) x += dist;
+		if (upPressed) y += dist;
+		if (downPressed) y -= dist;
+		// if it does collide, we need to separate x and y changes and test individually
+		if (collides(polys, rects)) {
+			// undo changes
+			x = oldX;
+			y = oldY;
+			dist = oldDist;
+
+			// tentatively update x pos first
+			if (leftPressed) x -= dist;
+			if (rightPressed) x += dist;
+			// check for collisions after updating x
+			if (collides(polys, rects)) {
+				leftPressed = false;
+				rightPressed = false;
+			}
+			// undo change
+			x = oldX;
+			// update y pos next
+			if (upPressed) y += dist;
+			if (downPressed) y -= dist;
+			// check for collisions after updating y
+			if (collides(polys, rects)) {
+				upPressed = false;
+				downPressed = false;
+			}
+			// undo change
+			y = oldY;
+
+			// now make actual changes
+			if ((leftPressed || rightPressed) && (upPressed || downPressed)) {
+				// going diagonally
+				dist *= DIAGONAL_MOVE_RATIO;
+			}
+			if (leftPressed) x -= dist;
+			if (rightPressed) x += dist;
+			if (upPressed) y += dist;
+			if (downPressed) y -= dist;
 		}
 
 		// keep within bounds of map

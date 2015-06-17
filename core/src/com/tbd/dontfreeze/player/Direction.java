@@ -32,4 +32,12 @@ public enum Direction {
 		}
 		return null;
 	}
+
+	public static Direction getByKey(Key k) {
+		if (k == Key.LEFT) return LEFT;
+		if (k == Key.RIGHT) return RIGHT;
+		if (k == Key.UP) return UP;
+		if (k == Key.DOWN) return DOWN;
+		return null;
+	}
 }
