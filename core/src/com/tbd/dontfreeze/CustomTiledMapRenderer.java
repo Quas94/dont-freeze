@@ -45,7 +45,6 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 	}
 
 	/**
-	 *
 	 * Renders all map layers that are not the Sprite layer.
 	 */
 	public void renderNonSpriteLayers() {
@@ -65,9 +64,17 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 	}
 
 	/**
-	 * Special method for rendering the Tiled Map for Don't Freeze!
+	 * Special method for rendering the sprite layer only.
 	 *
-	 * Renders the sprite layer only.
+	 * This method is called two times every frame.
+	 *
+	 * To start off, this method's first call, renders everything up to the player's Y position
+	 * Player sprite/animation is then rendered
+	 * Lastly, this method is called again, renders everything starting from the player's Y position (+1), and
+	 * finishing off the rest of the screen.
+	 *
+	 * This is so the player is rendered behind obstacles that are further down, but rendered in front of obstacles that
+	 * are further up.
 	 *
 	 * @param beforePlayer whether this is being rendered before the player has been rendered
 	 * @param playerY the Y coordinate of the player
@@ -84,6 +91,9 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 		endRender();
 	}
 
+	/**
+	 * Static constants for renderSpriteLayerInternal (see below for further explanation).
+	 */
 	private static final int MAX_SPRITE_WIDTH = 300;
 	private static final int MAX_SPRITE_HEIGHT = 300;
 
@@ -97,7 +107,8 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 	 *   the screen, resulting in the sprite instantly disappearing completely as soon as the origin pixel is offscreen.
 	 *   @TODO: this is a TEMPORARY solution: will not scale well when MAX_SPRITE_WIDTH/HEIGHT need to be very large
 	 *
-	 * - layers
+	 * - only the upper portion or lower portion of this layer will be rendered, depending on the value of beforePlayer.
+	 *   see documentation for renderSpriteLayer() for further information on this.
 	 *
 	 * @param layer The TiledMapTileLayer object this method is rendering.
 	 * @param beforePlayer Denotes which half of this layer is to be rendered: true means the first half, before the
@@ -124,18 +135,14 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 
 		int playerY = Math.round(playerYRaw);
 		if (beforePlayer) {
-			// we will be rendering up to player y pos
-			row1 = playerY;
+			row1 = playerY; // we will be rendering up to player y pos
 		} else {
-			// we will be rendering everything after player y pos
-			row2 = playerY + 1;
+			row2 = playerY + 1; // we will be rendering everything after player y pos
 		}
 
 		float y = row2 * layerTileHeight;
 		float xStart = col1 * layerTileWidth;
 		final float[] vertices = this.vertices;
-
-		// if(!beforePlayer)System.out.printf("col1 = %d, col2 = %d, row1 = %d, row2 = %d, y = %f, playerY = %d\n", col1, col2, row1, row2, y, playerY);
 
 		for (int row = row2; row >= row1; row--) {
 			float x = xStart;

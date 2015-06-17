@@ -68,6 +68,12 @@ public class WorldScreen extends AbstractScreen {
 	/** Entities in this World */
 	private Player player;
 
+	/**
+	 * Creates a new WorldScreen. Initialises all fields, initialises and sets an InputHandler.
+	 * Loads Tiled map data and initialises cameras.
+	 *
+	 * @param game
+	 */
 	public WorldScreen(Game game) {
 		super(game);
 
@@ -98,10 +104,20 @@ public class WorldScreen extends AbstractScreen {
 		this.player = new Player(this, inputHandler, winWidth / 2, height - (winHeight / 2));
 	}
 
+	/**
+	 * Returns the height of the map this screen currently contains.
+	 *
+	 * @return the height
+	 */
 	public int getHeight() {
 		return height;
 	}
 
+	/**
+	 * Returns the width of the map this screen currently contains.
+	 *
+	 * @return the width
+	 */
 	public int getWidth() {
 		return width;
 	}

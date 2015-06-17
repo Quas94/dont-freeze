@@ -27,10 +27,23 @@ public class InputHandler extends InputAdapter {
 		this.oldKey = Key.NO_KEY;
 	}
 
+	/**
+	 * Gets the key which has highest priority on deciding which Direction the Player will face
+	 *
+	 * @return the highest priority Key
+	 */
 	public Key getNewKey() {
 		return newKey;
 	}
 
+	/**
+	 * Checks whether a Key is currently being held down.
+	 *
+	 * This method ONLY works for keys that are a part of the Key enumeration class.
+	 *
+	 * @param key the key to check
+	 * @return whether the key is currently held down
+	 */
 	public boolean isKeyDown(Key key) {
 		int code = key.getCode();
 		if (keyStatus.containsKey(code)) {

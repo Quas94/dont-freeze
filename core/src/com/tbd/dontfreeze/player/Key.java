@@ -13,6 +13,8 @@ public enum Key {
 	DOWN(Keys.DOWN),
 	LEFT(Keys.LEFT),
 	RIGHT(Keys.RIGHT),
+
+	/** Enum representing no key. Currently only used in InputHandler's newKey and oldKey fields */
 	NO_KEY(-999999)
 	;
 
@@ -22,16 +24,13 @@ public enum Key {
 		this.code = code;
 	}
 
+	/**
+	 * Gets the keycode for this Key. The keycode values are copied over from the constant values in
+	 * com.badlogic.gdx.Input.Keys
+	 *
+	 * @return The keycode for this key
+	 */
 	public int getCode() {
 		return code;
-	}
-
-	public static Key getByCode(int code) {
-		for (Key k : values()) {
-			if (k.code == code) {
-				return k;
-			}
-		}
-		return null;
 	}
 }

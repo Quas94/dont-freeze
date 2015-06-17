@@ -1,6 +1,8 @@
 package com.tbd.dontfreeze;
 
 /**
+ * Base class for all Monsters.
+ *
  * Created by Quasar on 16/06/2015.
  */
 public class Monster implements Entity {
@@ -9,7 +11,6 @@ public class Monster implements Entity {
 	private float y;
 
 	public Monster() {
-
 	}
 
 	@Override

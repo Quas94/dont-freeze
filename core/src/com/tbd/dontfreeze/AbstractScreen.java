@@ -20,9 +20,22 @@ public abstract class AbstractScreen implements Screen {
 		this.game = game;
 	}
 
-	/** protected because the only place this will be called from will be from render() in subclasses */
-	protected abstract void update(float delta);
+	/**
+	 * Method in which all the game logic and transitions will be applied.
+	 *
+	 * This method should be called by render() in all subclasses.
+	 *
+	 * @param delta The amount of time that has passed since the last time this method was called
+	 */
+	public abstract void update(float delta);
 
+	/**
+	 * This method should firstly call update() first and pass along delta.
+	 *
+	 * Is responsible for rendering all screen elements (after calling update()).
+	 *
+	 * @param delta The amount of time that has passed since the last time this method was called
+	 */
 	@Override
 	public abstract void render(float delta);
 
