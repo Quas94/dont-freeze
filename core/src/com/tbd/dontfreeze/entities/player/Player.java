@@ -1,7 +1,6 @@
-package com.tbd.dontfreeze.player;
+package com.tbd.dontfreeze.entities.player;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -13,8 +12,10 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
-import com.tbd.dontfreeze.Entity;
+import com.tbd.dontfreeze.entities.AnimationSequence;
+import com.tbd.dontfreeze.entities.Entity;
 import com.tbd.dontfreeze.WorldScreen;
+import com.tbd.dontfreeze.entities.Direction;
 
 import java.util.ArrayList;
 
@@ -42,8 +43,7 @@ public class Player implements Entity {
 	private InputHandler inputHandler;
 
 	/** Animation related variables */
-	private float stateTime;
-	private Animation[] animations;
+	private AnimationSequence animation;
 
 	/** Heat (effective health) of the player */
 	private int heat;
@@ -69,26 +69,7 @@ public class Player implements Entity {
 		this.upmost = world.getHeight() - height;
 		this.rightmost = world.getWidth() - width;
 
-		this.stateTime = 0;
-		this.animations = new Animation[Direction.values().length];
-
-		ArrayList<Array<AtlasRegion>> framesList = new ArrayList<Array<AtlasRegion>>();
-		for (Direction d : Direction.values()) {
-			framesList.add(new Array<AtlasRegion>());
-		}
-		// load animations
-		TextureAtlas atlas = new TextureAtlas(Gdx.files.internal(PATH));
-		for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
-			// find corresponding direction of this region/frame
-			Direction frameDir = Direction.getByChar(region.name.charAt(0));
-			// add this region to the list
-			framesList.get(frameDir.getIdx()).add(region);
-		}
-		for (Direction d : Direction.values()) {
-			int i = d.getIdx();
-			animations[i] = new Animation(FRAME_RATE, framesList.get(i));
-			animations[i].setPlayMode(Animation.PlayMode.LOOP);
-		}
+		this.animation = new AnimationSequence(this, PATH, FRAME_RATE);
 	}
 
 	@Override
@@ -113,9 +94,13 @@ public class Player implements Entity {
 		return height;
 	}
 
+	public Direction getDirection() {
+		return dir;
+	}
+
 	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
 		// animation
-		stateTime += delta;
+		animation.update(delta);
 
 		// set direction
 		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
@@ -212,7 +197,7 @@ public class Player implements Entity {
 	}
 
 	public void render(SpriteBatch spriteBatch) {
-		TextureRegion frame = animations[dir.getIdx()].getKeyFrame(stateTime);
+		TextureRegion frame = animation.getCurrentFrame();
 		spriteBatch.draw(frame, x, y, width * SCALE, height * SCALE);
 	}
 }

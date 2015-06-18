@@ -1,4 +1,4 @@
-package com.tbd.dontfreeze;
+package com.tbd.dontfreeze.entities;
 
 /**
  * The Entity interface which is to be implemented by most game objects including the Player and Monster(s).
@@ -8,4 +8,6 @@ package com.tbd.dontfreeze;
 public interface Entity {
 
 	public void setLocation(float x, float y);
+
+	public Direction getDirection();
 }

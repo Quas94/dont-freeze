@@ -15,8 +15,8 @@ import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.math.Vector3;
-import com.tbd.dontfreeze.player.InputHandler;
-import com.tbd.dontfreeze.player.Player;
+import com.tbd.dontfreeze.entities.player.InputHandler;
+import com.tbd.dontfreeze.entities.player.Player;
 
 /**
  * In-game screen where the actual gameplaying will take place.
@@ -65,7 +65,7 @@ public class WorldScreen extends AbstractScreen {
 	private SpriteBatch spriteBatch;
 	private BitmapFont font;
 
-	/** Entities in this World */
+	/** Player in this World */
 	private Player player;
 
 	/**
@@ -134,7 +134,7 @@ public class WorldScreen extends AbstractScreen {
 			MapLayer collisionLayer = tiledMap.getLayers().get(COLLISION_LAYER);
 			MapObjects objects = collisionLayer.getObjects();
 
-			// update entities
+			// update player
 			player.update(DELTA_STEP, objects.getByType(PolygonMapObject.class), objects.getByType(RectangleMapObject.class));
 
 			// get player details
@@ -204,12 +204,6 @@ public class WorldScreen extends AbstractScreen {
 
 		// render foreground of tiled map
 		tiledRenderer.renderSpriteLayer(false, playerY);
-
-		// delete
-		spriteBatch.begin();
-		//player.render(spriteBatch);
-		spriteBatch.end();
-		// delete
 
 		// debug text
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);

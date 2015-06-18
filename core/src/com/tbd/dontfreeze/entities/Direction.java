@@ -1,4 +1,6 @@
-package com.tbd.dontfreeze.player;
+package com.tbd.dontfreeze.entities;
+
+import com.tbd.dontfreeze.entities.player.Key;
 
 /**
  * Enumeration of Directions that the Player can be facing. Linked to the corresponding Keys responsible for the
@@ -53,10 +55,11 @@ public enum Direction {
 	 * @return The corresponding direction, or null if none were found
 	 */
 	public static Direction getByKey(Key k) {
-		if (k == Key.LEFT) return LEFT;
-		if (k == Key.RIGHT) return RIGHT;
-		if (k == Key.UP) return UP;
-		if (k == Key.DOWN) return DOWN;
+		for (Direction dir : values()) {
+			if (dir.key == k) {
+				return dir;
+			}
+		}
 		return null;
 	}
 }

@@ -1,4 +1,4 @@
-package com.tbd.dontfreeze.player;
+package com.tbd.dontfreeze.entities.player;
 
 import com.badlogic.gdx.Input.Keys;
 
