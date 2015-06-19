@@ -16,6 +16,7 @@ import com.tbd.dontfreeze.entities.AnimationSequence;
 import com.tbd.dontfreeze.entities.Entity;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.Direction;
+import com.tbd.dontfreeze.entities.EntityUtil;
 
 import java.util.ArrayList;
 
@@ -43,7 +44,7 @@ public class Player implements Entity {
 	private InputHandler inputHandler;
 
 	/** Animation related variables */
-	private AnimationSequence animation;
+	private AnimationSequence animations;
 
 	/** Heat (effective health) of the player */
 	private int heat;
@@ -69,7 +70,7 @@ public class Player implements Entity {
 		this.upmost = world.getHeight() - height;
 		this.rightmost = world.getWidth() - width;
 
-		this.animation = new AnimationSequence(this, PATH, FRAME_RATE);
+		this.animations = new AnimationSequence(this, PATH, FRAME_RATE, Direction.values());
 	}
 
 	@Override
@@ -98,9 +99,10 @@ public class Player implements Entity {
 		return dir;
 	}
 
+	@Override
 	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
 		// animation
-		animation.update(delta);
+		animations.update(delta);
 
 		// set direction
 		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
@@ -126,6 +128,7 @@ public class Player implements Entity {
 		if (rightPressed) x += dist;
 		if (upPressed) y += dist;
 		if (downPressed) y -= dist;
+
 		// if it does collide, we need to separate x and y changes and test individually
 		if (collides(polys, rects)) {
 			// undo changes
@@ -172,32 +175,19 @@ public class Player implements Entity {
 		if (y >= upmost) y = upmost;
 	}
 
-	public boolean collides(Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
-		float collisionX = x + ((width - COLLISION_WIDTH) / 2);
-		Polygon polyBounds = new Polygon(new float[] { collisionX, y, collisionX + COLLISION_WIDTH, y, collisionX + COLLISION_WIDTH,
-				y + COLLISION_HEIGHT, collisionX, y + COLLISION_HEIGHT });
-		for (PolygonMapObject polyObj : polys) {
-			Polygon poly = polyObj.getPolygon();
-
-			if (Intersector.overlapConvexPolygons(polyBounds, poly)) {
-				return true;
-			}
-		}
-
-		Rectangle rectBounds =  new Rectangle(collisionX, y, COLLISION_WIDTH, COLLISION_HEIGHT);
-		for (RectangleMapObject rectObj : rects) {
-			Rectangle rect = rectObj.getRectangle();
-			if (Intersector.overlaps(rectBounds, rect)) {
-				// intersects!
-				return true;
-			}
-		}
-
-		return false;
+	public void render(SpriteBatch spriteBatch) {
+		TextureRegion frame = animations.getCurrentFrame();
+		spriteBatch.draw(frame, x, y);
 	}
 
-	public void render(SpriteBatch spriteBatch) {
-		TextureRegion frame = animation.getCurrentFrame();
-		spriteBatch.draw(frame, x, y, width * SCALE, height * SCALE);
+	/**
+	 * Internal method for Player for collision detection. Dynamically creates Rectangle and Polygon bounds and then
+	 * utilises EntityUtil's method to find an answer.
+	 *
+	 * @return whether or not this Player is colliding with any of the given PolygonMapObjects or RectangleMapObjects
+	 */
+	private boolean collides(Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+		float collisionX = x + ((width - COLLISION_WIDTH) / 2);
+		return EntityUtil.collides(collisionX, y, COLLISION_WIDTH, COLLISION_HEIGHT, polys, rects);
 	}
 }

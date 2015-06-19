@@ -15,8 +15,13 @@ import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
+import com.tbd.dontfreeze.entities.Entity;
+import com.tbd.dontfreeze.entities.Monster;
 import com.tbd.dontfreeze.entities.player.InputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
+
+import java.util.ArrayList;
 
 /**
  * In-game screen where the actual gameplaying will take place.
@@ -65,8 +70,9 @@ public class WorldScreen extends AbstractScreen {
 	private SpriteBatch spriteBatch;
 	private BitmapFont font;
 
-	/** Player in this World */
+	/** Player and other entities in this World */
 	private Player player;
+	private ArrayList<Monster> monsters;
 
 	/**
 	 * Creates a new WorldScreen. Initialises all fields, initialises and sets an InputHandler.
@@ -102,10 +108,13 @@ public class WorldScreen extends AbstractScreen {
 
 		// @TODO un-hardcode starting positions etc
 		this.player = new Player(this, inputHandler, winWidth / 2, height - (winHeight / 2));
+		this.monsters = new ArrayList<Monster>();
+		Monster snowMonster = new Monster(this, winWidth / 2 + 100, height - (winHeight / 2));
+		monsters.add(snowMonster);
 	}
 
 	/**
-	 * Returns the height of the map this screen currently contains.
+	 * Returns the height of the current map.
 	 *
 	 * @return the height
 	 */
@@ -114,7 +123,7 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	/**
-	 * Returns the width of the map this screen currently contains.
+	 * Returns the width of the current map.
 	 *
 	 * @return the width
 	 */
@@ -134,15 +143,20 @@ public class WorldScreen extends AbstractScreen {
 			MapLayer collisionLayer = tiledMap.getLayers().get(COLLISION_LAYER);
 			MapObjects objects = collisionLayer.getObjects();
 
-			// update player
-			player.update(DELTA_STEP, objects.getByType(PolygonMapObject.class), objects.getByType(RectangleMapObject.class));
+			// update player and monsters
+			Array<PolygonMapObject> polys = objects.getByType(PolygonMapObject.class);
+			Array<RectangleMapObject> rects = objects.getByType(RectangleMapObject.class);
+			player.update(DELTA_STEP, polys, rects);
+			for (Monster monster : monsters) {
+				monster.update(delta, polys, rects);
+			}
 
+			// now check camera
 			// get player details
 			float playerX = player.getX();
 			float playerY = player.getY();
 			int playerWidth = player.getWidth();
 			int playerHeight = player.getHeight();
-
 			// move camera depending on player position
 			float distSide = ((float) winWidth) / 4; // 20% of the window size
 			float distUd = ((float) winHeight) / 4; // also 20% of win size. ud = up/down
@@ -194,16 +208,21 @@ public class WorldScreen extends AbstractScreen {
 		float playerY = player.getY();
 		tiledRenderer.renderSpriteLayer(true, playerY);
 
-		// render game things
 		spriteBatch.setProjectionMatrix(camera.combined);
 		spriteBatch.begin();
-
 		player.render(spriteBatch);
-
 		spriteBatch.end();
 
 		// render foreground of tiled map
 		tiledRenderer.renderSpriteLayer(false, playerY);
+
+		// render monsters on top of everything (@TODO: prevent monsters from going near obstacles to circumvent need
+		// for layering of monster sprites with environment)
+		spriteBatch.begin();
+		for (Monster monster : monsters) {
+			monster.render(spriteBatch);
+		}
+		spriteBatch.end();
 
 		// debug text
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);

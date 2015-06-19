@@ -10,10 +10,11 @@ import com.tbd.dontfreeze.entities.player.Key;
  */
 public enum Direction {
 
-	UP('u', 0, Key.UP),
-	DOWN('d', 1, Key.DOWN),
-	LEFT('l', 2, Key.LEFT),
-	RIGHT('r', 3, Key.RIGHT);
+	LEFT('l', 0, Key.LEFT),
+	RIGHT('r', 1, Key.RIGHT),
+	UP('u', 2, Key.UP),
+	DOWN('d', 3, Key.DOWN),
+	;
 
 	private char ext;
 	private int idx;
@@ -57,6 +58,21 @@ public enum Direction {
 	public static Direction getByKey(Key k) {
 		for (Direction dir : values()) {
 			if (dir.key == k) {
+				return dir;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Finds the direction, given the index.
+	 *
+	 * @param i The corresponding index for the direction
+	 * @return The corresponding direction, or null if none were found
+	 */
+	public static Direction getByIndex(int i) {
+		for (Direction dir : values()) {
+			if (dir.idx == i) {
 				return dir;
 			}
 		}

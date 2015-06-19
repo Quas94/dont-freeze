@@ -26,8 +26,9 @@ public class AnimationSequence {
 	 * @param entity The Entity that this Animation is rendering for
 	 * @param file The file to pull this Animation's sprites from
 	 * @param frameRate How long to hold each frame for before moving onto next
+	 * @param directions An array containing all directions the Entity can face
 	 */
-	public AnimationSequence(Entity entity, String file, float frameRate) {
+	public AnimationSequence(Entity entity, String file, float frameRate, Direction[] directions) {
 		this.entity = entity;
 		this.stateTime = 0;
 		this.animations = new Animation[Direction.values().length];
@@ -44,7 +45,7 @@ public class AnimationSequence {
 			// add this region to the list
 			framesList.get(frameDir.getIdx()).add(region);
 		}
-		for (Direction d : Direction.values()) {
+		for (Direction d : directions) {
 			int i = d.getIdx();
 			animations[i] = new Animation(frameRate, framesList.get(i));
 			animations[i].setPlayMode(Animation.PlayMode.LOOP);
@@ -52,6 +53,11 @@ public class AnimationSequence {
 	}
 
 	public TextureRegion getCurrentFrame() {
+		try {
+			TextureRegion r = animations[entity.getDirection().getIdx()].getKeyFrame(stateTime);
+		} catch (NullPointerException npe) {
+			System.out.println("hit NPE, direction is " + entity.getDirection());
+		}
 		return animations[entity.getDirection().getIdx()].getKeyFrame(stateTime);
 	}
 
