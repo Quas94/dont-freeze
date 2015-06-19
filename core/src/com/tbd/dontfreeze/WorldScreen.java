@@ -2,11 +2,14 @@ package com.tbd.dontfreeze;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.MapProperties;
@@ -14,9 +17,10 @@ import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
-import com.tbd.dontfreeze.entities.Entity;
+import com.tbd.dontfreeze.entities.Collectable;
 import com.tbd.dontfreeze.entities.Monster;
 import com.tbd.dontfreeze.entities.player.InputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
@@ -44,6 +48,10 @@ public class WorldScreen extends AbstractScreen {
 
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
+
+	/** Debugging settings/tools */
+	private boolean debugMode;
+	private ShapeRenderer debugRenderer;
 
 	/** Input handling */
 	private InputHandler inputHandler;
@@ -73,15 +81,19 @@ public class WorldScreen extends AbstractScreen {
 	/** Player and other entities in this World */
 	private Player player;
 	private ArrayList<Monster> monsters;
+	private ArrayList<Collectable> collectables; // @TODO: there should be a better data structure for this than ALs
 
 	/**
 	 * Creates a new WorldScreen. Initialises all fields, initialises and sets an InputHandler.
 	 * Loads Tiled map data and initialises cameras.
 	 *
-	 * @param game
+	 * @param game the Game object that this screen belongs to
 	 */
 	public WorldScreen(Game game) {
 		super(game);
+
+		this.debugMode = false;
+		this.debugRenderer = new ShapeRenderer();
 
 		this.inputHandler = new InputHandler();
 		Gdx.input.setInputProcessor(inputHandler);
@@ -109,8 +121,11 @@ public class WorldScreen extends AbstractScreen {
 		// @TODO un-hardcode starting positions etc
 		this.player = new Player(this, inputHandler, winWidth / 2, height - (winHeight / 2));
 		this.monsters = new ArrayList<Monster>();
+		this.collectables = new ArrayList<Collectable>();
 		Monster snowMonster = new Monster(this, winWidth / 2 + 100, height - (winHeight / 2));
 		monsters.add(snowMonster);
+		Collectable fire = new Collectable(this, winWidth / 2 + 50, height - (winHeight / 2) - 100);
+		collectables.add(fire);
 	}
 
 	/**
@@ -133,6 +148,11 @@ public class WorldScreen extends AbstractScreen {
 
 	@Override
 	public void update(float delta) {
+		// debug toggle
+		if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+			debugMode = !debugMode;
+		}
+
 		// increment accumulator, this is the variable we'll base all our stepping things on now
 		deltaAccumulator += delta;
 		while (deltaAccumulator >= DELTA_STEP) {
@@ -150,6 +170,11 @@ public class WorldScreen extends AbstractScreen {
 			for (Monster monster : monsters) {
 				monster.update(delta, polys, rects);
 			}
+			for (Collectable collectable : collectables) {
+				collectable.update(delta, polys, rects);
+			}
+			// update player collision stuff last, after both player and entities have had a chance to move
+			player.updateCollision(monsters, collectables);
 
 			// now check camera
 			// get player details
@@ -217,19 +242,42 @@ public class WorldScreen extends AbstractScreen {
 		tiledRenderer.renderSpriteLayer(false, playerY);
 
 		// render monsters on top of everything (@TODO: prevent monsters from going near obstacles to circumvent need
+		// render everything else as well @TODO render monsters and obstacles interchangeably, sort by y value
 		// for layering of monster sprites with environment)
 		spriteBatch.begin();
 		for (Monster monster : monsters) {
 			monster.render(spriteBatch);
 		}
+		for (Collectable collectable : collectables) {
+			collectable.render(spriteBatch);
+		}
 		spriteBatch.end();
 
-		// debug text
+		// debug stuff
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);
 		spriteBatch.begin();
 		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
 		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
+		font.draw(spriteBatch, "Fires: " + player.getFireCount(), 20, winHeight - 50);
 		spriteBatch.end();
+		// draw hitboxes and stuff here
+		if (debugMode) {
+			debugRenderer.setProjectionMatrix(camera.combined);
+			debugRenderer.setColor(Color.BLACK);
+			debugRenderer.begin(ShapeType.Line);
+			// draw player hitboxes
+			Rectangle r = player.getCollisionBounds();
+			debugRenderer.rect(r.x, r.y, r.width, r.height);
+			for (Monster m : monsters) {
+				r = m.getCollisionBounds();
+				debugRenderer.rect(r.x, r.y, r.width, r.height);
+			}
+			for (Collectable c : collectables) {
+				r = c.getCollisionBounds();
+				debugRenderer.rect(r.x, r.y, r.width, r.height);
+			}
+			debugRenderer.end();
+		}
 	}
 
 	@Override

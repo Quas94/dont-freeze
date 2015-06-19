@@ -34,7 +34,7 @@ public class AnimationSequence {
 		this.animations = new Animation[Direction.values().length];
 
 		ArrayList<Array<TextureAtlas.AtlasRegion>> framesList = new ArrayList<Array<TextureAtlas.AtlasRegion>>();
-		for (Direction d : Direction.values()) {
+		for (int i = 0; i < Direction.values().length; i++) {
 			framesList.add(new Array<TextureAtlas.AtlasRegion>());
 		}
 		// load animation
@@ -42,8 +42,14 @@ public class AnimationSequence {
 		for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
 			// find corresponding direction of this region/frame
 			Direction frameDir = Direction.getByChar(region.name.charAt(0));
-			// add this region to the list
-			framesList.get(frameDir.getIdx()).add(region);
+			if (frameDir == null) {
+				// this animation sequence is probably for a collectable so no direction
+				// just add to index 0
+				framesList.get(0).add(region);
+			} else {
+				// otherwise add this region to the list using direction index
+				framesList.get(frameDir.getIdx()).add(region);
+			}
 		}
 		for (Direction d : directions) {
 			int i = d.getIdx();
@@ -53,11 +59,6 @@ public class AnimationSequence {
 	}
 
 	public TextureRegion getCurrentFrame() {
-		try {
-			TextureRegion r = animations[entity.getDirection().getIdx()].getKeyFrame(stateTime);
-		} catch (NullPointerException npe) {
-			System.out.println("hit NPE, direction is " + entity.getDirection());
-		}
 		return animations[entity.getDirection().getIdx()].getKeyFrame(stateTime);
 	}
 

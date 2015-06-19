@@ -12,13 +12,11 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
-import com.tbd.dontfreeze.entities.AnimationSequence;
-import com.tbd.dontfreeze.entities.Entity;
+import com.tbd.dontfreeze.entities.*;
 import com.tbd.dontfreeze.WorldScreen;
-import com.tbd.dontfreeze.entities.Direction;
-import com.tbd.dontfreeze.entities.EntityUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 
 /**
@@ -46,8 +44,9 @@ public class Player implements Entity {
 	/** Animation related variables */
 	private AnimationSequence animations;
 
-	/** Heat (effective health) of the player */
+	/** Player stats */
 	private int heat;
+	private int fires;
 
 	/** Position and dimensions of the player */
 	private Direction dir;
@@ -64,39 +63,52 @@ public class Player implements Entity {
 		this.inputHandler = inputHandler;
 
 		this.dir = Direction.DOWN;
-		setLocation(x, y);
+		this.x = x;
+		this.y = y;
 		this.width = SPRITE_WIDTH;
 		this.height = SPRITE_HEIGHT;
 		this.upmost = world.getHeight() - height;
 		this.rightmost = world.getWidth() - width;
 
+		this.heat = 0;
+		this.fires = 0;
+
 		this.animations = new AnimationSequence(this, PATH, FRAME_RATE, Direction.values());
 	}
 
-	@Override
-	public void setLocation(float x, float y) {
-		this.x = x;
-		this.y = y;
+	public int getFireCount() {
+		return fires;
 	}
 
+	@Override
 	public float getX() {
 		return x;
 	}
 
+	@Override
 	public float getY() {
 		return y;
 	}
 
+	@Override
 	public int getWidth() {
 		return width;
 	}
 
+	@Override
 	public int getHeight() {
 		return height;
 	}
 
+	@Override
 	public Direction getDirection() {
 		return dir;
+	}
+
+	@Override
+	public Rectangle getCollisionBounds() {
+		float collisionX = x + ((width - COLLISION_WIDTH) / 2);
+		return new Rectangle(collisionX, y, COLLISION_WIDTH, COLLISION_HEIGHT);
 	}
 
 	@Override
@@ -130,7 +142,7 @@ public class Player implements Entity {
 		if (downPressed) y -= dist;
 
 		// if it does collide, we need to separate x and y changes and test individually
-		if (collides(polys, rects)) {
+		if (EntityUtil.collidesTerrain(this, polys, rects)) {
 			// undo changes
 			x = oldX;
 			y = oldY;
@@ -140,7 +152,7 @@ public class Player implements Entity {
 			if (leftPressed) x -= dist;
 			if (rightPressed) x += dist;
 			// check for collisions after updating x
-			if (collides(polys, rects)) {
+			if (EntityUtil.collidesTerrain(this, polys, rects)) {
 				leftPressed = false;
 				rightPressed = false;
 			}
@@ -150,7 +162,7 @@ public class Player implements Entity {
 			if (upPressed) y += dist;
 			if (downPressed) y -= dist;
 			// check for collisions after updating y
-			if (collides(polys, rects)) {
+			if (EntityUtil.collidesTerrain(this, polys, rects)) {
 				upPressed = false;
 				downPressed = false;
 			}
@@ -175,19 +187,24 @@ public class Player implements Entity {
 		if (y >= upmost) y = upmost;
 	}
 
+	public void updateCollision(ArrayList<Monster> monsters, ArrayList<Collectable> collectables) {
+		// @TODO: collision with monsters, as part of the combat system
+
+		// process collectables collision
+		for (int i = 0; i < collectables.size(); i++) {
+			Collectable c = collectables.get(i);
+			if (EntityUtil.collidesEntity(this, c)) {
+				// remove from the map, because we picked it up
+				collectables.remove(i);
+				// increment our collected counter
+				fires++; // increment fire count
+			}
+		}
+	}
+
+	@Override
 	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animations.getCurrentFrame();
 		spriteBatch.draw(frame, x, y);
-	}
-
-	/**
-	 * Internal method for Player for collision detection. Dynamically creates Rectangle and Polygon bounds and then
-	 * utilises EntityUtil's method to find an answer.
-	 *
-	 * @return whether or not this Player is colliding with any of the given PolygonMapObjects or RectangleMapObjects
-	 */
-	private boolean collides(Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
-		float collisionX = x + ((width - COLLISION_WIDTH) / 2);
-		return EntityUtil.collides(collisionX, y, COLLISION_WIDTH, COLLISION_HEIGHT, polys, rects);
 	}
 }

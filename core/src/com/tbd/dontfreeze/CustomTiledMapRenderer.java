@@ -109,6 +109,8 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 	 *
 	 * - only the upper portion or lower portion of this layer will be rendered, depending on the value of beforePlayer.
 	 *   see documentation for renderSpriteLayer() for further information on this.
+	 *   @TODO: there seems to be an off-by-one-pixel error somewhere, as lines seem to get a tiny bit darker or lighter
+	 *          depending on the Y coordinate of the player
 	 *
 	 * @param layer The TiledMapTileLayer object this method is rendering.
 	 * @param beforePlayer Denotes which half of this layer is to be rendered: true means the first half, before the

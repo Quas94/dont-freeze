@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.WorldScreen;
 
@@ -31,6 +32,8 @@ public class Monster implements Entity {
 
 	private float x;
 	private float y;
+	private int width;
+	private int height;
 	private Direction dir;
 	private AnimationSequence animations;
 
@@ -44,6 +47,8 @@ public class Monster implements Entity {
 
 		this.x = x;
 		this.y = y;
+		this.width = SPRITE_WIDTH;
+		this.height = SPRITE_HEIGHT;
 
 		this.dir = Direction.LEFT;
 		// monsters can only face LEFT or RIGHT for now
@@ -56,9 +61,23 @@ public class Monster implements Entity {
 	}
 
 	@Override
-	public void setLocation(float x, float y) {
-		this.x = x;
-		this.y = y;
+	public float getX() {
+		return x;
+	}
+
+	@Override
+	public float getY() {
+		return y;
+	}
+
+	@Override
+	public int getWidth() {
+		return width;
+	}
+
+	@Override
+	public int getHeight() {
+		return height;
 	}
 
 	@Override
@@ -69,6 +88,11 @@ public class Monster implements Entity {
 		if (dir == Direction.DOWN) return Direction.RIGHT;
 
 		return dir;
+	}
+
+	@Override
+	public Rectangle getCollisionBounds() {
+		return new Rectangle(x, y, width, height);
 	}
 
 	@Override
@@ -97,7 +121,7 @@ public class Monster implements Entity {
 			else if (dir == Direction.DOWN) y -= dist;
 
 			// test collision
-			boolean collision = EntityUtil.collides(x, y, SPRITE_WIDTH, SPRITE_HEIGHT, polys, rects);
+			boolean collision = EntityUtil.collidesTerrain(this, polys, rects);
 			boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
 			if (collision || !inBounds) {
 				// if there is a collision, we undo coordinate change and set moving to false
