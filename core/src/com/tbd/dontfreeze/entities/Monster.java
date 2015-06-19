@@ -82,11 +82,6 @@ public class Monster implements Entity {
 
 	@Override
 	public Direction getDirection() {
-		// @TODO: implement up/down directions for monsters (need alex's sprites first, though) so that the following
-		// hacky code is no longer required
-		if (dir == Direction.UP) return Direction.LEFT;
-		if (dir == Direction.DOWN) return Direction.RIGHT;
-
 		return dir;
 	}
 
@@ -138,7 +133,13 @@ public class Monster implements Entity {
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
-		TextureRegion frame = animations.getCurrentFrame();
+		// @TODO: implement up/down directions for monsters (need alex's sprites first, though) so that the following
+		// 3 lines of hacky code is no longer required
+		Direction tempDir = dir;
+		if (tempDir == Direction.UP) tempDir = Direction.LEFT;
+		else if (tempDir == Direction.DOWN) tempDir = Direction.RIGHT;
+
+		TextureRegion frame = animations.getCurrentFrame(tempDir);
 		spriteBatch.draw(frame, x, y);
 	}
 }

@@ -34,8 +34,10 @@ public class Player implements Entity {
 	private static final String PATH = "assets/player.atlas";
 	private static final int SPEED = 120;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
-	private static final float SCALE = 1F;
+	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
+	private static final int FIREBALL_RANGE = 500; // how far this Player's fireball can travel before dissipating
+	private static final int ATTACK_DELAY_MS = 500; // time in milliseconds between attacks
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
@@ -58,6 +60,9 @@ public class Player implements Entity {
 	private float rightmost;
 	private float upmost;
 
+	/** Attacking and skillz */
+	private long lastAttack; // last attack (BOTH melee and special)
+
 	public Player(WorldScreen world, InputHandler inputHandler, float x, float y) {
 		this.world = world;
 		this.inputHandler = inputHandler;
@@ -74,6 +79,8 @@ public class Player implements Entity {
 		this.fires = 0;
 
 		this.animations = new AnimationSequence(this, PATH, FRAME_RATE, Direction.values());
+
+		this.lastAttack = 0;
 	}
 
 	public int getFireCount() {
@@ -116,15 +123,19 @@ public class Player implements Entity {
 		// animation
 		animations.update(delta);
 
-		// set direction
-		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
-		if (newDir != null) dir = newDir;
-
-		// movement
+		// key presses
 		boolean leftPressed = inputHandler.isKeyDown(Key.LEFT);
 		boolean rightPressed = inputHandler.isKeyDown(Key.RIGHT);
 		boolean upPressed = inputHandler.isKeyDown(Key.UP);
 		boolean downPressed = inputHandler.isKeyDown(Key.DOWN);
+		boolean attackPressed = inputHandler.isKeyDown(Key.ATTACK);
+		boolean specialAttackPressed = inputHandler.isKeyDown(Key.SPECIAL);
+
+		// set direction
+		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
+		if (newDir != null) dir = newDir;
+
+		// movement\
 		float dist = delta * SPEED;
 
 		float oldX = x;
@@ -185,10 +196,26 @@ public class Player implements Entity {
 		if (x >= rightmost) x = rightmost;
 		if (y < 0) y = 0;
 		if (y >= upmost) y = upmost;
+
+		// attacking
+		if (attackPressed || specialAttackPressed) {
+			long currentTime = System.currentTimeMillis();
+			if (currentTime - lastAttack > ATTACK_DELAY_MS) {
+				lastAttack = currentTime; // update lastAttack to now, since we're gonna perform an attack now
+				if (attackPressed) { // melee attack takes priority if both keys pressed at once... no real reason but eh
+					// @TODO melee attack
+				} else if (specialAttackPressed) {
+					// special attack: fireball!
+					Projectile fireball = new Projectile(x, y, dir, FIREBALL_RANGE);
+					world.addProjectile(fireball);
+				}
+			}
+		}
 	}
 
-	public void updateCollision(ArrayList<Monster> monsters, ArrayList<Collectable> collectables) {
+	public void updateCollision(ArrayList<Monster> monsters, ArrayList<Collectable> collectables, ArrayList<Projectile> projectiles) {
 		// @TODO: collision with monsters, as part of the combat system
+		// @TODO: projectile collision with player
 
 		// process collectables collision
 		for (int i = 0; i < collectables.size(); i++) {
@@ -204,7 +231,7 @@ public class Player implements Entity {
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
-		TextureRegion frame = animations.getCurrentFrame();
+		TextureRegion frame = animations.getCurrentFrame(dir);
 		spriteBatch.draw(frame, x, y);
 	}
 }

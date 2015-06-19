@@ -22,6 +22,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.entities.Collectable;
 import com.tbd.dontfreeze.entities.Monster;
+import com.tbd.dontfreeze.entities.Projectile;
 import com.tbd.dontfreeze.entities.player.InputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
 
@@ -82,6 +83,7 @@ public class WorldScreen extends AbstractScreen {
 	private Player player;
 	private ArrayList<Monster> monsters;
 	private ArrayList<Collectable> collectables; // @TODO: there should be a better data structure for this than ALs
+	private ArrayList<Projectile> projectiles;
 
 	/**
 	 * Creates a new WorldScreen. Initialises all fields, initialises and sets an InputHandler.
@@ -122,6 +124,7 @@ public class WorldScreen extends AbstractScreen {
 		this.player = new Player(this, inputHandler, winWidth / 2, height - (winHeight / 2));
 		this.monsters = new ArrayList<Monster>();
 		this.collectables = new ArrayList<Collectable>();
+		this.projectiles = new ArrayList<Projectile>();
 		Monster snowMonster = new Monster(this, winWidth / 2 + 100, height - (winHeight / 2));
 		monsters.add(snowMonster);
 		Collectable fire = new Collectable(this, winWidth / 2 + 50, height - (winHeight / 2) - 100);
@@ -144,6 +147,15 @@ public class WorldScreen extends AbstractScreen {
 	 */
 	public int getWidth() {
 		return width;
+	}
+
+	/**
+	 * Adds a given Projectile to this world's current list of Projectiles.
+	 *
+	 * @param projectile The projectile to add
+	 */
+	public void addProjectile(Projectile projectile) {
+		projectiles.add(projectile);
 	}
 
 	@Override
@@ -173,8 +185,12 @@ public class WorldScreen extends AbstractScreen {
 			for (Collectable collectable : collectables) {
 				collectable.update(delta, polys, rects);
 			}
+			for (Projectile projectile : projectiles) {
+				projectile.update(delta, polys, rects);
+			}
 			// update player collision stuff last, after both player and entities have had a chance to move
-			player.updateCollision(monsters, collectables);
+			player.updateCollision(monsters, collectables, projectiles);
+			// @TODO projectile collision with monsters
 
 			// now check camera
 			// get player details
@@ -251,6 +267,9 @@ public class WorldScreen extends AbstractScreen {
 		for (Collectable collectable : collectables) {
 			collectable.render(spriteBatch);
 		}
+		for (Projectile projectile : projectiles) {
+			projectile.render(spriteBatch);
+		}
 		spriteBatch.end();
 
 		// debug stuff
@@ -274,6 +293,10 @@ public class WorldScreen extends AbstractScreen {
 			}
 			for (Collectable c : collectables) {
 				r = c.getCollisionBounds();
+				debugRenderer.rect(r.x, r.y, r.width, r.height);
+			}
+			for (Projectile p : projectiles) {
+				r = p.getCollisionBounds();
 				debugRenderer.rect(r.x, r.y, r.width, r.height);
 			}
 			debugRenderer.end();

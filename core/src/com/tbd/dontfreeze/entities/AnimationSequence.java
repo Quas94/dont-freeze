@@ -58,8 +58,8 @@ public class AnimationSequence {
 		}
 	}
 
-	public TextureRegion getCurrentFrame() {
-		return animations[entity.getDirection().getIdx()].getKeyFrame(stateTime);
+	public TextureRegion getCurrentFrame(Direction dir) {
+		return animations[dir.getIdx()].getKeyFrame(stateTime);
 	}
 
 	public void update(float delta) {

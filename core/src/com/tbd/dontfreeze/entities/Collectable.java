@@ -85,7 +85,7 @@ public class Collectable implements Entity {
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
-		TextureRegion frame = animation.getCurrentFrame();
+		TextureRegion frame = animation.getCurrentFrame(getDirection());
 		spriteBatch.draw(frame, x, y);
 	}
 }

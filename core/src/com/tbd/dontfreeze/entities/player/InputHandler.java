@@ -16,15 +16,15 @@ public class InputHandler extends InputAdapter {
 	/** <keycode, true for down/false for up> */
 	private HashMap<Integer, Boolean> keyStatus;
 
-	/** When two keys are down, this differentiates between which is the more recent keypress */
-	private Key newKey;
-	private Key oldKey;
+	/** When two direction keys are down simultaneously, this differentiates between which is the more recent keypress */
+	private Key dirNewKey;
+	private Key dirOldKey;
 
 	public InputHandler() {
 		this.keyStatus = new HashMap<Integer, Boolean>();
 
-		this.newKey = Key.NO_KEY;
-		this.oldKey = Key.NO_KEY;
+		this.dirNewKey = Key.NO_KEY;
+		this.dirOldKey = Key.NO_KEY;
 	}
 
 	/**
@@ -33,7 +33,7 @@ public class InputHandler extends InputAdapter {
 	 * @return the highest priority Key
 	 */
 	public Key getNewKey() {
-		return newKey;
+		return dirNewKey;
 	}
 
 	/**
@@ -65,25 +65,28 @@ public class InputHandler extends InputAdapter {
 	private boolean setKeyDown(int code, boolean down) {
 		for (Key k : Key.values()) {
 			if (k.getCode() == code) {
-				// set order
-				int newCode = newKey.getCode();
-				int oldCode = oldKey.getCode();
-				if (down) { // pressing down
-					if (newCode != code && oldCode != code) { // completely new key
-						oldKey = newKey;
-						newKey = k;
-					}
-					// else do nothing because this shouldn't happen - due to release
-				} else { // releasing
-					if (newCode == code) {
-						newKey = oldKey;
-						oldKey = Key.NO_KEY;
-					} else if (oldCode == code) {
-						oldKey = Key.NO_KEY;
+				// if movement key, relevant to dirOld/dirNew
+				if (Key.isMovementKey(k)) {
+					// set order
+					int newCode = dirNewKey.getCode();
+					int oldCode = dirOldKey.getCode();
+					if (down) { // pressing down
+						if (newCode != code && oldCode != code) { // completely new key
+							dirOldKey = dirNewKey;
+							dirNewKey = k;
+						}
+						// else do nothing because this shouldn't happen - due to release
+					} else { // releasing
+						if (newCode == code) {
+							dirNewKey = dirOldKey;
+							dirOldKey = Key.NO_KEY;
+						} else if (oldCode == code) {
+							dirOldKey = Key.NO_KEY;
+						}
 					}
 				}
 
-				// update status
+				// update status of the key
 				keyStatus.put(code, down);
 				return true;
 			}
