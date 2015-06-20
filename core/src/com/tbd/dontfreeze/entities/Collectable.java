@@ -40,7 +40,7 @@ public class Collectable implements Entity {
 		this.height = SPRITE_HEIGHT;
 
 		// getDirection() returns whatever direction is index 0
-		this.animation = new AnimationSequence(this, FILE, FRAME_RATE, new Direction[] { getDirection() });
+		this.animation = new AnimationSequence(AnimationSequence.UNI_DIR, this, FILE, FRAME_RATE);
 	}
 
 	@Override

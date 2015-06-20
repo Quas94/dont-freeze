@@ -36,7 +36,7 @@ public class Player implements Entity {
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
-	private static final int FIREBALL_RANGE = 500; // how far this Player's fireball can travel before dissipating
+	private static final int FIREBALL_RANGE = 300; // how far this Player's fireball can travel before dissipating
 	private static final int ATTACK_DELAY_MS = 500; // time in milliseconds between attacks
 
 	/** Link to the World this player is currently in */
@@ -78,7 +78,7 @@ public class Player implements Entity {
 		this.heat = 0;
 		this.fires = 0;
 
-		this.animations = new AnimationSequence(this, PATH, FRAME_RATE, Direction.values());
+		this.animations = new AnimationSequence(AnimationSequence.MULTI_DIR, this, PATH, FRAME_RATE);
 
 		this.lastAttack = 0;
 	}
@@ -135,7 +135,7 @@ public class Player implements Entity {
 		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
 		if (newDir != null) dir = newDir;
 
-		// movement\
+		// movement
 		float dist = delta * SPEED;
 
 		float oldX = x;
@@ -202,12 +202,11 @@ public class Player implements Entity {
 			long currentTime = System.currentTimeMillis();
 			if (currentTime - lastAttack > ATTACK_DELAY_MS) {
 				lastAttack = currentTime; // update lastAttack to now, since we're gonna perform an attack now
-				if (attackPressed) { // melee attack takes priority if both keys pressed at once... no real reason but eh
+				if (attackPressed) {
 					// @TODO melee attack
 				} else if (specialAttackPressed) {
-					// special attack: fireball!
-					Projectile fireball = new Projectile(x, y, dir, FIREBALL_RANGE);
-					world.addProjectile(fireball);
+					// launch special attack
+					specialAttack();
 				}
 			}
 		}
@@ -224,7 +223,7 @@ public class Player implements Entity {
 				// remove from the map, because we picked it up
 				collectables.remove(i);
 				// increment our collected counter
-				fires++; // increment fire count
+				fires++;
 			}
 		}
 	}
@@ -233,5 +232,28 @@ public class Player implements Entity {
 	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animations.getCurrentFrame(dir);
 		spriteBatch.draw(frame, x, y);
+	}
+
+	/**
+	 * Launches the Player's special attack (a fireball) and adds it to the game world.
+	 */
+	private void specialAttack() {
+		// create fireball object first with incorrect x, y values - just so we can pull the width and height
+		Projectile fireball = new Projectile(x, y, dir, FIREBALL_RANGE);
+		float fx = x;
+		float fy = y;
+		float fw = fireball.getWidth();
+		float fh = fireball.getHeight();
+		if (dir == Direction.RIGHT || dir == Direction.LEFT) {
+			fx -= 5; // shift towards player a bit more
+			fy += height / 3;
+			// don't need x modifier for LEFT because TextureRegion.flip seems to handle that
+		} else if (dir == Direction.UP) {
+
+		} else if (dir == Direction.DOWN) {
+
+		}
+		fireball.setPosition(fx, fy);
+		world.addProjectile(fireball);
 	}
 }

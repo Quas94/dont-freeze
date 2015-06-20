@@ -20,7 +20,7 @@ public class Projectile implements Entity {
 	private static final String FILE = "assets/fireball.atlas";
 	private static final float FRAME_RATE = 0.1F;
 
-	private static final int SPEED = 200;
+	private static final int SPEED = 150;
 
 	private float x;
 	private float y;
@@ -49,7 +49,7 @@ public class Projectile implements Entity {
 		this.dir = dir;
 
 		// only 1 direction for projectiles in the Animation sequence
-		this.animation = new AnimationSequence(this, FILE, FRAME_RATE, new Direction[] { Direction.getByIndex(0) });
+		this.animation = new AnimationSequence(AnimationSequence.MULTI_DIR_CLONE, this, FILE, FRAME_RATE);
 
 		this.range = range;
 	}
@@ -70,6 +70,11 @@ public class Projectile implements Entity {
 	@Override
 	public float getY() {
 		return y;
+	}
+
+	public void setPosition(float x, float y) {
+		this.x = x;
+		this.y = y;
 	}
 
 	@Override
@@ -94,6 +99,9 @@ public class Projectile implements Entity {
 
 	@Override
 	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+		// update animation
+		animation.update(delta);
+
 		// update range
 		float dist = delta * SPEED;
 		range -= dist;
@@ -109,7 +117,19 @@ public class Projectile implements Entity {
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
-		TextureRegion frame = animation.getCurrentFrame(Direction.getByIndex(0));
-		spriteBatch.draw(frame, x, y);
+		if (dir == Direction.LEFT || dir == Direction.RIGHT) {
+			// no rotation required for left/right
+			TextureRegion frame = animation.getCurrentFrame(dir);
+			spriteBatch.draw(frame, x, y);
+		} else {
+			// up/down : need sprite rotation
+			Direction rotateFrom;
+			if (dir == Direction.UP) rotateFrom = Direction.LEFT; // up = rotate 90 deg anticlockwise from left
+			else rotateFrom = Direction.RIGHT; // down = rotate 90 deg anticlockwise from right
+			TextureRegion frame = animation.getCurrentFrame(rotateFrom);
+			float dy = y;
+			if (dir == Direction.DOWN) dy += 30; // direction down projectile starting y needs a little adjustment
+			spriteBatch.draw(frame, x, dy, width / 2, height / 2, width, height, 1, 1, -90);
+		}
 	}
 }

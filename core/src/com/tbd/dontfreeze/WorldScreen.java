@@ -27,6 +27,7 @@ import com.tbd.dontfreeze.entities.player.InputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * In-game screen where the actual gameplaying will take place.
@@ -185,8 +186,13 @@ public class WorldScreen extends AbstractScreen {
 			for (Collectable collectable : collectables) {
 				collectable.update(delta, polys, rects);
 			}
-			for (Projectile projectile : projectiles) {
-				projectile.update(delta, polys, rects);
+			Iterator<Projectile> projIterator = projectiles.iterator();
+			while (projIterator.hasNext()) {
+				Projectile projectile = projIterator.next();
+				projectile.update(delta, polys, rects); // update the projectile
+				if (projectile.isExpired()) {
+					projIterator.remove(); // remove the expired projectile from the list
+				}
 			}
 			// update player collision stuff last, after both player and entities have had a chance to move
 			player.updateCollision(monsters, collectables, projectiles);
@@ -260,6 +266,8 @@ public class WorldScreen extends AbstractScreen {
 		// render monsters on top of everything (@TODO: prevent monsters from going near obstacles to circumvent need
 		// render everything else as well @TODO render monsters and obstacles interchangeably, sort by y value
 		// for layering of monster sprites with environment)
+		// @TODO layer projectiles as well - this is gonna be a bit special since the down projectile should be on top
+		// of the player... but it won't be (unless it's made to be very tall? that's an idea)
 		spriteBatch.begin();
 		for (Monster monster : monsters) {
 			monster.render(spriteBatch);
@@ -278,6 +286,7 @@ public class WorldScreen extends AbstractScreen {
 		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
 		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
 		font.draw(spriteBatch, "Fires: " + player.getFireCount(), 20, winHeight - 50);
+		font.draw(spriteBatch, "# Projectiles: " + projectiles.size(), 20, winHeight - 65);
 		spriteBatch.end();
 		// draw hitboxes and stuff here
 		if (debugMode) {

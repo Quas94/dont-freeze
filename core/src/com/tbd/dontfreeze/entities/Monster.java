@@ -53,7 +53,7 @@ public class Monster implements Entity {
 		this.dir = Direction.LEFT;
 		// monsters can only face LEFT or RIGHT for now
 		Direction[] dirs = new Direction[] { Direction.LEFT, Direction.RIGHT };
-		this.animations = new AnimationSequence(this, PATH, FRAME_RATE, dirs);
+		this.animations = new AnimationSequence(AnimationSequence.MULTI_DIR, this, PATH, FRAME_RATE);
 
 		this.random = new Random();
 		this.moving = false;
