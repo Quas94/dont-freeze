@@ -22,6 +22,8 @@ public class Projectile implements Entity {
 	private static final int SPRITE_HEIGHT = 60;
 	private static final String FILE = "assets/fireball.atlas";
 	private static final float FRAME_RATE = 0.1F;
+	/** How long it takes for a fireball to expire and completely dissipate */
+	private static final float EXPIRE_TIME = 0.5F;
 
 	private static final int SPEED = 150;
 
@@ -33,6 +35,8 @@ public class Projectile implements Entity {
 	private Action action;
 
 	private AnimationManager animation;
+	/** How long this Projectile has been in Action.EXPIRING state for */
+	private float expireTime;
 
 	/** How much longer this projectile can travel before it expires */
 	private float range;
@@ -59,14 +63,6 @@ public class Projectile implements Entity {
 		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, FILE, FRAME_RATE);
 
 		this.range = range;
-	}
-
-	/**
-	 * Whether or not this projectile has gone the entire length of its maximum range.
-	 * @return whether this projectile has expired
-	 */
-	public boolean isExpired() {
-		return range <= 0;
 	}
 
 	@Override
@@ -104,9 +100,47 @@ public class Projectile implements Entity {
 		return action;
 	}
 
+	/**
+	 * Updates this Projectile's action.
+	 *
+	 * @param action the new action to set to
+	 */
+	public void setAction(Action action) {
+		this.action = action;
+		if (action == Action.EXPIRING) {
+			// @TODO update animation manager with separate framesets for normal travel and explosion
+			expireTime = 0;
+		}
+	}
+
+	/**
+	 * Checks whether or not this Projectile has had enough time to complete its expiry animation. This method returning
+	 * true would indicate that this Projectile should be removed from the world.
+	 *
+	 * @return whether this Projectile has completed its expiry animation
+	 */
+	public boolean expireComplete() {
+		return expireTime >= EXPIRE_TIME;
+	}
+
+	/**
+	 * Gets the Rectangle bounding the collision area of this Projectile.
+	 *
+	 * @return the Rectangle bounding the collision area
+	 */
 	@Override
 	public Rectangle getCollisionBounds() {
-		return new Rectangle(x, y, SPRITE_WIDTH, SPRITE_HEIGHT);
+		float rx = x;
+		float ry = y;
+		int rw = width / 3;
+		int rh = height / 4;
+		switch (dir) {
+			case RIGHT:
+				rx += width / 2;
+				ry += height / 4;
+				break;
+		}
+		return new Rectangle(rx, ry, rw, rh);
 	}
 
 	@Override
@@ -114,17 +148,26 @@ public class Projectile implements Entity {
 		// update animation
 		animation.update(delta);
 
-		// update range
-		float dist = delta * SPEED;
-		range -= dist;
+		if (action == Action.IDLE_MOVE) {
+			// update range
+			float dist = delta * SPEED;
+			range -= dist;
+			if (range <= 0) {
+				// no range left, start expiring
+				setAction(Action.EXPIRING);
+			}
 
-		// move by dist
-		if (dir == Direction.LEFT) x -= dist;
-		else if (dir == Direction.RIGHT) x += dist;
-		else if (dir == Direction.UP) y += dist;
-		else if (dir == Direction.DOWN) y -= dist;
+			// move by dist
+			if (dir == Direction.LEFT) x -= dist;
+			else if (dir == Direction.RIGHT) x += dist;
+			else if (dir == Direction.UP) y += dist;
+			else if (dir == Direction.DOWN) y -= dist;
+			// @TODO collision detection - if there is collision with terrain, set range to 0 instantly
 
-		// @TODO collision detection - if there is collision with terrain, set range to 0 instantly
+		} else if (action == Action.EXPIRING) {
+			// finishing up after hitting terrain or a monster
+			expireTime += delta;
+		}
 	}
 
 	@Override

@@ -46,14 +46,14 @@ public class EntityUtil {
 	}
 
 	/**
-	 * Checks whether the two given Entities have collision bounds that are overlapping.
+	 * Checks whether the two given Rectangle bounds overlap.
 	 *
-	 * @param e1 the first Entity
-	 * @param e2 the second Entity
-	 * @return whether their collision bounds overlap
+	 * @param r1 the first Rectangle bound
+	 * @param r2 the second Rectangle bound
+	 * @return whether the collision bounds overlap
 	 */
-	public static boolean collidesEntity(Entity e1, Entity e2) {
-		return Intersector.overlaps(e1.getCollisionBounds(), e2.getCollisionBounds());
+	public static boolean collides(Rectangle r1, Rectangle r2) {
+		return Intersector.overlaps(r1, r2);
 	}
 
 	private EntityUtil() {

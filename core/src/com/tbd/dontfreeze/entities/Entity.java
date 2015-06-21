@@ -28,15 +28,17 @@ public interface Entity {
 	public Action getAction();
 
 	/**
-	 * Gets this Entity's collision bounds.
+	 * Gets this Entity's main collision bounds.
+	 * The main collision bounds are representative of this Entity's non-combat interactions, eg. any entity's
+	 * interaction with the terrain obstacles, or a Collectable's interaction with a Player picking it up.
+	 *
+	 * The exception to this is with Projectile, since the projectile's only purpose is to collide. It is the only
+	 * Entity whose main collision bounds are combat-related.
 	 *
 	 * The Rectangle object that this method returns is customized, and in most cases is NOT equivalent to a Rectangle
-	 * created by Rectangle( getX() , getY() , getWidth() , getHeight() )
+	 * created by Rectangle(getX(), getY(), getWidth(), getHeight())
 	 *
-	 * For example, the Player's collision object is only around the feet of the player, whilst its getWidth() and
-	 * getHeight() return values equivalent to the width and height of the entire sprite.
-	 *
-	 * @return the Entity's collision bounds within a Rectangle object
+	 * @return the Entity's main collision bounds within a Rectangle object
 	 */
 	public Rectangle getCollisionBounds();
 }

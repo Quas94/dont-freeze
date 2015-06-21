@@ -20,9 +20,7 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
-import com.tbd.dontfreeze.entities.Collectable;
-import com.tbd.dontfreeze.entities.Monster;
-import com.tbd.dontfreeze.entities.Projectile;
+import com.tbd.dontfreeze.entities.*;
 import com.tbd.dontfreeze.entities.player.InputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
 
@@ -180,8 +178,14 @@ public class WorldScreen extends AbstractScreen {
 			Array<PolygonMapObject> polys = objects.getByType(PolygonMapObject.class);
 			Array<RectangleMapObject> rects = objects.getByType(RectangleMapObject.class);
 			player.update(DELTA_STEP, polys, rects);
-			for (Monster monster : monsters) {
+			Iterator<Monster> monsIterator = monsters.iterator();
+			while (monsIterator.hasNext()) {
+				Monster monster = monsIterator.next();
 				monster.update(delta, polys, rects);
+				// check for expired monsters and remove
+				if (monster.expireComplete()) { // expireComplete() checks for (action == EXPIRING)
+					monsIterator.remove();
+				}
 			}
 			for (Collectable collectable : collectables) {
 				collectable.update(delta, polys, rects);
@@ -190,13 +194,32 @@ public class WorldScreen extends AbstractScreen {
 			while (projIterator.hasNext()) {
 				Projectile projectile = projIterator.next();
 				projectile.update(delta, polys, rects); // update the projectile
-				if (projectile.isExpired()) {
-					projIterator.remove(); // remove the expired projectile from the list
+				// check for expiry of projectiles, and remove from list if so
+				if (projectile.expireComplete()) {
+					projIterator.remove();
+				} else if (projectile.getAction() == Action.IDLE_MOVE) { // check for collision with monsters
+					monsIterator = monsters.iterator();
+					for (Monster monster : monsters) {
+						// collide the projectile's main bounds with the monster's defense bounds
+						if (EntityUtil.collides(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
+							projectile.setAction(Action.EXPIRING);
+							monster.hit(Direction.LEFT); // @TODO fix to work out from direction
+						}
+					}
 				}
 			}
 			// update player collision stuff last, after both player and entities have had a chance to move
-			player.updateCollision(monsters, collectables, projectiles);
-			// @TODO projectile collision with monsters
+			player.updateCollision(collectables, projectiles);
+			// player's projectile collision with monsters is done in projectiles update above
+			// player melee collision with monsters
+			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
+				for (Monster monster : monsters) {
+					if (EntityUtil.collides(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
+						player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
+						monster.hit(Direction.LEFT); // @TODO fix to work out from direction
+					}
+				}
+			}
 
 			// now check camera
 			// get player details
@@ -297,7 +320,7 @@ public class WorldScreen extends AbstractScreen {
 			Rectangle r = player.getCollisionBounds();
 			debugRenderer.rect(r.x, r.y, r.width, r.height);
 			for (Monster m : monsters) {
-				r = m.getCollisionBounds();
+				r = m.getDefenseCollisionBounds();
 				debugRenderer.rect(r.x, r.y, r.width, r.height);
 			}
 			for (Collectable c : collectables) {
@@ -308,6 +331,12 @@ public class WorldScreen extends AbstractScreen {
 				r = p.getCollisionBounds();
 				debugRenderer.rect(r.x, r.y, r.width, r.height);
 			}
+			r = player.getAttackCollisionBounds();
+			if (player.getAction() == Action.MELEE && r != null) {
+				debugRenderer.rect(r.x, r.y, r.width, r.height);
+			}
+			r = player.getDefenseCollisionBounds();
+			debugRenderer.rect(r.x, r.y, r.width, r.height);
 			debugRenderer.end();
 		}
 	}

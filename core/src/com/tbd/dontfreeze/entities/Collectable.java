@@ -21,13 +21,12 @@ public class Collectable implements Entity {
 	private static final int SPRITE_WIDTH = 50;
 	private static final int SPRITE_HEIGHT = 65;
 
+	/** Technical fields */
 	private WorldScreen world;
-
 	private float x;
 	private float y;
 	private int width;
 	private int height;
-
 	private AnimationManager animation;
 
 	public Collectable(WorldScreen world, float x, float y) {

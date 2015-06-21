@@ -15,7 +15,7 @@ public enum Action {
 	/** Special attacking */
 	SPECIAL("s"),
 	/** Being knocked back (and facing the direction named */
-	KNOCKED_BACK("k"),
+	KNOCKBACK("k"),
 	/** Dying or fading */
 	EXPIRING("e"),
 	;
