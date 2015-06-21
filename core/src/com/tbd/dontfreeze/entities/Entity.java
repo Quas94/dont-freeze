@@ -25,6 +25,8 @@ public interface Entity {
 	public int getWidth();
 	public int getHeight();
 
+	public Action getAction();
+
 	/**
 	 * Gets this Entity's collision bounds.
 	 *

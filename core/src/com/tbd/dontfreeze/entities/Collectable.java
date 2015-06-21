@@ -7,7 +7,6 @@ import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.WorldScreen;
-import javafx.animation.Animation;
 
 /**
  * Class that represents Entities in the game world that can be interacted with and picked up.
@@ -29,7 +28,7 @@ public class Collectable implements Entity {
 	private int width;
 	private int height;
 
-	private AnimationSequence animation;
+	private AnimationManager animation;
 
 	public Collectable(WorldScreen world, float x, float y) {
 		this.world = world;
@@ -39,8 +38,8 @@ public class Collectable implements Entity {
 		this.width = SPRITE_WIDTH;
 		this.height = SPRITE_HEIGHT;
 
-		// getDirection() returns whatever direction is index 0
-		this.animation = new AnimationSequence(AnimationSequence.UNI_DIR, this, FILE, FRAME_RATE);
+		// getDirection() always returns down
+		this.animation = new AnimationManager(AnimationManager.UNI_DIR, this, FILE, FRAME_RATE);
 	}
 
 	@Override
@@ -64,12 +63,18 @@ public class Collectable implements Entity {
 	}
 
 	/**
-	 * Collectables do not support directions. For the sake of the AnimationSequence class, this method simply returns
-	 * the Direction whose index is 0.
+	 * Collectables always point down.
 	 */
 	@Override
 	public Direction getDirection() {
-		return Direction.getByIndex(0);
+		return Direction.DOWN;
+	}
+
+	@Override
+	public Action getAction() {
+		// for now, collectables can only be stationary
+		// @TODO implement collectable spawning animations / getting picked up (expiry) animations later
+		return Action.IDLE_MOVE;
 	}
 
 	@Override

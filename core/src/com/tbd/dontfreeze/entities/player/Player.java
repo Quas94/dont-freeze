@@ -1,22 +1,15 @@
 package com.tbd.dontfreeze.entities.player;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
-import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.entities.*;
 import com.tbd.dontfreeze.WorldScreen;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
 
 /**
@@ -27,8 +20,8 @@ import java.util.Collection;
 public class Player implements Entity {
 
 	/** Sprite constants and other constants. @TODO: don't hardcode this stuff */
-	private static final int SPRITE_WIDTH = 56;
-	private static final int SPRITE_HEIGHT = 82;
+	private static final int SPRITE_WIDTH = 80;
+	private static final int SPRITE_HEIGHT = 95;
 	private static final int COLLISION_WIDTH = 20;
 	private static final int COLLISION_HEIGHT = 10;
 	private static final String PATH = "assets/player.atlas";
@@ -37,14 +30,14 @@ public class Player implements Entity {
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
 	private static final int FIREBALL_RANGE = 300; // how far this Player's fireball can travel before dissipating
-	private static final int ATTACK_DELAY_MS = 500; // time in milliseconds between attacks
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
 	private InputHandler inputHandler;
 
 	/** Animation related variables */
-	private AnimationSequence animations;
+	private AnimationManager animations;
+	private Action action;
 
 	/** Player stats */
 	private int heat;
@@ -60,14 +53,10 @@ public class Player implements Entity {
 	private float rightmost;
 	private float upmost;
 
-	/** Attacking and skillz */
-	private long lastAttack; // last attack (BOTH melee and special)
-
 	public Player(WorldScreen world, InputHandler inputHandler, float x, float y) {
 		this.world = world;
 		this.inputHandler = inputHandler;
 
-		this.dir = Direction.DOWN;
 		this.x = x;
 		this.y = y;
 		this.width = SPRITE_WIDTH;
@@ -75,12 +64,12 @@ public class Player implements Entity {
 		this.upmost = world.getHeight() - height;
 		this.rightmost = world.getWidth() - width;
 
+		this.dir = Direction.DOWN;
+		this.action = Action.IDLE_MOVE; // only exception where we don't use setAction()
+		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, PATH, FRAME_RATE);
+
 		this.heat = 0;
 		this.fires = 0;
-
-		this.animations = new AnimationSequence(AnimationSequence.MULTI_DIR, this, PATH, FRAME_RATE);
-
-		this.lastAttack = 0;
 	}
 
 	public int getFireCount() {
@@ -113,6 +102,11 @@ public class Player implements Entity {
 	}
 
 	@Override
+	public Action getAction() {
+		return action;
+	}
+
+	@Override
 	public Rectangle getCollisionBounds() {
 		float collisionX = x + ((width - COLLISION_WIDTH) / 2);
 		return new Rectangle(collisionX, y, COLLISION_WIDTH, COLLISION_HEIGHT);
@@ -131,11 +125,81 @@ public class Player implements Entity {
 		boolean attackPressed = inputHandler.isKeyDown(Key.ATTACK);
 		boolean specialAttackPressed = inputHandler.isKeyDown(Key.SPECIAL);
 
+		// states
+		boolean attacking = (action == Action.MELEE) || (action == Action.SPECIAL); // either type of attacking
+
 		// set direction
 		Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
-		if (newDir != null) dir = newDir;
+		if (newDir != null && !attacking) dir = newDir; // only can change dir if not in the middle of an attack
 
-		// movement
+		// attacking
+		if (attacking) {
+			// check if animation complete
+			if (animations.isComplete()) {
+				// change action back to idle/move
+				setAction(Action.IDLE_MOVE);
+			}
+		} else if (attackPressed || specialAttackPressed) { // if not already attacking, consider starting to attack
+			if (attackPressed) {
+				// change action field
+				setAction(Action.MELEE);
+
+			} else if (specialAttackPressed) {
+				// launch special attack
+				// @TODO special attack frames
+				setAction(Action.MELEE);
+				specialAttack();
+				System.out.println("launched a special attack at " + System.currentTimeMillis());
+			}
+		} else {
+			// lastly, if we are not dealing with any sort of attacking, we update movement instead
+			updateMovement(delta, leftPressed, rightPressed, upPressed, downPressed, polys, rects);
+		}
+	}
+
+	/**
+	 * Changes the action and notifies the AnimationManager of this change.
+	 *
+	 * All modifications to this class' action should be done via this method.
+	 *
+	 * @param action the action to change to
+	 */
+	private void setAction(Action action) {
+		this.action = action;
+		animations.updateAction(action);
+	}
+
+	/**
+	 * Launches the Player's special attack (a fireball) and adds it to the game world.
+	 *
+	 * @TODO tidy this up
+	 */
+	private void specialAttack() {
+		// create fireball object first with incorrect x, y values - just so we can pull the width and height
+		Projectile fireball = new Projectile(x, y, dir, FIREBALL_RANGE);
+		float fx = x;
+		float fy = y;
+		// float fw = fireball.getWidth();
+		// float fh = fireball.getHeight();
+		if (dir == Direction.RIGHT || dir == Direction.LEFT) {
+			fx -= 5; // shift towards player a bit more
+			fy += height / 3;
+			// don't need x modifier for LEFT because TextureRegion.flip seems to handle that
+		} else if (dir == Direction.UP) {
+			// no changes needed
+		} else if (dir == Direction.DOWN) {
+			fy += 30;
+		}
+		fireball.setPosition(fx, fy);
+		world.addProjectile(fireball);
+	}
+
+	/**
+	 * Updates the movement of this Player.
+	 */
+	private void updateMovement(float delta, boolean leftPressed, boolean rightPressed, boolean upPressed,
+								boolean downPressed, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+
 		float dist = delta * SPEED;
 
 		float oldX = x;
@@ -196,20 +260,6 @@ public class Player implements Entity {
 		if (x >= rightmost) x = rightmost;
 		if (y < 0) y = 0;
 		if (y >= upmost) y = upmost;
-
-		// attacking
-		if (attackPressed || specialAttackPressed) {
-			long currentTime = System.currentTimeMillis();
-			if (currentTime - lastAttack > ATTACK_DELAY_MS) {
-				lastAttack = currentTime; // update lastAttack to now, since we're gonna perform an attack now
-				if (attackPressed) {
-					// @TODO melee attack
-				} else if (specialAttackPressed) {
-					// launch special attack
-					specialAttack();
-				}
-			}
-		}
 	}
 
 	public void updateCollision(ArrayList<Monster> monsters, ArrayList<Collectable> collectables, ArrayList<Projectile> projectiles) {
@@ -232,28 +282,5 @@ public class Player implements Entity {
 	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animations.getCurrentFrame(dir);
 		spriteBatch.draw(frame, x, y);
-	}
-
-	/**
-	 * Launches the Player's special attack (a fireball) and adds it to the game world.
-	 */
-	private void specialAttack() {
-		// create fireball object first with incorrect x, y values - just so we can pull the width and height
-		Projectile fireball = new Projectile(x, y, dir, FIREBALL_RANGE);
-		float fx = x;
-		float fy = y;
-		float fw = fireball.getWidth();
-		float fh = fireball.getHeight();
-		if (dir == Direction.RIGHT || dir == Direction.LEFT) {
-			fx -= 5; // shift towards player a bit more
-			fy += height / 3;
-			// don't need x modifier for LEFT because TextureRegion.flip seems to handle that
-		} else if (dir == Direction.UP) {
-
-		} else if (dir == Direction.DOWN) {
-
-		}
-		fireball.setPosition(fx, fy);
-		world.addProjectile(fireball);
 	}
 }

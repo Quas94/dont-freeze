@@ -16,12 +16,12 @@ public enum Direction {
 	DOWN('d', 3, Key.DOWN),
 	;
 
-	private char ext;
+	private char chr;
 	private int idx;
 	private Key key;
 
-	private Direction(char ext, int idx, Key key) {
-		this.ext = ext;
+	private Direction(char chr, int idx, Key key) {
+		this.chr = chr;
 		this.idx = idx;
 		this.key = key;
 	}
@@ -36,6 +36,10 @@ public enum Direction {
 		return idx;
 	}
 
+	public char getChar() {
+		return chr;
+	}
+
 	/**
 	 * Finds the direction, given the corresponding character.
 	 *
@@ -44,7 +48,7 @@ public enum Direction {
 	 */
 	public static Direction getByChar(char c) {
 		for (Direction d : values()) {
-			if (d.ext == c) return d;
+			if (d.chr == c) return d;
 		}
 		return null;
 	}

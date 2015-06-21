@@ -15,6 +15,9 @@ import com.badlogic.gdx.utils.Array;
  */
 public class Projectile implements Entity {
 
+	public static final String PREFIX = "p";
+	public static final String PREFIX_EXPIRING = "pe";
+
 	private static final int SPRITE_WIDTH = 70;
 	private static final int SPRITE_HEIGHT = 60;
 	private static final String FILE = "assets/fireball.atlas";
@@ -27,8 +30,9 @@ public class Projectile implements Entity {
 	private int width;
 	private int height;
 	private Direction dir;
+	private Action action;
 
-	private AnimationSequence animation;
+	private AnimationManager animation;
 
 	/** How much longer this projectile can travel before it expires */
 	private float range;
@@ -46,10 +50,13 @@ public class Projectile implements Entity {
 		this.y = y;
 		this.width = SPRITE_WIDTH;
 		this.height = SPRITE_HEIGHT;
-		this.dir = dir;
 
+		this.dir = dir;
+		// note: projectiles can only be moving or expiring (hitting)
+		// @TODO handle projectile action states and frame repeating
+		this.action = Action.IDLE_MOVE;
 		// only 1 direction for projectiles in the Animation sequence
-		this.animation = new AnimationSequence(AnimationSequence.MULTI_DIR_CLONE, this, FILE, FRAME_RATE);
+		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, FILE, FRAME_RATE);
 
 		this.range = range;
 	}
@@ -88,13 +95,18 @@ public class Projectile implements Entity {
 	}
 
 	@Override
-	public Rectangle getCollisionBounds() {
-		return new Rectangle(x, y, SPRITE_WIDTH, SPRITE_HEIGHT);
+	public Direction getDirection() {
+		return dir;
 	}
 
 	@Override
-	public Direction getDirection() {
-		return dir;
+	public Action getAction() {
+		return action;
+	}
+
+	@Override
+	public Rectangle getCollisionBounds() {
+		return new Rectangle(x, y, SPRITE_WIDTH, SPRITE_HEIGHT);
 	}
 
 	@Override
@@ -117,19 +129,13 @@ public class Projectile implements Entity {
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
+		TextureRegion frame = animation.getCurrentFrame(dir);
 		if (dir == Direction.LEFT || dir == Direction.RIGHT) {
 			// no rotation required for left/right
-			TextureRegion frame = animation.getCurrentFrame(dir);
 			spriteBatch.draw(frame, x, y);
 		} else {
 			// up/down : need sprite rotation
-			Direction rotateFrom;
-			if (dir == Direction.UP) rotateFrom = Direction.LEFT; // up = rotate 90 deg anticlockwise from left
-			else rotateFrom = Direction.RIGHT; // down = rotate 90 deg anticlockwise from right
-			TextureRegion frame = animation.getCurrentFrame(rotateFrom);
-			float dy = y;
-			if (dir == Direction.DOWN) dy += 30; // direction down projectile starting y needs a little adjustment
-			spriteBatch.draw(frame, x, dy, width / 2, height / 2, width, height, 1, 1, -90);
+			spriteBatch.draw(frame, x, y, width / 2, height / 2, width, height, 1, 1, -90);
 		}
 	}
 }

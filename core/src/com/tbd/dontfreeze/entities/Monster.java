@@ -35,7 +35,8 @@ public class Monster implements Entity {
 	private int width;
 	private int height;
 	private Direction dir;
-	private AnimationSequence animations;
+	private Action action;
+	private AnimationManager animations;
 
 	/** Randomised movement "AI" stuff */
 	private Random random;
@@ -51,9 +52,8 @@ public class Monster implements Entity {
 		this.height = SPRITE_HEIGHT;
 
 		this.dir = Direction.LEFT;
-		// monsters can only face LEFT or RIGHT for now
-		Direction[] dirs = new Direction[] { Direction.LEFT, Direction.RIGHT };
-		this.animations = new AnimationSequence(AnimationSequence.MULTI_DIR, this, PATH, FRAME_RATE);
+		this.action = Action.IDLE_MOVE;
+		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, PATH, FRAME_RATE);
 
 		this.random = new Random();
 		this.moving = false;
@@ -83,6 +83,11 @@ public class Monster implements Entity {
 	@Override
 	public Direction getDirection() {
 		return dir;
+	}
+
+	@Override
+	public Action getAction() {
+		return action;
 	}
 
 	@Override
