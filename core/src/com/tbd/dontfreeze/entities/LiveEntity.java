@@ -18,6 +18,7 @@ public interface LiveEntity extends Entity {
 	 * Gets this LiveEntity's maximum health.
 	 */
 	public int getMaxHealth();
+
 	/**
 	 * Gets this LiveEntity's current health.
 	 */

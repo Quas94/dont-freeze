@@ -53,6 +53,9 @@ public class EntityUtil {
 	 * @return whether the collision bounds overlap
 	 */
 	public static boolean collides(Rectangle r1, Rectangle r2) {
+		if (r1 == null || r2 == null) {
+			throw new NullPointerException("collides received null parameter: r1 = " + r1 + ", r2 = " + r2);
+		}
 		return Intersector.overlaps(r1, r2);
 	}
 

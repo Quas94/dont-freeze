@@ -120,6 +120,7 @@ public class Projectile implements Entity {
 	 * @return whether this Projectile has completed its expiry animation
 	 */
 	public boolean expireComplete() {
+		// @TODO change this to animation.isComplete() once segmenting of Projectile animation frames is complete
 		return expireTime >= EXPIRE_TIME;
 	}
 
@@ -138,6 +139,21 @@ public class Projectile implements Entity {
 			case RIGHT:
 				rx += width / 2;
 				ry += height / 4;
+				break;
+			case LEFT:
+				rx += width / 6;
+				ry += height / 4;
+				break;
+			case UP:
+				rx += 20;
+				ry += 35;
+				rw = height / 4;
+				rh = width / 3;
+				break;
+			case DOWN:
+				rx += 20;
+				rw = height / 4;
+				rh = width / 3;
 				break;
 		}
 		return new Rectangle(rx, ry, rw, rh);

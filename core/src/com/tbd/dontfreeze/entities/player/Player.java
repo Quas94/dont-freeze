@@ -200,8 +200,8 @@ public class Player implements LiveEntity {
 				meleeAttack();
 			} else if (specialAttackPressed) {
 				// launch special attack
-				// @TODO special attack frames
-				setAction(Action.MELEE);
+				// @TODO delay fireball generation by a bit
+				setAction(Action.SPECIAL);
 				specialAttack();
 			}
 		} else {
@@ -296,9 +296,11 @@ public class Player implements LiveEntity {
 			fy += height / 3;
 			// don't need x modifier for LEFT because TextureRegion.flip seems to handle that
 		} else if (dir == Direction.UP) {
-			// no changes needed
+			fx += 12;
+			fy += 5;
 		} else if (dir == Direction.DOWN) {
-			fy += 30;
+			fx += 12;
+			fy += 35;
 		}
 		fireball.setPosition(fx, fy);
 		world.addProjectile(fireball);

@@ -18,7 +18,7 @@ import java.util.Random;
 public class Monster implements LiveEntity {
 
 	private static final String PATH = "assets/snowbaby.atlas";
-	private static final float FRAME_RATE = 0.15F;
+	private static final float FRAME_RATE = 0.18F;
 	private static final int SPEED = 30;
 	private static final int SPRITE_WIDTH = 55;
 	private static final int SPRITE_HEIGHT = 50;
@@ -87,6 +87,8 @@ public class Monster implements LiveEntity {
 		// change direction to 'from' direction, to make recoil animation make sense
 		dir = from;
 		// @TODO make it so the monster can't get hit-stunned repeatedly forever
+		// @TODO make it so that monsters continue facing the hit-from direction for a while after getting hit
+		// although it will probably be done as a side-effect of monster aggro anyway
 		if (action == Action.IDLE_MOVE) {
 			if (health > 0) {
 				// set action to knocked back
@@ -163,7 +165,7 @@ public class Monster implements LiveEntity {
 		float rx = x + width / 4;
 		float ry = y;
 		int rw = width / 2;
-		int rh = height / 5 * 4;
+		int rh = height / 10 * 7;
 		return new Rectangle(rx, ry, rw, rh);
 	}
 

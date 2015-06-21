@@ -132,7 +132,6 @@ public class AnimationManager {
 	 */
 	public boolean isComplete() {
 		if (prefix != null) {
-			// System.out.println("stateTime is " + stateTime + ", animation duration is " + animations.get(currentPrefix).getAnimationDuration() + ", entity action is " + entity.getAction());
 			return stateTime >= animations.get(prefix).getAnimationDuration();
 		}
 		return false;

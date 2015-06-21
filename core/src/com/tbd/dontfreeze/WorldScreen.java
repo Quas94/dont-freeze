@@ -157,6 +157,13 @@ public class WorldScreen extends AbstractScreen {
 		projectiles.add(projectile);
 	}
 
+	/**
+	 * Updates this world's state with the given delta.
+	 *
+	 * @TODO toy with ways to make projectiles go a little further into collision boxes before exploding
+	 *
+	 * @param delta The amount of time that has passed since the last time this method was called
+	 */
 	@Override
 	public void update(float delta) {
 		// debug toggle
@@ -198,12 +205,14 @@ public class WorldScreen extends AbstractScreen {
 				if (projectile.expireComplete()) {
 					projIterator.remove();
 				} else if (projectile.getAction() == Action.IDLE_MOVE) { // check for collision with monsters
-					monsIterator = monsters.iterator();
 					for (Monster monster : monsters) {
-						// collide the projectile's main bounds with the monster's defense bounds
-						if (EntityUtil.collides(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
-							projectile.setAction(Action.EXPIRING);
-							monster.hit(Direction.LEFT); // @TODO fix to work out from direction
+						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
+							// check for collision between projectile's main bounds and monster's defense bounds
+							if (EntityUtil.collides(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
+								projectile.setAction(Action.EXPIRING);
+								Direction from = Direction.getOpposite(projectile.getDirection());
+								monster.hit(from);
+							}
 						}
 					}
 				}
@@ -216,7 +225,8 @@ public class WorldScreen extends AbstractScreen {
 				for (Monster monster : monsters) {
 					if (EntityUtil.collides(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
 						player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
-						monster.hit(Direction.LEFT); // @TODO fix to work out from direction
+						Direction from = Direction.getOpposite(player.getDirection());
+						monster.hit(from); // @TODO fix to work out from direction
 					}
 				}
 			}

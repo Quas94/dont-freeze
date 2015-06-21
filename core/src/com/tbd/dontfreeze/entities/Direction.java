@@ -82,4 +82,20 @@ public enum Direction {
 		}
 		return null;
 	}
+
+	/**
+	 * Given a direction, returns the opposite direction
+	 *
+	 * @param d the direction to find the opposite of
+	 * @return the opposite direction to the one given
+	 */
+	public static Direction getOpposite(Direction d) {
+		switch (d) {
+			case LEFT: return RIGHT;
+			case RIGHT: return LEFT;
+			case UP: return DOWN;
+			case DOWN: return UP;
+			default: throw new IllegalArgumentException("direction " + d.name() + " has no opposite");
+		}
+	}
 }
