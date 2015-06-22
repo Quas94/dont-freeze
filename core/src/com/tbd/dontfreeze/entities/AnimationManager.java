@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.WorldScreen;
+import com.tbd.dontfreeze.entities.player.Player;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,9 +22,9 @@ public class AnimationManager {
 
 	/** Only one direction animation sequence */
 	public static final int UNI_DIR = 0;
-	/** Multidirectional animation sequence - loads all directions from spritesheet */
+	/** Multi-directional animation sequence - loads all directions from spritesheet */
 	public static final int MULTI_DIR = 1;
-	/** Multidirectional animation sequence - loads only one direction from spritesheet, rotates to make other dirs */
+	/** Multi-directional animation sequence - loads only one direction from spritesheet, rotates to make other dirs */
 	public static final int MULTI_DIR_CLONE = 2;
 
 	private float stateTime;
@@ -171,6 +172,7 @@ public class AnimationManager {
 	 */
 	public TextureRegion getCurrentFrame(Direction dir) {
 		prefix = lastAction.getPrefix() + dir.getChar();
+		//if(entity instanceof Player)prefix = prefix.replaceAll("s", "z").replaceAll("k", "s").replaceAll("z", "k");
 		try {
 			return animations.get(prefix).getKeyFrame(stateTime);
 		} catch (NullPointerException npe) {

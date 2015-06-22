@@ -56,7 +56,8 @@ public class Monster implements LiveEntity {
 	private float meleeTime;
 	/** Marks whether or not this melee hit has connected with the Player yet */
 	private boolean meleeHit;
-
+	/** Melee attack collision Rectangle */
+	private Rectangle meleeCollisionBounds;
 
 	/** Game mechanic related fields */
 	private int maxHealth;
@@ -83,6 +84,7 @@ public class Monster implements LiveEntity {
 		this.lastMeleeTime = 0;
 		this.meleeTime = 0;
 		this.meleeHit = false;
+		this.meleeCollisionBounds = null;
 
 		// initialise game mechanic related fields
 		this.maxHealth = BASE_HEALTH;
@@ -114,8 +116,6 @@ public class Monster implements LiveEntity {
 		// set aggressive flag to true since this monster's gonna want payback
 		aggressive = true;
 		// @TODO make it so the monster can't get hit-stunned repeatedly forever (do this for player too)
-		// @TODO make it so that monsters continue facing the hit-from direction for a while after getting hit
-		// although it will probably be done as a side-effect of monster aggro anyway
 		if (health > 0) { // can survive this blow
 			if (action == Action.IDLE_MOVE) {
 				// set action to knocked back
@@ -129,6 +129,57 @@ public class Monster implements LiveEntity {
 		// otherwise the monster is expiring (we do nothing) or already getting hit (we do nothing)
 		// OR the monster is already being knocked back (this shouldn't happen though, the player attack animations are
 		// both quite long in comparison to the monster's knockback animation
+	}
+
+	public void setAggressive(boolean aggressive) {
+		this.aggressive = aggressive;
+	}
+
+	public boolean getMeleeHit() {
+		return meleeHit;
+	}
+
+	public void setMeleeHit() {
+		this.meleeHit = true;
+	}
+
+	public boolean getMeleeCanHit() {
+		return meleeTime >= LiveEntity.MELEE_ATTACK_DELAY;
+	}
+
+	/**
+	 * Starts a melee attack.
+	 */
+	private void meleeAttack() {
+		meleeHit = false;
+		meleeTime = 0;
+		float rx = x;
+		float ry = y;
+		int rw = width / 2;
+		int rh = height / 2;
+		switch (dir) {
+			case LEFT:
+				rx -= width / 4;
+				ry += height / 4;
+				break;
+			case RIGHT:
+				rx += width / 4 * 3;
+				ry += height / 4;
+				break;
+			case UP:
+				rx += width / 8;
+				ry += height / 8 * 5;
+				rw = width / 4 * 3;
+				rh = height / 4 * 3;
+				break;
+			case DOWN:
+				rx += width / 8;
+				ry -= height / 8 * 3;
+				rw = width / 4 * 3;
+				rh = height / 4 * 3;
+				break;
+		}
+		meleeCollisionBounds = new Rectangle(rx, ry, rw, rh);
 	}
 
 	/**
@@ -182,12 +233,13 @@ public class Monster implements LiveEntity {
 
 	@Override
 	public Rectangle getCollisionBounds() {
-		return new Rectangle(x, y, width, height);
+		// collision of snow baby against terrain - use small bounds just like player, near base of snow baby
+		return new Rectangle(x + (width / 4), y, width / 2, height / 4);
 	}
 
 	@Override
 	public Rectangle getAttackCollisionBounds() {
-		return null;
+		return meleeCollisionBounds;
 	}
 
 	@Override
@@ -207,7 +259,8 @@ public class Monster implements LiveEntity {
 		// update animation
 		animations.update(delta);
 
-		// add to lastMeleeTime counter
+		// add to attack counters
+		meleeTime += delta;
 		lastMeleeTime += delta;
 
 		// calculate distance we can move, if we choose to move
@@ -227,6 +280,7 @@ public class Monster implements LiveEntity {
 				setAction(Action.IDLE_MOVE);
 			}
 		} else if (action == Action.IDLE_MOVE) { // update movement
+			// @TODO make the monster less stupid and not get stuck behind obstacles - pathfinding algorithm
 			if (aggressive) { // aggressive and can attack
 				// calculate player and this monster's centre positions
 				Player player = world.getPlayer();
@@ -250,25 +304,28 @@ public class Monster implements LiveEntity {
 				if (inRangeX && inRangeY) { // within range to start attacking
 					if (lastMeleeTime >= ATTACK_COOLDOWN) { // if attack is off cooldown
 						setAction(Action.MELEE); // assume facing correct direction due to latest moves
-						meleeHit = false;
-						meleeTime = 0;
+						meleeAttack();
 					}
 					// otherwise we just stay in IDLE_MOVE until attack comes off cooldown
-				} else if (!inRangeX) { // move on horizontal plane
-					if (diffX > 0) { // player on the right
-						dir = Direction.RIGHT;
-						x += dist;
-					} else if (diffX < 0) { // player on the left
-						dir = Direction.LEFT;
-						x -= dist;
+				} else { // we need to move a bit more
+					boolean moved = false; // marks if horizontal move was successful (if attempted), false (if not attempted)
+					if (!inRangeX) { // move on horizontal plane
+						if (diffX > 0) { // player on the right
+							dir = Direction.RIGHT;
+							moved = tryMove(dist, polys, rects);
+						} else if (diffX < 0) { // player on the left
+							dir = Direction.LEFT;
+							moved = tryMove(dist, polys, rects);
+						}
 					}
-				} else { // !inRangeY, move on vertical plane
-					if (diffY > 0) { // player is above
-						dir = Direction.UP;
-						y += dist;
-					} else { // player is below
-						dir = Direction.DOWN;
-						y -= dist;
+					if (!inRangeY && !moved) { // if we haven't moved already (or we tried to horizontally but failed)
+						if (diffY > 0) { // player is above
+							dir = Direction.UP;
+							tryMove(dist, polys, rects); // we don't care about result of tryMove anymore here
+						} else { // player is below
+							dir = Direction.DOWN;
+							tryMove(dist, polys, rects); // nor here
+						}
 					}
 				}
 			} else { // while not aggressive, move randomly
@@ -285,28 +342,44 @@ public class Monster implements LiveEntity {
 				timeRemaining -= delta;
 				// now actually move
 				if (moving) {
-					if (dir == Direction.LEFT) x -= dist;
-					else if (dir == Direction.RIGHT) x += dist;
-					else if (dir == Direction.UP) y += dist;
-					else if (dir == Direction.DOWN) y -= dist;
-
-					// test collision
-					boolean collision = EntityUtil.collidesTerrain(this, polys, rects);
-					boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
-					if (collision || !inBounds) {
-						// if there is a collision, we undo coordinate change and set moving to false
-						// the leftover seconds on timeRemaining will be spent idling
-						moving = false;
-						// the following changes are opposite signs to above, to undo
-						if (dir == Direction.LEFT) x += dist;
-						else if (dir == Direction.RIGHT) x -= dist;
-						else if (dir == Direction.UP) y -= dist;
-						else if (dir == Direction.DOWN) y += dist;
-					}
+					tryMove(dist, polys, rects); // we don't care about the result here
 				}
 			}
 		}
 		// otherwise, action is probably expiring - we do nothing
+	}
+
+	/**
+	 * Attempts to move in the current direction. After moving the given distance, tests for collision. If collision is
+	 * detected, the move is reverted. Returns true if no collision, and false if there was collision and move was
+	 * reverted.
+	 *
+	 * @param dist The distance to move
+	 * @param polys The collection of polygons to test for collision against
+	 * @param rects The collection of rectangles to test for collision against
+	 * @return true if the move was successful, false if the move collided and had to be reverted
+	 */
+	private boolean tryMove(float dist, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+		if (dir == Direction.LEFT) x -= dist;
+		else if (dir == Direction.RIGHT) x += dist;
+		else if (dir == Direction.UP) y += dist;
+		else if (dir == Direction.DOWN) y -= dist;
+
+		// test collision
+		boolean collision = EntityUtil.collidesTerrain(this, polys, rects);
+		boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
+		if (collision || !inBounds) {
+			// if there is a collision, we undo coordinate change and set moving to false
+			// the leftover seconds on timeRemaining will be spent idling
+			moving = false;
+			// the following changes are opposite signs to above, to undo
+			if (dir == Direction.LEFT) x += dist;
+			else if (dir == Direction.RIGHT) x -= dist;
+			else if (dir == Direction.UP) y -= dist;
+			else if (dir == Direction.DOWN) y += dist;
+			return false;
+		}
+		return true;
 	}
 
 	@Override

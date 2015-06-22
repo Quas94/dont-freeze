@@ -30,7 +30,7 @@ public class Player implements LiveEntity {
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
 	private static final int FIREBALL_RANGE = 300; // how far this Player's fireball can travel before dissipating
-	private static final int BASE_HEALTH = 100;
+	private static final int BASE_HEALTH = 10;
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
@@ -97,7 +97,18 @@ public class Player implements LiveEntity {
 
 	@Override
 	public void hit(Direction from) {
-		// player gets hit
+		health--; // take damage
+		dir = from; // change direction to from
+		if (health > 0) {
+			if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
+				setAction(Action.KNOCKBACK);
+			}
+			// don't do any changes otherwise
+		} else { // start expire frames no matter what action we're currently doing
+			setAction(Action.EXPIRING);
+			dir = Direction.DOWN; // player death frames are down only
+			world.notifyPlayerDeath();
+		}
 	}
 
 	public int getFireCount() {
@@ -159,6 +170,15 @@ public class Player implements LiveEntity {
 
 	@Override
 	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+		if (action == Action.EXPIRING) {
+			if (!animations.isComplete()) {
+				animations.update(delta / 2);
+			} else {
+				world.notifyPlayerDeathComplete();
+			}
+			return; // we died... don't update anything else
+		}
+
 		// animation
 		animations.update(delta);
 
@@ -204,8 +224,13 @@ public class Player implements LiveEntity {
 				setAction(Action.SPECIAL);
 				specialAttack();
 			}
+		} else if (action == Action.KNOCKBACK) {
+			// we are stunned and cannot do anything until animation ends
+			if (animations.isComplete()) {
+				setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
+			}
 		} else {
-			// lastly, if we are not dealing with any sort of attacking, we update movement instead
+			// lastly, if we are not dealing with anything else, we update movement instead
 			updateMovement(delta, leftPressed, rightPressed, upPressed, downPressed, polys, rects);
 		}
 	}

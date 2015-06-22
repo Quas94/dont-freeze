@@ -80,6 +80,7 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Player and other entities in this World */
 	private Player player;
+	private boolean playerExpireComplete;
 	private ArrayList<Monster> monsters;
 	private ArrayList<Collectable> collectables; // @TODO: there should be a better data structure for this than ALs
 	private ArrayList<Projectile> projectiles;
@@ -128,6 +129,26 @@ public class WorldScreen extends AbstractScreen {
 		monsters.add(snowMonster);
 		Collectable fire = new Collectable(this, winWidth / 2 + 50, height - (winHeight / 2) - 100);
 		collectables.add(fire);
+	}
+
+	/**
+	 * Notifies this world that the Player has died.
+	 *
+	 * Performs end-game operations that should be done as soon as the Player's health has hit zero:
+	 * - resets monster aggro
+	 */
+	public void notifyPlayerDeath() {
+		for (Monster m : monsters) {
+			m.setAggressive(false);
+		}
+	}
+
+	/**
+	 * Notifies this world that the Player's death animation has been completed and the Player should no longer be
+	 * displayed.
+	 */
+	public void notifyPlayerDeathComplete() {
+		playerExpireComplete = true;
 	}
 
 	/**
@@ -230,7 +251,7 @@ public class WorldScreen extends AbstractScreen {
 			// update player collision stuff last, after both player and entities have had a chance to move
 			player.updateCollision(collectables, projectiles);
 			// player's projectile collision with monsters is done in projectiles update above
-			// player melee collision with monsters
+			// player melee attack collision with monsters
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
 				for (Monster monster : monsters) {
 					if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
@@ -239,6 +260,16 @@ public class WorldScreen extends AbstractScreen {
 							Direction from = Direction.getOpposite(player.getDirection());
 							monster.hit(from);
 						}
+					}
+				}
+			}
+			// monster melee attack collision with player
+			for (Monster monster : monsters) {
+				if (monster.getAction() == Action.MELEE && !monster.getMeleeHit() && monster.getMeleeCanHit()) {
+					if (EntityUtil.collides(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
+						monster.setMeleeHit();
+						Direction from = Direction.getOpposite(monster.getDirection());
+						player.hit(from);
 					}
 				}
 			}
@@ -301,9 +332,11 @@ public class WorldScreen extends AbstractScreen {
 		tiledRenderer.renderSpriteLayer(true, playerY);
 
 		spriteBatch.setProjectionMatrix(camera.combined);
-		spriteBatch.begin();
-		player.render(spriteBatch);
-		spriteBatch.end();
+		if (!playerExpireComplete) {
+			spriteBatch.begin();
+			player.render(spriteBatch);
+			spriteBatch.end();
+		}
 
 		// render foreground of tiled map
 		tiledRenderer.renderSpriteLayer(false, playerY);
@@ -339,28 +372,43 @@ public class WorldScreen extends AbstractScreen {
 			debugRenderer.setColor(Color.BLACK);
 			debugRenderer.begin(ShapeType.Line);
 			// draw player hitboxes
-			Rectangle r = player.getCollisionBounds();
-			debugRenderer.rect(r.x, r.y, r.width, r.height);
+			Rectangle r = player.getDefenseCollisionBounds();
+			debugRender(r);
 			for (Monster m : monsters) {
 				r = m.getDefenseCollisionBounds();
-				debugRenderer.rect(r.x, r.y, r.width, r.height);
+				debugRender(r);
+				r = m.getCollisionBounds();
+				debugRender(r);
+				if (m.getAction() == Action.MELEE) {
+					r = m.getAttackCollisionBounds();
+					debugRender(r);
+				}
 			}
 			for (Collectable c : collectables) {
 				r = c.getCollisionBounds();
-				debugRenderer.rect(r.x, r.y, r.width, r.height);
+				debugRender(r);
 			}
 			for (Projectile p : projectiles) {
 				r = p.getCollisionBounds();
-				debugRenderer.rect(r.x, r.y, r.width, r.height);
+				debugRender(r);
 			}
 			r = player.getAttackCollisionBounds();
 			if (player.getAction() == Action.MELEE && r != null) {
-				debugRenderer.rect(r.x, r.y, r.width, r.height);
+				debugRender(r);
 			}
 			r = player.getDefenseCollisionBounds();
-			debugRenderer.rect(r.x, r.y, r.width, r.height);
+			debugRender(r);
 			debugRenderer.end();
 		}
+	}
+
+	/**
+	 * Causes the debug renderer to draw the given Rectangle. This method does not handle the debug render start or end.
+	 *
+	 * @param r the Rectangle to draw
+	 */
+	private void debugRender(Rectangle r) {
+		debugRenderer.rect(r.x, r.y, r.width, r.height);
 	}
 
 	@Override

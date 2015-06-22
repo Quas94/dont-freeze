@@ -59,6 +59,18 @@ public class EntityUtil {
 		return Intersector.overlaps(r1, r2);
 	}
 
+	/**
+	 * Checks whether the point given by the x and y coordinates is within the bounds given by the Rectangle.
+	 *
+	 * @param x x-coordinate
+	 * @param y y-coordinate
+	 * @param bounds the Rectangle defining the bounds
+	 * @return whether the point is inside the bounds
+	 */
+	public static boolean isPointInBounds(float x, float y, Rectangle bounds) {
+		return x >= bounds.x && y >= bounds.y && x <= bounds.x + bounds.width && y <= bounds.y + bounds.height;
+	}
+
 	private EntityUtil() {
 	}
 }
