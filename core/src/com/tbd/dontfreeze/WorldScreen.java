@@ -158,9 +158,19 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	/**
+	 * Gets the Player object within this game world.
+	 *
+	 * @return the Player object
+	 */
+	public Player getPlayer() {
+		return player;
+	}
+
+	/**
 	 * Updates this world's state with the given delta.
 	 *
 	 * @TODO toy with ways to make projectiles go a little further into collision boxes before exploding
+	 * @TODO related but could be separate - consider using centre-points of entities as defense "bounds" (points)
 	 *
 	 * @param delta The amount of time that has passed since the last time this method was called
 	 */
@@ -223,10 +233,12 @@ public class WorldScreen extends AbstractScreen {
 			// player melee collision with monsters
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
 				for (Monster monster : monsters) {
-					if (EntityUtil.collides(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
-						player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
-						Direction from = Direction.getOpposite(player.getDirection());
-						monster.hit(from); // @TODO fix to work out from direction
+					if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
+						if (EntityUtil.collides(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
+							player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
+							Direction from = Direction.getOpposite(player.getDirection());
+							monster.hit(from);
+						}
 					}
 				}
 			}
@@ -319,7 +331,7 @@ public class WorldScreen extends AbstractScreen {
 		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
 		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
 		font.draw(spriteBatch, "Fires: " + player.getFireCount(), 20, winHeight - 50);
-		font.draw(spriteBatch, "# Projectiles: " + projectiles.size(), 20, winHeight - 65);
+		font.draw(spriteBatch, "HP: " + player.getHealth(), 20, winHeight - 65);
 		spriteBatch.end();
 		// draw hitboxes and stuff here
 		if (debugMode) {
