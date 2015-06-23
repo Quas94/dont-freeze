@@ -16,7 +16,7 @@ import com.tbd.dontfreeze.WorldScreen;
  */
 public class Collectable implements Entity {
 
-	private static final float FRAME_RATE = 0.2F;
+	private static final float FRAME_RATE = 0.1F;
 	private static final String FILE = "assets/fire.atlas";
 	private static final int SPRITE_WIDTH = 50;
 	private static final int SPRITE_HEIGHT = 65;

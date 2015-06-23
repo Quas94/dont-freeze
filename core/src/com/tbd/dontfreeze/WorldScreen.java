@@ -1,10 +1,9 @@
 package com.tbd.dontfreeze;
 
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -19,9 +18,14 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.entities.*;
-import com.tbd.dontfreeze.entities.player.InputHandler;
+import com.tbd.dontfreeze.entities.player.WorldInputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
 
 import java.util.ArrayList;
@@ -45,6 +49,7 @@ public class WorldScreen extends AbstractScreen {
 	private static final String MAP_WIDTH = "width";
 	private static final String MAP_HEIGHT = "height";
 	private static final String COLLISION_LAYER = "collision";
+	private static final String END_GAME = "Continue";
 
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
@@ -54,16 +59,20 @@ public class WorldScreen extends AbstractScreen {
 	private ShapeRenderer debugRenderer;
 
 	/** Input handling */
-	private InputHandler inputHandler;
+	private InputMultiplexer inputMultiplexer; // since both WorldInputHandler and Stage will need inputs on this screen
+	private WorldInputHandler worldInputHandler;
 
-	/** Screen dimensions */
-	private int winWidth;
-	private int winHeight;
+	/** Scene2d UI fields */
+	private Stage stage;
+	private TextButton endGameButton;
 
 	/** Tiled Map tools */
 	private TiledMap tiledMap;
 	private CustomTiledMapRenderer tiledRenderer;
 
+	/** Screen dimensions */
+	private int winWidth;
+	private int winHeight;
 	/** Map dimensions */
 	private int width;
 	private int height;
@@ -91,14 +100,41 @@ public class WorldScreen extends AbstractScreen {
 	 *
 	 * @param game the Game object that this screen belongs to
 	 */
-	public WorldScreen(Game game) {
+	public WorldScreen(GameMain game) {
 		super(game);
 
+		// screen dimensions
+		this.winWidth = GameMain.GAME_WINDOW_WIDTH;
+		this.winHeight = GameMain.GAME_WINDOW_HEIGHT;
+
+		// drawing stuff
+		this.font = new BitmapFont();
+		font.setColor(Color.GREEN);
+		this.spriteBatch = new SpriteBatch();
+
+		// debug mode
 		this.debugMode = false;
 		this.debugRenderer = new ShapeRenderer();
 
-		this.inputHandler = new InputHandler();
-		Gdx.input.setInputProcessor(inputHandler);
+		// intialise scene2d and related ui fields
+		this.stage = new Stage();
+		Skin skin = GameMain.getDefaultSkin();
+		this.endGameButton = new TextButton(END_GAME, skin);
+		endGameButton.setPosition((winWidth / 2) - (GameMain.BUTTON_WIDTH / 2), (winHeight / 2) - (GameMain.BUTTON_HEIGHT / 2));
+		endGameButton.addListener(new ClickListener() {
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				getGame().setMenu();
+			}
+		});
+		endGameButton.setVisible(false);
+		stage.addActor(endGameButton);
+
+		// input handlers
+		this.worldInputHandler = new WorldInputHandler();
+		this.inputMultiplexer = new InputMultiplexer();
+		inputMultiplexer.addProcessor(stage); // stage gets priority for UI
+		inputMultiplexer.addProcessor(worldInputHandler);
 
 		// load Tiled stuffs
 		this.tiledMap = MAP_LOADER.load(MAP_LOCATION);
@@ -107,9 +143,6 @@ public class WorldScreen extends AbstractScreen {
 		// load in map dimensions
 		this.width = mapProps.get(MAP_WIDTH, Integer.class);
 		this.height = mapProps.get(MAP_HEIGHT, Integer.class);
-
-		this.winWidth = Gdx.graphics.getWidth();
-		this.winHeight = Gdx.graphics.getHeight();
 		this.camera = new OrthographicCamera();
 		camera.setToOrtho(false);
 		cameraPos = camera.position;
@@ -121,18 +154,19 @@ public class WorldScreen extends AbstractScreen {
 		fixedCamera.setToOrtho(false);
 
 		// @TODO un-hardcode starting positions etc
-		this.player = new Player(this, inputHandler, winWidth / 2, height - (winHeight / 2));
+		this.player = new Player(this, worldInputHandler, winWidth / 2, height - (winHeight / 2));
 		this.monsters = new ArrayList<Monster>();
 		this.collectables = new ArrayList<Collectable>();
 		this.projectiles = new ArrayList<Projectile>();
 		Monster snowMonster = new Monster(this, winWidth / 2 + 100, height - (winHeight / 2));
 		monsters.add(snowMonster);
+		System.out.printf("spawned snowmonster at (%d, %d)\n", winWidth / 2 + 100, height - (winHeight / 2));
 		Collectable fire = new Collectable(this, winWidth / 2 + 50, height - (winHeight / 2) - 100);
 		collectables.add(fire);
 	}
 
 	/**
-	 * Notifies this world that the Player has died.
+	 * Notifies this world that the Player has died, and the death animation has just started.
 	 *
 	 * Performs end-game operations that should be done as soon as the Player's health has hit zero:
 	 * - resets monster aggro
@@ -146,9 +180,12 @@ public class WorldScreen extends AbstractScreen {
 	/**
 	 * Notifies this world that the Player's death animation has been completed and the Player should no longer be
 	 * displayed.
+	 *
+	 * Also enables the end game button.
 	 */
 	public void notifyPlayerDeathComplete() {
 		playerExpireComplete = true;
+		endGameButton.setVisible(true);
 	}
 
 	/**
@@ -202,6 +239,9 @@ public class WorldScreen extends AbstractScreen {
 			debugMode = !debugMode;
 		}
 
+		// update scene2d
+		stage.act(delta);
+
 		// increment accumulator, this is the variable we'll base all our stepping things on now
 		deltaAccumulator += delta;
 		while (deltaAccumulator >= DELTA_STEP) {
@@ -219,19 +259,19 @@ public class WorldScreen extends AbstractScreen {
 			Iterator<Monster> monsIterator = monsters.iterator();
 			while (monsIterator.hasNext()) {
 				Monster monster = monsIterator.next();
-				monster.update(delta, polys, rects);
+				monster.update(DELTA_STEP, polys, rects);
 				// check for expired monsters and remove
 				if (monster.expireComplete()) { // expireComplete() checks for (action == EXPIRING)
 					monsIterator.remove();
 				}
 			}
 			for (Collectable collectable : collectables) {
-				collectable.update(delta, polys, rects);
+				collectable.update(DELTA_STEP, polys, rects);
 			}
 			Iterator<Projectile> projIterator = projectiles.iterator();
 			while (projIterator.hasNext()) {
 				Projectile projectile = projIterator.next();
-				projectile.update(delta, polys, rects); // update the projectile
+				projectile.update(DELTA_STEP, polys, rects); // update the projectile
 				// check for expiry of projectiles, and remove from list if so
 				if (projectile.expireComplete()) {
 					projIterator.remove();
@@ -320,8 +360,7 @@ public class WorldScreen extends AbstractScreen {
 		update(delta);
 
 		// clear screen
-		Gdx.gl.glClearColor(0, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		clearScreen();
 
 		// start actual rendering
 
@@ -357,6 +396,9 @@ public class WorldScreen extends AbstractScreen {
 			projectile.render(spriteBatch);
 		}
 		spriteBatch.end();
+
+		// render UI last (excluding debug stuff)
+		stage.draw();
 
 		// debug stuff
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);
@@ -413,9 +455,7 @@ public class WorldScreen extends AbstractScreen {
 
 	@Override
 	public void show() {
-		font = new BitmapFont();
-		font.setColor(Color.GREEN);
-
-		spriteBatch = new SpriteBatch();
+		// set input handler since it will be menuscreen's handler before this
+		Gdx.input.setInputProcessor(inputMultiplexer);
 	}
 }

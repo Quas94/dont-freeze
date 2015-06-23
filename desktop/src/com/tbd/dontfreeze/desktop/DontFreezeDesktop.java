@@ -8,9 +8,11 @@ public class DontFreezeDesktop {
 
 	public static void main (String[] arg) {
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		config.height = 480;
-		config.width = 640;
-		config.title = "pls don't freeze bby";
+		config.height = GameMain.GAME_WINDOW_HEIGHT;
+		config.width = GameMain.GAME_WINDOW_WIDTH;
+		config.title = GameMain.GAME_WINDOW_TITLE;
+		// config.addIcon(); @TODO add icon
+		config.resizable = false; // don't allow resizing
 		new LwjglApplication(new GameMain(), config);
 	}
 

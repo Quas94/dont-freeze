@@ -11,7 +11,7 @@ import java.util.HashMap;
  *
  * Created by Quasar on 17/06/2015.
  */
-public class InputHandler extends InputAdapter {
+public class WorldInputHandler extends InputAdapter {
 
 	/** <keycode, true for down/false for up> */
 	private HashMap<Integer, Boolean> keyStatus;
@@ -20,11 +20,19 @@ public class InputHandler extends InputAdapter {
 	private Key dirNewKey;
 	private Key dirOldKey;
 
-	public InputHandler() {
+	public WorldInputHandler() {
 		this.keyStatus = new HashMap<Integer, Boolean>();
 
-		this.dirNewKey = Key.NO_KEY;
-		this.dirOldKey = Key.NO_KEY;
+		clear();
+	}
+
+	/**
+	 * Completely clears and (re-)initialises all information stored by this handler.
+	 */
+	public void clear() {
+		keyStatus.clear();
+		dirNewKey = Key.NO_KEY;
+		dirOldKey = Key.NO_KEY;
 	}
 
 	/**

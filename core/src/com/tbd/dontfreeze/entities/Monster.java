@@ -19,7 +19,7 @@ import java.util.Random;
 public class Monster implements LiveEntity {
 
 	private static final String PATH = "assets/snowbaby.atlas";
-	private static final float FRAME_RATE = 0.18F;
+	private static final float FRAME_RATE = 0.1F;
 	private static final int SPEED = 30;
 	private static final int SPRITE_WIDTH = 55;
 	private static final int SPRITE_HEIGHT = 50;

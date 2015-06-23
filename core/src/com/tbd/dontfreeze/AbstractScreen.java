@@ -1,7 +1,8 @@
 package com.tbd.dontfreeze;
 
-import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.GL20;
 
 /**
  * Abstract screen class that the WorldScreen and MenuScreen classes will extend.
@@ -13,11 +14,23 @@ public abstract class AbstractScreen implements Screen {
 	/** If delta exceeds this limit in milliseconds, update is skipped */
 	protected static final int DELTA_LIMIT = 1000;
 
-	/** protected because subclasses will require reference to the Game */
-	protected Game game;
+	/** The Game object this Screen is a part of */
+	private final GameMain game;
 
-	public AbstractScreen(Game game) {
+	public AbstractScreen(GameMain game) {
 		this.game = game;
+	}
+
+	public GameMain getGame() {
+		return game;
+	}
+
+	/**
+	 * Calls the OpenGL methods to clear the screen before a new frame is rendered.
+	 */
+	public final void clearScreen() {
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 	}
 
 	/**
@@ -43,6 +56,10 @@ public abstract class AbstractScreen implements Screen {
 	public void resize(int width, int height) {
 	}
 
+	/**
+	 * This method is called when its particular Screen is set to currently displaying. Should update Gdx's input
+	 * processor within this method.
+	 */
 	@Override
 	public void show() {
 	}

@@ -1,5 +1,6 @@
 package com.tbd.dontfreeze.entities.player;
 
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
@@ -30,11 +31,11 @@ public class Player implements LiveEntity {
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
 	private static final int FIREBALL_RANGE = 300; // how far this Player's fireball can travel before dissipating
-	private static final int BASE_HEALTH = 10;
+	private static final int BASE_HEALTH = 2;
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
-	private InputHandler inputHandler;
+	private WorldInputHandler inputHandler;
 
 	/** Animation related variables */
 	private AnimationManager animations;
@@ -62,7 +63,7 @@ public class Player implements LiveEntity {
 	private int health;
 	private int fires;
 
-	public Player(WorldScreen world, InputHandler inputHandler, float x, float y) {
+	public Player(WorldScreen world, WorldInputHandler inputHandler, float x, float y) {
 		this.world = world;
 		this.inputHandler = inputHandler;
 
@@ -193,10 +194,11 @@ public class Player implements LiveEntity {
 		// states
 		boolean meleeAttacking = (action == Action.MELEE);
 		boolean specialAttacking = (action == Action.SPECIAL);
+		boolean recoiling = (action == Action.KNOCKBACK); // being knocked back
 		boolean attacking = meleeAttacking || specialAttacking; // either type of attacking
 
 		// set direction
-		if (!attacking) { // can only change dir if not in the middle of an attack
+		if (!attacking && !recoiling) { // can only change dir if not in the middle of an attack
 			Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
 			if (newDir != null) {
 				dir = newDir;
@@ -224,7 +226,7 @@ public class Player implements LiveEntity {
 				setAction(Action.SPECIAL);
 				specialAttack();
 			}
-		} else if (action == Action.KNOCKBACK) {
+		} else if (recoiling) {
 			// we are stunned and cannot do anything until animation ends
 			if (animations.isComplete()) {
 				setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
