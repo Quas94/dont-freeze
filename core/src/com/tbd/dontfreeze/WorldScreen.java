@@ -50,6 +50,8 @@ public class WorldScreen extends AbstractScreen {
 	private static final String MAP_HEIGHT = "height";
 	private static final String COLLISION_LAYER = "collision";
 	private static final String END_GAME = "Continue";
+	private static final String RESUME_GAME = "Resume Game";
+	private static final String SAVE_AND_EXIT = "Save & Exit";
 
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
@@ -62,9 +64,13 @@ public class WorldScreen extends AbstractScreen {
 	private InputMultiplexer inputMultiplexer; // since both WorldInputHandler and Stage will need inputs on this screen
 	private WorldInputHandler worldInputHandler;
 
+	/** Whether or not this world is paused */
+	private boolean paused;
 	/** Scene2d UI fields */
 	private Stage stage;
 	private TextButton endGameButton;
+	private TextButton resumeButton;
+	private TextButton saveAndExitButton;
 
 	/** Tiled Map tools */
 	private TiledMap tiledMap;
@@ -84,7 +90,6 @@ public class WorldScreen extends AbstractScreen {
 	private float deltaAccumulator;
 
 	/** Graphics stuff */
-	private SpriteBatch spriteBatch;
 	private BitmapFont font;
 
 	/** Player and other entities in this World */
@@ -100,8 +105,8 @@ public class WorldScreen extends AbstractScreen {
 	 *
 	 * @param game the Game object that this screen belongs to
 	 */
-	public WorldScreen(GameMain game) {
-		super(game);
+	public WorldScreen(GameMain game, SpriteBatch spriteBatch) {
+		super(game, spriteBatch);
 
 		// screen dimensions
 		this.winWidth = GameMain.GAME_WINDOW_WIDTH;
@@ -110,17 +115,22 @@ public class WorldScreen extends AbstractScreen {
 		// drawing stuff
 		this.font = new BitmapFont();
 		font.setColor(Color.GREEN);
-		this.spriteBatch = new SpriteBatch();
 
 		// debug mode
 		this.debugMode = false;
 		this.debugRenderer = new ShapeRenderer();
 
+		// not paused
+		this.paused = false;
 		// intialise scene2d and related ui fields
 		this.stage = new Stage();
 		Skin skin = GameMain.getDefaultSkin();
+		// middle of the screen position for endgame and pause buttons
+		float buttonX = (winWidth / 2) - (GameMain.BUTTON_WIDTH / 2);
+		float buttonY = (winHeight / 2) - (GameMain.BUTTON_HEIGHT / 2);
+		// endgame button
 		this.endGameButton = new TextButton(END_GAME, skin);
-		endGameButton.setPosition((winWidth / 2) - (GameMain.BUTTON_WIDTH / 2), (winHeight / 2) - (GameMain.BUTTON_HEIGHT / 2));
+		endGameButton.setPosition(buttonX, buttonY);
 		endGameButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
@@ -129,6 +139,28 @@ public class WorldScreen extends AbstractScreen {
 		});
 		endGameButton.setVisible(false);
 		stage.addActor(endGameButton);
+		// resume from pause button
+		this.resumeButton = new TextButton(RESUME_GAME, skin);
+		resumeButton.setPosition(buttonX, winHeight / 2 + 5);
+		resumeButton.addListener(new ClickListener() {
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				flipPaused();
+			}
+		});
+		resumeButton.setVisible(false);
+		stage.addActor(resumeButton);
+		this.saveAndExitButton = new TextButton(SAVE_AND_EXIT, skin);
+		saveAndExitButton.setPosition(buttonX, (winHeight / 2) - GameMain.BUTTON_HEIGHT - 5);
+		saveAndExitButton.addListener(new ClickListener() {
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				// @TODO: save
+				getGame().setMenu();
+			}
+		});
+		saveAndExitButton.setVisible(false);
+		stage.addActor(saveAndExitButton);
 
 		// input handlers
 		this.worldInputHandler = new WorldInputHandler();
@@ -160,9 +192,17 @@ public class WorldScreen extends AbstractScreen {
 		this.projectiles = new ArrayList<Projectile>();
 		Monster snowMonster = new Monster(this, winWidth / 2 + 100, height - (winHeight / 2));
 		monsters.add(snowMonster);
-		System.out.printf("spawned snowmonster at (%d, %d)\n", winWidth / 2 + 100, height - (winHeight / 2));
 		Collectable fire = new Collectable(this, winWidth / 2 + 50, height - (winHeight / 2) - 100);
 		collectables.add(fire);
+	}
+
+	/**
+	 * Flips the pause state and performs the relevant actions for pause and resume actions.
+	 */
+	private void flipPaused() {
+		paused = !paused;
+		resumeButton.setVisible(paused);
+		saveAndExitButton.setVisible(paused);
 	}
 
 	/**
@@ -234,13 +274,22 @@ public class WorldScreen extends AbstractScreen {
 	 */
 	@Override
 	public void update(float delta) {
-		// debug toggle
+		// update scene2d first regardless of this world's pause status
+		stage.act(delta);
+
+		// toggle paused mode if player isn't dead
+		if (!playerExpireComplete && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+			flipPaused();
+		}
+		// if paused, return from this method early without updating the world with delta
+		if (paused) {
+			return;
+		}
+
+		// toggle debug mode
 		if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
 			debugMode = !debugMode;
 		}
-
-		// update scene2d
-		stage.act(delta);
 
 		// increment accumulator, this is the variable we'll base all our stepping things on now
 		deltaAccumulator += delta;

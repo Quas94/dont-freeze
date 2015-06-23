@@ -3,6 +3,7 @@ package com.tbd.dontfreeze;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 /**
  * Abstract screen class that the WorldScreen and MenuScreen classes will extend.
@@ -14,11 +15,16 @@ public abstract class AbstractScreen implements Screen {
 	/** If delta exceeds this limit in milliseconds, update is skipped */
 	protected static final int DELTA_LIMIT = 1000;
 
+	/** The SpriteBatch which renders this Screen (and every other Screen in the game) */
+	protected final SpriteBatch spriteBatch;
+
 	/** The Game object this Screen is a part of */
 	private final GameMain game;
 
-	public AbstractScreen(GameMain game) {
+	public AbstractScreen(GameMain game, SpriteBatch spriteBatch) {
 		this.game = game;
+
+		this.spriteBatch = spriteBatch;
 	}
 
 	public GameMain getGame() {

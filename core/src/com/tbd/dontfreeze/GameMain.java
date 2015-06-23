@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
@@ -35,6 +36,9 @@ public class GameMain extends Game {
 	/** Default skin, for the getDefaultSkin() method */
 	private static Skin defaultSkin;
 
+	/** The single SpriteBatch which renders the entire game, all the screens */
+	private SpriteBatch spriteBatch;
+
 	/** The menu screen, handling new games, saving/loading, credits, pausing, etc */
 	private MenuScreen menu;
 	/** Screen representing the game world, where the majority of the game will be played */
@@ -50,7 +54,7 @@ public class GameMain extends Game {
 	 * Initialises a new WorldScreen and transitions to that screen.
 	 */
 	public void setNewWorld() {
-		world = new WorldScreen(this);
+		world = new WorldScreen(this, spriteBatch);
 		setScreen(world);
 	}
 
@@ -70,7 +74,9 @@ public class GameMain extends Game {
 
 	@Override
 	public void create() {
-		menu = new MenuScreen(this);
+		this.spriteBatch = new SpriteBatch();
+
+		menu = new MenuScreen(this, spriteBatch);
 		setScreen(menu);
 	}
 

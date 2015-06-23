@@ -30,7 +30,7 @@ public class Player implements LiveEntity {
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
-	private static final int FIREBALL_RANGE = 300; // how far this Player's fireball can travel before dissipating
+	private static final int FIREBALL_RANGE = 250; // how far this Player's fireball can travel before dissipating
 	private static final int BASE_HEALTH = 2;
 
 	/** Link to the World this player is currently in */
@@ -198,7 +198,7 @@ public class Player implements LiveEntity {
 		boolean attacking = meleeAttacking || specialAttacking; // either type of attacking
 
 		// set direction
-		if (!attacking && !recoiling) { // can only change dir if not in the middle of an attack
+		if (!attacking && !recoiling) { // can only change dir if not attacking or recoiling (getting knocked back)
 			Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
 			if (newDir != null) {
 				dir = newDir;
