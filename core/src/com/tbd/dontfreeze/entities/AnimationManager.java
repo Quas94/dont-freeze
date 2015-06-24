@@ -72,12 +72,7 @@ public class AnimationManager {
 			Array<TextureRegion> array = loadedFrames.get(prefix);
 
 			if (type == UNI_DIR) { // only one direction for uni dir type animations
-				// @TODO make this code a bit cleaner so no repeats between here and the above couple of lines
-				// ^ can be done by fixing fire prefix to d in spritesheet
-				prefix = Direction.DOWN.getChar() + ""; // change prefix to DOWN for uni dir animations
-				if (!loadedFrames.containsKey(prefix)) {
-					loadedFrames.put(prefix, new Array<TextureRegion>());
-				}
+				// all UNI_DIR typed animations should have region prefixes of only 'd' (DOWN)
 				loadedFrames.get(prefix).add(region);
 			} else if (type == MULTI_DIR) {
 				// add this region to the array with appropriate prefix

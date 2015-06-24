@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.MapObjects;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
@@ -29,6 +30,8 @@ import com.tbd.dontfreeze.entities.player.WorldInputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 
 /**
@@ -44,17 +47,27 @@ public class WorldScreen extends AbstractScreen {
 	/** To do with time stepping and frame handling */
 	private static final float DELTA_STEP = 1 / 120F;
 
-	/** Temporary constants, mostly to do with functionality that will be modified later */
+	/** Map (TileD) related constants */
 	private static final String MAP_LOCATION = "assets/map1.tmx";
+	private static final String TILED_PROP_X = "x";
+	private static final String TILED_PROP_Y = "y";
+	/** MapLoader that loads Tiled maps */
+	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
+	/** Map dimensions */
 	private static final String MAP_WIDTH = "width";
 	private static final String MAP_HEIGHT = "height";
+	/** Map layers */
 	private static final String COLLISION_LAYER = "collision";
+	private static final String MONSTERS_LAYER = "monsters";
+	private static final String COLLECTABLES_LAYER = "collectables";
+	/** Property name constants */
+	private static final String PLAYER_SPAWN_X = "player_spawn_x";
+	private static final String PLAYER_SPAWN_Y = "player_spawn_y";
+
+	/** Button texts */
 	private static final String END_GAME = "Continue";
 	private static final String RESUME_GAME = "Resume Game";
 	private static final String SAVE_AND_EXIT = "Save & Exit";
-
-	/** MapLoader that loads Tiled maps */
-	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
 
 	/** Debugging settings/tools */
 	private boolean debugMode;
@@ -95,8 +108,8 @@ public class WorldScreen extends AbstractScreen {
 	/** Player and other entities in this World */
 	private Player player;
 	private boolean playerExpireComplete;
-	private ArrayList<Monster> monsters;
-	private ArrayList<Collectable> collectables; // @TODO: there should be a better data structure for this than ALs
+	private HashMap<String, Monster> monsters;
+	private HashMap<String, Collectable> collectables; // @TODO: there should be a better data structure for this than ALs
 	private ArrayList<Projectile> projectiles;
 
 	/**
@@ -185,15 +198,46 @@ public class WorldScreen extends AbstractScreen {
 		this.fixedCamera = new OrthographicCamera();
 		fixedCamera.setToOrtho(false);
 
-		// @TODO un-hardcode starting positions etc
-		this.player = new Player(this, worldInputHandler, winWidth / 2, height - (winHeight / 2));
-		this.monsters = new ArrayList<Monster>();
-		this.collectables = new ArrayList<Collectable>();
+		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
+		int flipHeight = height - 1;
+		// player spawnpoint
+		int playerSpawnX = Integer.parseInt(mapProps.get(PLAYER_SPAWN_X, String.class));
+		int playerSpawnY = flipHeight - Integer.parseInt(mapProps.get(PLAYER_SPAWN_Y, String.class));
+		this.player = new Player(this, worldInputHandler, playerSpawnX, playerSpawnY);
+
+		// monster spawn points
+		this.monsters = new HashMap<String, Monster>();
+		MapObjects monsterObjects = tiledMap.getLayers().get(MONSTERS_LAYER).getObjects();
+		HashSet<String> names = new HashSet<String>();
+		for (MapObject obj : monsterObjects) {
+			String name = obj.getName();
+			if (names.contains(name)) { // check that all names are unique on this layer
+				throw new RuntimeException("invalid tiled map - duplicated name '" + name + "' on MONSTERS layer");
+			}
+			names.add(name);
+			float mx = obj.getProperties().get(TILED_PROP_X, Float.class);
+			float my = obj.getProperties().get(TILED_PROP_Y, Float.class);
+			Monster monster = new Monster(this, mx, my);
+			monsters.put(name, monster); // add monster to hashmap by key = unique name
+		}
+
+		// collectable spawn points
+		this.collectables = new HashMap<String, Collectable>();
+		MapObjects collectableObjects = tiledMap.getLayers().get(COLLECTABLES_LAYER).getObjects();
+		names.clear(); // prep names set for collectable name checking
+		for (MapObject obj : collectableObjects) {
+			String name = obj.getName();
+			if (names.contains(name)) {
+				throw new RuntimeException("invalid tiled map - duplicated name '" + name + "' on COLLECTABLES layer");
+			}
+			names.add(name);
+			float cx = obj.getProperties().get(TILED_PROP_X, Float.class);
+			float cy = obj.getProperties().get(TILED_PROP_Y, Float.class);
+			Collectable collectable = new Collectable(this, cx, cy);
+			collectables.put(name, collectable); // add collectable to hashmap by key = unique name
+		}
+
 		this.projectiles = new ArrayList<Projectile>();
-		Monster snowMonster = new Monster(this, winWidth / 2 + 100, height - (winHeight / 2));
-		monsters.add(snowMonster);
-		Collectable fire = new Collectable(this, winWidth / 2 + 50, height - (winHeight / 2) - 100);
-		collectables.add(fire);
 	}
 
 	/**
@@ -212,7 +256,7 @@ public class WorldScreen extends AbstractScreen {
 	 * - resets monster aggro
 	 */
 	public void notifyPlayerDeath() {
-		for (Monster m : monsters) {
+		for (Monster m : monsters.values()) {
 			m.setAggressive(false);
 		}
 	}
@@ -305,16 +349,19 @@ public class WorldScreen extends AbstractScreen {
 			Array<PolygonMapObject> polys = objects.getByType(PolygonMapObject.class);
 			Array<RectangleMapObject> rects = objects.getByType(RectangleMapObject.class);
 			player.update(DELTA_STEP, polys, rects);
-			Iterator<Monster> monsIterator = monsters.iterator();
-			while (monsIterator.hasNext()) {
-				Monster monster = monsIterator.next();
+			// list to store keys for removal, which is done after iteration to prevent ConcurrentModificationException
+			ArrayList<String> removeKeys = new ArrayList<String>();
+			for (String mkey : monsters.keySet()) {
+				Monster monster = monsters.get(mkey);
 				monster.update(DELTA_STEP, polys, rects);
-				// check for expired monsters and remove
-				if (monster.expireComplete()) { // expireComplete() checks for (action == EXPIRING)
-					monsIterator.remove();
+				if (monster.expireComplete()) {
+					removeKeys.add(mkey);
 				}
 			}
-			for (Collectable collectable : collectables) {
+			for (String mkey : removeKeys) {
+				monsters.remove(mkey);
+			}
+			for (Collectable collectable : collectables.values()) {
 				collectable.update(DELTA_STEP, polys, rects);
 			}
 			Iterator<Projectile> projIterator = projectiles.iterator();
@@ -325,7 +372,7 @@ public class WorldScreen extends AbstractScreen {
 				if (projectile.expireComplete()) {
 					projIterator.remove();
 				} else if (projectile.getAction() == Action.IDLE_MOVE) { // check for collision with monsters
-					for (Monster monster : monsters) {
+					for (Monster monster : monsters.values()) {
 						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 							// check for collision between projectile's main bounds and monster's defense bounds
 							if (EntityUtil.collides(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
@@ -338,11 +385,26 @@ public class WorldScreen extends AbstractScreen {
 				}
 			}
 			// update player collision stuff last, after both player and entities have had a chance to move
-			player.updateCollision(collectables, projectiles);
+			// process collectables collision
+			removeKeys.clear(); // prep remove keys list for removal from collectables hashmap
+			for (String ckey : collectables.keySet()) {
+				Collectable c = collectables.get(ckey);
+				if (EntityUtil.collides(player.getCollisionBounds(), c.getCollisionBounds())) {
+					// remove from the map, because we picked it up
+					removeKeys.add(ckey);
+					// increment our collected counter
+					player.collectFire();
+				}
+			}
+			for (String ckey : removeKeys) {
+				collectables.remove(ckey);
+			}
+
+			// @TODO process player and enemy projectile collision, once that is implemented
 			// player's projectile collision with monsters is done in projectiles update above
 			// player melee attack collision with monsters
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
-				for (Monster monster : monsters) {
+				for (Monster monster : monsters.values()) {
 					if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 						if (EntityUtil.collides(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
 							player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
@@ -353,7 +415,7 @@ public class WorldScreen extends AbstractScreen {
 				}
 			}
 			// monster melee attack collision with player
-			for (Monster monster : monsters) {
+			for (Monster monster : monsters.values()) {
 				if (monster.getAction() == Action.MELEE && !monster.getMeleeHit() && monster.getMeleeCanHit()) {
 					if (EntityUtil.collides(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
 						monster.setMeleeHit();
@@ -435,10 +497,10 @@ public class WorldScreen extends AbstractScreen {
 		// @TODO layer projectiles as well - this is gonna be a bit special since the down projectile should be on top
 		// of the player... but it won't be (unless it's made to be very tall? that's an idea)
 		spriteBatch.begin();
-		for (Monster monster : monsters) {
+		for (Monster monster : monsters.values()) {
 			monster.render(spriteBatch);
 		}
-		for (Collectable collectable : collectables) {
+		for (Collectable collectable : collectables.values()) {
 			collectable.render(spriteBatch);
 		}
 		for (Projectile projectile : projectiles) {
@@ -465,7 +527,7 @@ public class WorldScreen extends AbstractScreen {
 			// draw player hitboxes
 			Rectangle r = player.getDefenseCollisionBounds();
 			debugRender(r);
-			for (Monster m : monsters) {
+			for (Monster m : monsters.values()) {
 				r = m.getDefenseCollisionBounds();
 				debugRender(r);
 				r = m.getCollisionBounds();
@@ -475,7 +537,7 @@ public class WorldScreen extends AbstractScreen {
 					debugRender(r);
 				}
 			}
-			for (Collectable c : collectables) {
+			for (Collectable c : collectables.values()) {
 				r = c.getCollisionBounds();
 				debugRender(r);
 			}

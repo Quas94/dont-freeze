@@ -11,6 +11,9 @@ import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 
 /**
@@ -26,7 +29,7 @@ public class Player implements LiveEntity {
 	private static final int COLLISION_WIDTH = 20;
 	private static final int COLLISION_HEIGHT = 10;
 	private static final String PATH = "assets/player.atlas";
-	private static final int SPEED = 120;
+	private static final int SPEED = 150;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
@@ -114,6 +117,10 @@ public class Player implements LiveEntity {
 
 	public int getFireCount() {
 		return fires;
+	}
+
+	public void collectFire() {
+		fires++;
 	}
 
 	@Override
@@ -399,29 +406,6 @@ public class Player implements LiveEntity {
 		if (x >= rightmost) x = rightmost;
 		if (y < 0) y = 0;
 		if (y >= upmost) y = upmost;
-	}
-
-	/**
-	 * Checks the player and sees if it is colliding with any Collectables (pick them up).
-	 *
-	 * Will also check for collision of player and enemy projectiles, when they are implemented later.
-	 *
-	 * @param collectables list of Collectables
-	 * @param projectiles list of Projectiles
-	 */
-	public void updateCollision(ArrayList<Collectable> collectables, ArrayList<Projectile> projectiles) {
-		// @TODO: projectile collision with player when boss monsters can use ranged attacks
-		// @TODO move this to WorldScreen class for consistency
-		// process collectables collision
-		for (int i = 0; i < collectables.size(); i++) {
-			Collectable c = collectables.get(i);
-			if (EntityUtil.collides(getCollisionBounds(), c.getCollisionBounds())) {
-				// remove from the map, because we picked it up
-				collectables.remove(i);
-				// increment our collected counter
-				fires++;
-			}
-		}
 	}
 
 	@Override

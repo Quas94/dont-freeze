@@ -1,5 +1,6 @@
 package com.tbd.dontfreeze.entities;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
@@ -28,7 +29,7 @@ public class Monster implements LiveEntity {
 	private static final float MIN_RAND_TIME = 1.0F;
 	private static final float MAX_RAND_TIME = 4.0F;
 
-	private static final int BASE_HEALTH = 10;
+	private static final int BASE_HEALTH = 3;
 	private static final float ATTACK_COOLDOWN = 1F;
 
 	/** Connection to world */
@@ -347,6 +348,52 @@ public class Monster implements LiveEntity {
 			}
 		}
 		// otherwise, action is probably expiring - we do nothing
+	}
+
+	/**
+	 * Starts or continues a random movement. This method is called (instead of update()) when this Monster is merely a
+	 * decoration on the MenuScreen, as opposed to an active monster within the game world.
+	 *
+	 * @param delta amount of time that's passed
+	 * @param upperBoundY the upper bound on Y (to prevent the monster from travelling onto thin air at the top)
+	 */
+	public void updateAsDecoration(float delta, float upperBoundY) {
+		// update animation
+		animations.update(delta);
+
+		if (timeRemaining <= 0) { // take further action if timeRemaining runs out
+			timeRemaining = random.nextFloat() * (MAX_RAND_TIME - MIN_RAND_TIME) + MIN_RAND_TIME;
+			moving = !moving; // flip moving
+			if (moving) {
+				// if we're now moving we need to generate a new direction
+				int dirIndex = random.nextInt(Direction.values().length);
+				dir = Direction.getByIndex(dirIndex);
+			}
+		}
+		// update time remaining
+		timeRemaining -= delta;
+		// now actually move
+		if (moving) {
+			float dist = delta * SPEED;
+
+			if (dir == Direction.LEFT) x -= dist;
+			else if (dir == Direction.RIGHT) x += dist;
+			else if (dir == Direction.UP) y += dist;
+			else if (dir == Direction.DOWN) y -= dist;
+
+			boolean inBounds = (x >= 0) && (x <= Gdx.graphics.getWidth() - width) && (y >= 0) && (y <= upperBoundY);
+
+			if (!inBounds) {
+				// if there is a collision, we undo coordinate change and set moving to false
+				// the leftover seconds on timeRemaining will be spent idling
+				moving = false;
+				// the following changes are opposite signs to above, to undo
+				if (dir == Direction.LEFT) x += dist;
+				else if (dir == Direction.RIGHT) x -= dist;
+				else if (dir == Direction.UP) y -= dist;
+				else if (dir == Direction.DOWN) y += dist;
+			}
+		}
 	}
 
 	/**

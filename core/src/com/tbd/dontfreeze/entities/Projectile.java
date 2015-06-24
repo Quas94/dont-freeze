@@ -25,7 +25,7 @@ public class Projectile implements Entity {
 	/** How long it takes for a fireball to expire and completely dissipate */
 	private static final float EXPIRE_TIME = 0.5F;
 
-	private static final int SPEED = 150;
+	private static final int SPEED = 200;
 
 	private float x;
 	private float y;
