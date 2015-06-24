@@ -62,7 +62,11 @@ public class GameMain extends Game {
 	 * Loads a WorldScreen from the save file and transitions to that screen.
 	 */
 	public void setLoadWorld() {
-		setNewWorld(); // @TODO save/load game worlds
+		world = new WorldScreen(this, spriteBatch);
+		// load the world
+		world.loadGame();
+		// finally, swap into it
+		setScreen(world);
 	}
 
 	/**

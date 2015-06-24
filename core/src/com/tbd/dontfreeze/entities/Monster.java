@@ -7,10 +7,13 @@ import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.tbd.dontfreeze.SaveManager;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.player.Player;
 
 import java.util.Random;
+
+import static com.tbd.dontfreeze.SaveManager.*;
 
 /**
  * Base class for all Monsters.
@@ -90,6 +93,38 @@ public class Monster implements LiveEntity {
 		// initialise game mechanic related fields
 		this.maxHealth = BASE_HEALTH;
 		this.health = maxHealth;
+	}
+
+	/**
+	 * Loads the relevant saved fields into this Monster object, given the save manager.
+	 * Assumes that this monster's active flag in the save file has already been checked and is true.
+	 *
+	 * @param saver the save manager
+	 * @param name the unique identifier of this monster
+	 */
+	public void load(SaveManager saver, String name) {
+		x = saver.getDataValue(MONSTER + name + POSITION_X, Float.class);
+		y = saver.getDataValue(MONSTER + name + POSITION_Y, Float.class);
+		int di = saver.getDataValue(MONSTER + name + DIR_IDX, Integer.class);
+		health = saver.getDataValue(MONSTER + name + HEALTH, Integer.class);
+		dir = Direction.getByIndex(di);
+
+		aggressive = saver.getDataValue(MONSTER + name + AGGRO, Boolean.class);
+	}
+
+	/**
+	 * Saves relevant fields from this Player object into the given save manager.
+	 *
+	 * @param saver the save manager
+	 * @param name the unique identifier of this monster
+	 */
+	public void save(SaveManager saver, String name) {
+		saver.setDataValue(MONSTER + name + POSITION_X, x);
+		saver.setDataValue(MONSTER + name + POSITION_Y, y);
+		saver.setDataValue(MONSTER + name + HEALTH, health);
+		saver.setDataValue(MONSTER + name + DIR_IDX, dir.getIdx());
+
+		saver.setDataValue(MONSTER+ name + AGGRO, aggressive);
 	}
 
 	@Override

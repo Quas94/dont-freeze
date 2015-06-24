@@ -5,6 +5,11 @@
 *.ear
 hs_err_pid*
 
+# save file, jar file, diff file
+save.json
+diff.txt
+dont-freeze.jar
+
 # Assets - images and stuff
 assets/
 

@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import static com.tbd.dontfreeze.SaveManager.*;
+
 /**
  * In-game screen where the actual gameplaying will take place.
  *
@@ -168,7 +170,7 @@ public class WorldScreen extends AbstractScreen {
 		saveAndExitButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
-				// @TODO: save
+				saveGame(); // save the game
 				getGame().setMenu();
 			}
 		});
@@ -238,6 +240,70 @@ public class WorldScreen extends AbstractScreen {
 		}
 
 		this.projectiles = new ArrayList<Projectile>();
+	}
+
+	/**
+	 * Loads values from the save file into this game world.
+	 */
+	public void loadGame() {
+		SaveManager saver = new SaveManager(true); // true = load
+		// load camera position
+		cameraPos.x = saver.getDataValue(CAMERA_X, Float.class);
+		cameraPos.y = saver.getDataValue(CAMERA_Y, Float.class);
+		// load player position
+		player.load(saver);
+		// check monsters
+		ArrayList<String> removeKeys = new ArrayList<String>();
+		for (String mkey : monsters.keySet()) { // key is name
+			Monster monster = monsters.get(mkey);
+			boolean active = saver.hasDataValue(MONSTER + mkey + ACTIVE);
+			if (active) {
+				monster.load(saver, mkey);
+			} else {
+				removeKeys.add(mkey);
+			}
+		}
+		// remove monsters that weren't found in save file
+		for (String mkey : removeKeys) {
+			monsters.remove(mkey);
+		}
+		// check collectables
+		removeKeys.clear();
+		for (String ckey : collectables.keySet()) {
+			boolean active = saver.hasDataValue(COLLECTABLE + ckey + ACTIVE);
+			if (!active) {
+				removeKeys.add(ckey);
+			}
+		}
+		// remove collectables that weren't found in save file
+		for (String ckey : removeKeys) {
+			collectables.remove(ckey);
+		}
+	}
+
+	/**
+	 * Saves this game world into the save file.
+	 */
+	public void saveGame() {
+		SaveManager saver = new SaveManager(false); // false = write
+		// save camera position
+		saver.setDataValue(CAMERA_X, cameraPos.x);
+		saver.setDataValue(CAMERA_Y, cameraPos.y);
+		// save player
+		player.save(saver);
+		for (String mkey : monsters.keySet()) {
+			Monster m = monsters.get(mkey);
+			if (m.getHealth() > 0) { // excludes expiring monsters
+				// firstly: set this monster as active
+				saver.setDataValue(MONSTER + mkey + ACTIVE, true);
+				// then save fields
+				m.save(saver, mkey);
+			}
+		}
+		for (String ckey : collectables.keySet()) {
+			saver.setDataValue(COLLECTABLE + ckey + ACTIVE, true); // collectables don't know their own key (name)
+		}
+		saver.saveToJson();
 	}
 
 	/**

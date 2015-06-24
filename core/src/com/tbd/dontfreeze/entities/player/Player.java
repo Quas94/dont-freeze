@@ -1,20 +1,16 @@
 package com.tbd.dontfreeze.entities.player;
 
-import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.tbd.dontfreeze.SaveManager;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
+import static com.tbd.dontfreeze.SaveManager.*;
 
 /**
  * Player class for all things related to the fire elemental.
@@ -87,6 +83,34 @@ public class Player implements LiveEntity {
 		this.maxHealth = BASE_HEALTH;
 		this.health = maxHealth;
 		this.fires = 0;
+	}
+
+	/**
+	 * Loads the relevant saved fields into this Player object, given the save manager.
+	 *
+	 * @param saver the save manager
+	 */
+	public void load(SaveManager saver) {
+		x = saver.getDataValue(PLAYER + POSITION_X, Float.class);
+		y = saver.getDataValue(PLAYER + POSITION_Y, Float.class);
+		health = saver.getDataValue(PLAYER + HEALTH, Integer.class);
+		int di = saver.getDataValue(PLAYER + DIR_IDX, Integer.class);
+		dir = Direction.getByIndex(di);
+
+		fires = saver.getDataValue(PLAYER + FIRES, Integer.class);
+	}
+
+	/**
+	 * Saves relevant fields from this Player object into the given save manager.
+	 *
+	 * @param saver the save manager
+	 */
+	public void save(SaveManager saver) {
+		saver.setDataValue(PLAYER + POSITION_X, x);
+		saver.setDataValue(PLAYER + POSITION_Y, y);
+		saver.setDataValue(PLAYER + HEALTH, health);
+		saver.setDataValue(PLAYER + DIR_IDX, dir.getIdx());
+		saver.setDataValue(PLAYER + FIRES, fires);
 	}
 
 	@Override

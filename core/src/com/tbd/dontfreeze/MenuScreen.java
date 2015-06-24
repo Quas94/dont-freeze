@@ -124,6 +124,13 @@ public class MenuScreen extends AbstractScreen {
 		buttons.put(CREDITS_BACK, creditsBackButton);
 
 		// set functionalities for the buttons
+		TextButton loadGameButton = buttons.get(LOAD_GAME);
+		loadGameButton.addListener(new ClickListener() {
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				getGame().setLoadWorld();
+			}
+		});
 		TextButton newGameButton = buttons.get(NEW_GAME);
 		newGameButton.addListener(new ClickListener() {
 			@Override
@@ -219,5 +226,9 @@ public class MenuScreen extends AbstractScreen {
 	public void show() {
 		// set input processor to menu's one
 		Gdx.input.setInputProcessor(stage);
+
+		// check if a save file exists and enable/disable the load game button accordingly
+		boolean saveExists = SaveManager.saveFileExists();
+		buttons.get(LOAD_GAME).setVisible(saveExists);
 	}
 }
