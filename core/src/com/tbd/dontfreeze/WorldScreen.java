@@ -17,6 +17,7 @@ import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -28,6 +29,8 @@ import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.entities.*;
 import com.tbd.dontfreeze.entities.player.WorldInputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
+import com.tbd.dontfreeze.util.GameUtil;
+import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.*;
 
@@ -84,9 +87,11 @@ public class WorldScreen extends AbstractScreen {
 	private TextButton resumeButton;
 	private TextButton saveAndExitButton;
 
-	/** Tiled Map tools */
+	/** Tiled Map stuff */
 	private TiledMap tiledMap;
 	private CustomTiledMapRenderer tiledRenderer;
+	private List<Rectangle> rects;
+	private List<RectangleBoundedPolygon> polys;
 
 	/** Screen dimensions */
 	private int winWidth;
@@ -196,6 +201,22 @@ public class WorldScreen extends AbstractScreen {
 		camera.update();
 		this.fixedCamera = new OrthographicCamera();
 		fixedCamera.setToOrtho(false);
+		// process collision layer polygons and decompose concave into convex, and put into arraylist fields
+		MapObjects objs = tiledMap.getLayers().get(COLLISION_LAYER).getObjects();
+		List<Rectangle> modiRects = new ArrayList<Rectangle>();
+		List<RectangleBoundedPolygon> modiPolys = new ArrayList<RectangleBoundedPolygon>();
+		Array<RectangleMapObject> rectObjs = objs.getByType(RectangleMapObject.class);
+		Array<PolygonMapObject> polyObjs = objs.getByType(PolygonMapObject.class);
+		for (RectangleMapObject o : rectObjs) {
+			modiRects.add(o.getRectangle());
+		}
+		for (PolygonMapObject o : polyObjs) {
+			Polygon p = o.getPolygon();
+			modiPolys.add(new RectangleBoundedPolygon(p)); // constructor will take care of splitting concave polygons
+		}
+		// set rect and polygon lists unmodifiable
+		this.rects = Collections.unmodifiableList(modiRects);
+		this.polys = Collections.unmodifiableList(modiPolys);
 
 		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
 		int flipHeight = height - 1;
@@ -409,14 +430,12 @@ public class WorldScreen extends AbstractScreen {
 			MapObjects objects = collisionLayer.getObjects();
 
 			// update player and monsters
-			Array<PolygonMapObject> polys = objects.getByType(PolygonMapObject.class);
-			Array<RectangleMapObject> rects = objects.getByType(RectangleMapObject.class);
-			player.update(DELTA_STEP, polys, rects);
+			player.update(DELTA_STEP, rects, polys);
 			// list to store keys for removal, which is done after iteration to prevent ConcurrentModificationException
 			ArrayList<String> removeKeys = new ArrayList<String>();
 			for (String mkey : monsters.keySet()) {
 				Monster monster = monsters.get(mkey);
-				monster.update(DELTA_STEP, polys, rects);
+				monster.update(DELTA_STEP, rects, polys);
 				if (monster.expireComplete()) {
 					removeKeys.add(mkey);
 				}
@@ -425,12 +444,12 @@ public class WorldScreen extends AbstractScreen {
 				monsters.remove(mkey);
 			}
 			for (Collectable collectable : collectables.values()) {
-				collectable.update(DELTA_STEP, polys, rects);
+				collectable.update(DELTA_STEP, rects, polys);
 			}
 			Iterator<Projectile> projIterator = projectiles.iterator();
 			while (projIterator.hasNext()) {
 				Projectile projectile = projIterator.next();
-				projectile.update(DELTA_STEP, polys, rects); // update the projectile
+				projectile.update(DELTA_STEP, rects, polys); // update the projectile
 				// check for expiry of projectiles, and remove from list if so
 				if (projectile.expireComplete()) {
 					projIterator.remove();
@@ -438,7 +457,7 @@ public class WorldScreen extends AbstractScreen {
 					for (Monster monster : monsters.values()) {
 						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 							// check for collision between projectile's main bounds and monster's defense bounds
-							if (EntityUtil.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
+							if (GameUtil.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
 								projectile.setAction(Action.EXPIRING);
 								Direction from = Direction.getOpposite(projectile.getDirection());
 								monster.hit(from);
@@ -452,7 +471,7 @@ public class WorldScreen extends AbstractScreen {
 			removeKeys.clear(); // prep remove keys list for removal from collectables hashmap
 			for (String ckey : collectables.keySet()) {
 				Collectable c = collectables.get(ckey);
-				if (EntityUtil.collidesShapes(player.getCollisionBounds(), c.getCollisionBounds())) {
+				if (GameUtil.collidesShapes(player.getCollisionBounds(), c.getCollisionBounds())) {
 					// remove from the map, because we picked it up
 					removeKeys.add(ckey);
 					// increment our collected counter
@@ -469,7 +488,7 @@ public class WorldScreen extends AbstractScreen {
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
 				for (Monster monster : monsters.values()) {
 					if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
-						if (EntityUtil.collidesShapes(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
+						if (GameUtil.collidesShapes(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
 							player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
 							Direction from = Direction.getOpposite(player.getDirection());
 							monster.hit(from);
@@ -480,7 +499,7 @@ public class WorldScreen extends AbstractScreen {
 			// monster melee attack collision with player
 			for (Monster monster : monsters.values()) {
 				if (monster.getAction() == Action.MELEE && !monster.getMeleeHit() && monster.getMeleeCanHit()) {
-					if (EntityUtil.collidesShapes(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
+					if (GameUtil.collidesShapes(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
 						monster.setMeleeHit();
 						Direction from = Direction.getOpposite(monster.getDirection());
 						player.hit(from);
@@ -594,15 +613,16 @@ public class WorldScreen extends AbstractScreen {
 			r = player.getCollisionBounds();
 			debugRender(r);
 			// draw terrain collision bounds
-			MapLayer collisionLayer = tiledMap.getLayers().get(COLLISION_LAYER);
-			MapObjects objects = collisionLayer.getObjects();
-			Array<PolygonMapObject> polys = objects.getByType(PolygonMapObject.class);
-			for (PolygonMapObject o : polys) {
-				debugRenderer.polygon(o.getPolygon().getTransformedVertices());
+			for (RectangleBoundedPolygon rbp : polys) {
+				List<Polygon> ps = rbp.getSubPolygons();
+				for (Polygon p : ps) {
+					debugRenderer.polygon(p.getTransformedVertices()); // render subpolygon
+				}
+				// render bounding rectangle of the RectangleBoundedPolygon
+				debugRender(rbp.getBoundingRectangle());
 			}
-			Array<RectangleMapObject> rects = objects.getByType(RectangleMapObject.class);
-			for (RectangleMapObject o : rects) {
-				debugRender(o.getRectangle());
+			for (Rectangle rect : rects) {
+				debugRender(rect);
 			}
 
 			// draw other entities boxes

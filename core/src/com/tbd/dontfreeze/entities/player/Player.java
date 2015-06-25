@@ -1,20 +1,18 @@
 package com.tbd.dontfreeze.entities.player;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.maps.objects.PolygonMapObject;
-import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Shape2D;
-import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.SaveManager;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.*;
+import com.tbd.dontfreeze.util.GameUtil;
+import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.tbd.dontfreeze.SaveManager.*;
 
@@ -207,7 +205,7 @@ public class Player implements LiveEntity {
 	}
 
 	@Override
-	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		if (action == Action.EXPIRING) {
 			if (!animations.isComplete()) {
 				animations.update(delta / 2);
@@ -270,7 +268,7 @@ public class Player implements LiveEntity {
 			}
 		} else {
 			// lastly, if we are not dealing with anything else, we update movement instead
-			updateMovement(delta, leftPressed, rightPressed, upPressed, downPressed, polys, rects);
+			updateMovement(delta, leftPressed, rightPressed, upPressed, downPressed, rects, polys);
 		}
 	}
 
@@ -374,7 +372,7 @@ public class Player implements LiveEntity {
 	 * Updates the movement of this Player.
 	 */
 	private void updateMovement(float delta, boolean leftPressed, boolean rightPressed, boolean upPressed,
-								boolean downPressed, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+								boolean downPressed, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 
 		float dist = delta * SPEED;
 
@@ -408,12 +406,12 @@ public class Player implements LiveEntity {
 		// check collisions and stuff only if directions were pressed (since otherwise we wouldn't have moved at all)
 		if (dirsPressed > 0) {
 			// check if we collide with stuff after
-			ArrayList<Rectangle> collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
-			ArrayList<Polygon> collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+			ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
+			ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
 			int collisions = collideRects.size() + collidePolys.size();
 
-			if (collisions == 1 && dirsPressed == 1) {
-				// try possible sliding over very slight slopes if one dir was pressed and only one collision detected
+			if (collisions > 0 && dirsPressed == 1) {
+				// try possible sliding over very slight slopes if one dir was pressed and one or more collisions
 				// limiting sliding guesses to only one collision isn't 100% correct but close enough, and faster
 				// another possible problem is we only test slide against the one shape we previously collided against,
 				// w/o checking if we newly collide with shapes after slide. @TODO if we get sticking issues, refer here
@@ -432,20 +430,20 @@ public class Player implements LiveEntity {
 					else x -= slideDist; // rightPressed - undo right covered by slideDist
 					// slide up attempt
 					y += slideDist;
-					slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
+					slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
 					if (!slideSuccess) { // try sliding down instead
 						y = oldY - slideDist;
-						slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
+						slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
 					}
 				} else { // if (upPressed || downPressed) - try sliding left or right
 					if (upPressed) y -= slideDist; // undo up covered by slideDist
 					else y += slideDist; // undo down covered by slideDist
 					// slide left attempt
 					x -= slideDist; // slide left
-					slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
+					slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
 					if (!slideSuccess) { // try sliding right instead
 						x = oldX + slideDist;
-						slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
+						slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
 					}
 				}
 				if (!slideSuccess) { // if slide was not successful, we undo changes
@@ -463,8 +461,8 @@ public class Player implements LiveEntity {
 				if (leftPressed) x -= dist;
 				if (rightPressed) x += dist;
 				// check for collisions after updating x
-				collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
-				collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+				collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
+				collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
 				collisions = collideRects.size() + collidePolys.size();
 				if (collisions > 0) { // if there are collisions after updating x only, under x changes
 					leftPressed = false;
@@ -476,8 +474,8 @@ public class Player implements LiveEntity {
 				if (upPressed) y += dist;
 				if (downPressed) y -= dist;
 				// check for collisions after updating y
-				collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
-				collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+				collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
+				collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
 				collisions = collideRects.size() + collidePolys.size();
 				if (collisions > 0) { // if there are collisions after updating x only, under x changes
 					upPressed = false;

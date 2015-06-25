@@ -3,16 +3,16 @@ package com.tbd.dontfreeze.entities;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.maps.objects.PolygonMapObject;
-import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.SaveManager;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.player.Player;
+import com.tbd.dontfreeze.util.GameUtil;
+import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import static com.tbd.dontfreeze.SaveManager.*;
@@ -290,7 +290,7 @@ public class Monster implements LiveEntity {
 	}
 
 	@Override
-	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		// @TODO remove this if-condition after implementing different speeds for different animation types per manager
 		if (action == Action.EXPIRING) { animations.update(delta / 5); } else if (action == Action.KNOCKBACK) { animations.update(delta / 1.5F); } else
 
@@ -350,19 +350,19 @@ public class Monster implements LiveEntity {
 					if (!inRangeX) { // move on horizontal plane
 						if (diffX > 0) { // player on the right
 							dir = Direction.RIGHT;
-							moved = tryMove(dist, polys, rects);
+							moved = tryMove(dist, rects, polys);
 						} else if (diffX < 0) { // player on the left
 							dir = Direction.LEFT;
-							moved = tryMove(dist, polys, rects);
+							moved = tryMove(dist, rects, polys);
 						}
 					}
 					if (!inRangeY && !moved) { // if we haven't moved already (or we tried to horizontally but failed)
 						if (diffY > 0) { // player is above
 							dir = Direction.UP;
-							tryMove(dist, polys, rects); // we don't care about result of tryMove anymore here
+							tryMove(dist, rects, polys); // we don't care about result of tryMove anymore here
 						} else { // player is below
 							dir = Direction.DOWN;
-							tryMove(dist, polys, rects); // nor here
+							tryMove(dist, rects, polys); // nor here
 						}
 					}
 				}
@@ -380,7 +380,7 @@ public class Monster implements LiveEntity {
 				timeRemaining -= delta;
 				// now actually move
 				if (moving) {
-					tryMove(dist, polys, rects); // we don't care about the result here
+					tryMove(dist, rects, polys); // we don't care about the result here
 				}
 			}
 		}
@@ -443,15 +443,15 @@ public class Monster implements LiveEntity {
 	 * @param rects The collection of rectangles to test for collision against
 	 * @return true if the move was successful, false if the move collided and had to be reverted
 	 */
-	private boolean tryMove(float dist, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+	private boolean tryMove(float dist, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		if (dir == Direction.LEFT) x -= dist;
 		else if (dir == Direction.RIGHT) x += dist;
 		else if (dir == Direction.UP) y += dist;
 		else if (dir == Direction.DOWN) y -= dist;
 
 		// test collision
-		ArrayList<Rectangle> collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
-		ArrayList<Polygon> collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+		ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
+		ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
 		boolean collision = (collideRects.size() + collidePolys.size()) > 0;
 		boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
 		if (collision || !inBounds) {

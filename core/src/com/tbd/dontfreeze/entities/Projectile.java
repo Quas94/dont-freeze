@@ -4,8 +4,12 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
+
+import java.util.List;
 
 /**
  * Representation of a projectile, which could be fired by a player or an enemy.
@@ -160,7 +164,7 @@ public class Projectile implements Entity {
 	}
 
 	@Override
-	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		// update animation
 		animation.update(delta);
 

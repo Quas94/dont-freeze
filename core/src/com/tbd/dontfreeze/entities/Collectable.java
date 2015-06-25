@@ -4,9 +4,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.WorldScreen;
+import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
+
+import java.util.List;
 
 /**
  * Class that represents Entities in the game world that can be interacted with and picked up.
@@ -83,7 +87,7 @@ public class Collectable implements Entity {
 	}
 
 	@Override
-	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects) {
+	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		animation.update(delta);
 	}
 

@@ -3,8 +3,13 @@ package com.tbd.dontfreeze.entities;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Entity interface which is to be implemented by most game objects including the Player and Monster(s).
@@ -15,7 +20,7 @@ public interface Entity {
 
 	public Direction getDirection();
 
-	public void update(float delta, Array<PolygonMapObject> polys, Array<RectangleMapObject> rects);
+	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys);
 
 	public void render(SpriteBatch spriteBatch);
 

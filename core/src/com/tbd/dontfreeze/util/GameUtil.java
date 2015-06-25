@@ -1,4 +1,4 @@
-package com.tbd.dontfreeze.entities;
+package com.tbd.dontfreeze.util;
 
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Shape2D;
 import com.badlogic.gdx.utils.Array;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Collection of static utility methods for use by Entities.
@@ -17,7 +18,7 @@ import java.util.ArrayList;
  *
  * Created by Quasar on 19/06/2015.
  */
-public class EntityUtil {
+public class GameUtil {
 
 	/**
 	 * Checks if the given Entity's collision bounds collide with the given RectangleMapObjects. If a collision is
@@ -27,10 +28,9 @@ public class EntityUtil {
 	 * @param rects array of RectangleMapObjects to be checked for collision
 	 * @return all the Rectangles the entity's collision bounds collide with
 	 */
-	public static ArrayList<Rectangle> collidesWithRects(Rectangle bounds, Array<RectangleMapObject> rects) {
+	public static ArrayList<Rectangle> collidesWithRects(Rectangle bounds, List<Rectangle> rects) {
 		ArrayList<Rectangle> collides = new ArrayList<Rectangle>();
-		for (RectangleMapObject rectObj : rects) {
-			Rectangle rect = rectObj.getRectangle();
+		for (Rectangle rect : rects) {
 			if (Intersector.overlaps(bounds, rect)) {
 				collides.add(rect);
 			}
@@ -44,18 +44,24 @@ public class EntityUtil {
 	 * detected, the underlying Polygon is returned immediately.
 	 *
 	 * @param bounds the Entity's collison bounds
-	 * @param polys array of PolygonMapObjects to be checked for collison
+	 * @param polys list of RectangleBoundedPolygons to be checked for collision
 	 * @return all the Polygons the entity's collision bounds collide with
 	 */
-	public static ArrayList<Polygon> collidesWithPolys(Rectangle bounds, Array<PolygonMapObject> polys) {
-		ArrayList<Polygon> collides = new ArrayList<Polygon>();
+	public static ArrayList<RectangleBoundedPolygon> collidesWithPolys(Rectangle bounds, List<RectangleBoundedPolygon> polys) {
+		ArrayList<RectangleBoundedPolygon> collides = new ArrayList<RectangleBoundedPolygon>();
 		Polygon polyBounds = new Polygon(new float[] { bounds.x, bounds.y, bounds.x + bounds.width, bounds.y,
 				bounds.x + bounds.width, bounds.y + bounds.height, bounds.x, bounds.y + bounds.height });
 
-		for (PolygonMapObject polyObj : polys) {
-			Polygon poly = polyObj.getPolygon();
-			if (Intersector.overlapConvexPolygons(polyBounds, poly)) {
-				collides.add(poly);
+		for (RectangleBoundedPolygon rbp : polys) {
+			Rectangle boundRect = rbp.getBoundingRectangle();
+			if (Intersector.overlaps(bounds, boundRect)) {
+				List<Polygon> subPolys = rbp.getSubPolygons();
+				for (Polygon sub : subPolys) {
+					if (Intersector.overlapConvexPolygons(polyBounds, sub)) {
+						collides.add(rbp);
+						break; // add original polygon that this sub was a part of, and break
+					}
+				}
 			}
 		}
 		return collides;
@@ -73,28 +79,23 @@ public class EntityUtil {
 		if (shape instanceof Rectangle) {
 			Rectangle r = (Rectangle) shape;
 			return Intersector.overlaps(rect, r);
-		} else if (shape instanceof Polygon) {
-			Polygon p = (Polygon) shape;
+		} else if (shape instanceof RectangleBoundedPolygon) {
+			RectangleBoundedPolygon rbp = (RectangleBoundedPolygon) shape;
 			Polygon polyBounds = new Polygon(new float[] { rect.x, rect.y, rect.x + rect.width, rect.y,
 					rect.x + rect.width, rect.y + rect.height, rect.x, rect.y + rect.height });
-			return Intersector.overlapConvexPolygons(p, polyBounds);
+			List<Polygon> subPolys = rbp.getSubPolygons();
+			for (Polygon sub : subPolys) {
+				if (Intersector.overlapConvexPolygons(sub, polyBounds)) {
+					return true;
+				}
+			}
+			return false;
 		} else {
-			throw new IllegalArgumentException("shape can only be Rectangle of Polygon, but is " + shape.getClass().toString());
+			throw new IllegalArgumentException("shape can only be Rectangle or RectangleBoundedPolygon, but is "
+					+ shape.getClass().toString());
 		}
 	}
 
-	/**
-	 * Checks whether the point given by the x and y coordinates is within the bounds given by the Rectangle.
-	 *
-	 * @param x x-coordinate
-	 * @param y y-coordinate
-	 * @param bounds the Rectangle defining the bounds
-	 * @return whether the point is inside the bounds
-	 */
-	public static boolean isPointInBounds(float x, float y, Rectangle bounds) {
-		return x >= bounds.x && y >= bounds.y && x <= bounds.x + bounds.width && y <= bounds.y + bounds.height;
-	}
-
-	private EntityUtil() {
+	private GameUtil() {
 	}
 }
