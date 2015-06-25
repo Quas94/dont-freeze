@@ -1,14 +1,20 @@
 package com.tbd.dontfreeze.entities.player;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Shape2D;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.SaveManager;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.*;
+
+import java.util.ArrayList;
 
 import static com.tbd.dontfreeze.SaveManager.*;
 
@@ -381,55 +387,126 @@ public class Player implements LiveEntity {
 			// going diagonally
 			dist *= DIAGONAL_MOVE_RATIO;
 		}
-		if (leftPressed) x -= dist;
-		if (rightPressed) x += dist;
-		if (upPressed) y += dist;
-		if (downPressed) y -= dist;
-
-		// if it does collide, we need to separate x and y changes and test individually
-		if (EntityUtil.collidesTerrain(this, polys, rects)) {
-			// undo changes
-			x = oldX;
-			y = oldY;
-			dist = oldDist;
-
-			// tentatively update x pos first
-			if (leftPressed) x -= dist;
-			if (rightPressed) x += dist;
-			// check for collisions after updating x
-			if (EntityUtil.collidesTerrain(this, polys, rects)) {
-				leftPressed = false;
-				rightPressed = false;
-			}
-			// undo change
-			x = oldX;
-			// update y pos next
-			if (upPressed) y += dist;
-			if (downPressed) y -= dist;
-			// check for collisions after updating y
-			if (EntityUtil.collidesTerrain(this, polys, rects)) {
-				upPressed = false;
-				downPressed = false;
-			}
-			// undo change
-			y = oldY;
-
-			// now make actual changes
-			if ((leftPressed || rightPressed) && (upPressed || downPressed)) {
-				// going diagonally
-				dist *= DIAGONAL_MOVE_RATIO;
-			}
-			if (leftPressed) x -= dist;
-			if (rightPressed) x += dist;
-			if (upPressed) y += dist;
-			if (downPressed) y -= dist;
+		int dirsPressed = 0; // number of directions pressed
+		if (leftPressed) {
+			x -= dist;
+			dirsPressed++;
+		}
+		if (rightPressed) {
+			x += dist;
+			dirsPressed++;
+		}
+		if (upPressed) {
+			y += dist;
+			dirsPressed++;
+		}
+		if (downPressed) {
+			y -= dist;
+			dirsPressed++;
 		}
 
-		// keep within bounds of map
-		if (x < 0) x = 0;
-		if (x >= rightmost) x = rightmost;
-		if (y < 0) y = 0;
-		if (y >= upmost) y = upmost;
+		// check collisions and stuff only if directions were pressed (since otherwise we wouldn't have moved at all)
+		if (dirsPressed > 0) {
+			// check if we collide with stuff after
+			ArrayList<Rectangle> collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
+			ArrayList<Polygon> collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+			int collisions = collideRects.size() + collidePolys.size();
+
+			if (collisions == 1 && dirsPressed == 1) {
+				// try possible sliding over very slight slopes if one dir was pressed and only one collision detected
+				// limiting sliding guesses to only one collision isn't 100% correct but close enough, and faster
+				// another possible problem is we only test slide against the one shape we previously collided against,
+				// w/o checking if we newly collide with shapes after slide. @TODO if we get sticking issues, refer here
+				float slideDist = dist / 3F; // allow slides of up to 22.5 degrees
+				// dist = dist / 3F * 2F; // so dist = 2/3 of original dist, and slideDist = 1/3 of original dist.
+				Shape2D collideShape; // refraining from using ? notation in this project
+				// get the shape we collided with
+				if (collideRects.size() == 1) {
+					collideShape = collideRects.get(0);
+				} else { // means collidePolys.size() == 1 for sure
+					collideShape = collidePolys.get(0);
+				}
+				boolean slideSuccess;
+				if (leftPressed || rightPressed) {// try sliding up or down
+					if (leftPressed) x += slideDist; // undo left covered by slideDist
+					else x -= slideDist; // rightPressed - undo right covered by slideDist
+					// slide up attempt
+					y += slideDist;
+					slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
+					if (!slideSuccess) { // try sliding down instead
+						y = oldY - slideDist;
+						slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
+					}
+				} else { // if (upPressed || downPressed) - try sliding left or right
+					if (upPressed) y -= slideDist; // undo up covered by slideDist
+					else y += slideDist; // undo down covered by slideDist
+					// slide left attempt
+					x -= slideDist; // slide left
+					slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
+					if (!slideSuccess) { // try sliding right instead
+						x = oldX + slideDist;
+						slideSuccess = !EntityUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
+					}
+				}
+				if (!slideSuccess) { // if slide was not successful, we undo changes
+					x = oldX;
+					y = oldY;
+				}
+			} else if (collisions > 0 && dirsPressed == 2) {
+				// if collisions isn't none, and we pressed 2 directions, separate dirs and test them individually
+				// undo changes
+				x = oldX;
+				y = oldY;
+				dist = oldDist;
+
+				// tentatively update x pos first
+				if (leftPressed) x -= dist;
+				if (rightPressed) x += dist;
+				// check for collisions after updating x
+				collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
+				collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+				collisions = collideRects.size() + collidePolys.size();
+				if (collisions > 0) { // if there are collisions after updating x only, under x changes
+					leftPressed = false;
+					rightPressed = false;
+				}
+				// undo change
+				x = oldX;
+				// update y pos next
+				if (upPressed) y += dist;
+				if (downPressed) y -= dist;
+				// check for collisions after updating y
+				collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
+				collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+				collisions = collideRects.size() + collidePolys.size();
+				if (collisions > 0) { // if there are collisions after updating x only, under x changes
+					upPressed = false;
+					downPressed = false;
+				}
+				// undo change
+				y = oldY;
+
+				// now make actual changes
+				if ((leftPressed || rightPressed) && (upPressed || downPressed)) {
+					// going diagonally
+					dist *= DIAGONAL_MOVE_RATIO;
+				}
+				if (leftPressed) x -= dist;
+				if (rightPressed) x += dist;
+				if (upPressed) y += dist;
+				if (downPressed) y -= dist;
+			} else if (collisions > 0) { // note: it's wholly possible to have dirsPressed = 3 or 4
+				// last case: just immediately undo, full stop.
+				x = oldX;
+				y = oldY;
+			}
+
+			// keep within bounds of map
+			if (x < 0) x = 0;
+			if (x >= rightmost) x = rightmost;
+			if (y < 0) y = 0;
+			if (y >= upmost) y = upmost;
+		}
 	}
 
 	@Override

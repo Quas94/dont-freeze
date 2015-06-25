@@ -29,10 +29,7 @@ import com.tbd.dontfreeze.entities.*;
 import com.tbd.dontfreeze.entities.player.WorldInputHandler;
 import com.tbd.dontfreeze.entities.player.Player;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 
 import static com.tbd.dontfreeze.SaveManager.*;
 
@@ -441,7 +438,7 @@ public class WorldScreen extends AbstractScreen {
 					for (Monster monster : monsters.values()) {
 						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 							// check for collision between projectile's main bounds and monster's defense bounds
-							if (EntityUtil.collides(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
+							if (EntityUtil.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
 								projectile.setAction(Action.EXPIRING);
 								Direction from = Direction.getOpposite(projectile.getDirection());
 								monster.hit(from);
@@ -455,7 +452,7 @@ public class WorldScreen extends AbstractScreen {
 			removeKeys.clear(); // prep remove keys list for removal from collectables hashmap
 			for (String ckey : collectables.keySet()) {
 				Collectable c = collectables.get(ckey);
-				if (EntityUtil.collides(player.getCollisionBounds(), c.getCollisionBounds())) {
+				if (EntityUtil.collidesShapes(player.getCollisionBounds(), c.getCollisionBounds())) {
 					// remove from the map, because we picked it up
 					removeKeys.add(ckey);
 					// increment our collected counter
@@ -472,7 +469,7 @@ public class WorldScreen extends AbstractScreen {
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
 				for (Monster monster : monsters.values()) {
 					if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
-						if (EntityUtil.collides(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
+						if (EntityUtil.collidesShapes(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
 							player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
 							Direction from = Direction.getOpposite(player.getDirection());
 							monster.hit(from);
@@ -483,7 +480,7 @@ public class WorldScreen extends AbstractScreen {
 			// monster melee attack collision with player
 			for (Monster monster : monsters.values()) {
 				if (monster.getAction() == Action.MELEE && !monster.getMeleeHit() && monster.getMeleeCanHit()) {
-					if (EntityUtil.collides(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
+					if (EntityUtil.collidesShapes(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
 						monster.setMeleeHit();
 						Direction from = Direction.getOpposite(monster.getDirection());
 						player.hit(from);
@@ -593,6 +590,22 @@ public class WorldScreen extends AbstractScreen {
 			// draw player hitboxes
 			Rectangle r = player.getDefenseCollisionBounds();
 			debugRender(r);
+			// draw player terrain collision box too
+			r = player.getCollisionBounds();
+			debugRender(r);
+			// draw terrain collision bounds
+			MapLayer collisionLayer = tiledMap.getLayers().get(COLLISION_LAYER);
+			MapObjects objects = collisionLayer.getObjects();
+			Array<PolygonMapObject> polys = objects.getByType(PolygonMapObject.class);
+			for (PolygonMapObject o : polys) {
+				debugRenderer.polygon(o.getPolygon().getTransformedVertices());
+			}
+			Array<RectangleMapObject> rects = objects.getByType(RectangleMapObject.class);
+			for (RectangleMapObject o : rects) {
+				debugRender(o.getRectangle());
+			}
+
+			// draw other entities boxes
 			for (Monster m : monsters.values()) {
 				r = m.getDefenseCollisionBounds();
 				debugRender(r);

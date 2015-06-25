@@ -168,8 +168,8 @@ public class MenuScreen extends AbstractScreen {
 		this.decorations = new ArrayList<Monster>();
 		Random random = new Random();
 		for (int i = 0; i < NUM_DECORATIONS; i++) {
-			float randX = random.nextFloat() * winWidth;
-			float randY = random.nextFloat() * DECORATION_Y_BOUND;
+			float randX = random.nextFloat() * (winWidth - Monster.SPRITE_WIDTH);
+			float randY = random.nextFloat() * (DECORATION_Y_BOUND - Monster.SPRITE_HEIGHT);
 			Monster dec = new Monster(null, randX, randY);
 			decorations.add(dec);
 		}

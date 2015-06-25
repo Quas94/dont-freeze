@@ -5,12 +5,14 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.tbd.dontfreeze.SaveManager;
 import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.player.Player;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import static com.tbd.dontfreeze.SaveManager.*;
@@ -25,8 +27,8 @@ public class Monster implements LiveEntity {
 	private static final String PATH = "assets/snowbaby.atlas";
 	private static final float FRAME_RATE = 0.1F;
 	private static final int SPEED = 30;
-	private static final int SPRITE_WIDTH = 55;
-	private static final int SPRITE_HEIGHT = 50;
+	public static final int SPRITE_WIDTH = 55;
+	public static final int SPRITE_HEIGHT = 50;
 
 	// timing values for monster random movement
 	private static final float MIN_RAND_TIME = 1.0F;
@@ -448,7 +450,9 @@ public class Monster implements LiveEntity {
 		else if (dir == Direction.DOWN) y -= dist;
 
 		// test collision
-		boolean collision = EntityUtil.collidesTerrain(this, polys, rects);
+		ArrayList<Rectangle> collideRects = EntityUtil.collidesWithRects(getCollisionBounds(), rects);
+		ArrayList<Polygon> collidePolys = EntityUtil.collidesWithPolys(getCollisionBounds(), polys);
+		boolean collision = (collideRects.size() + collidePolys.size()) > 0;
 		boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
 		if (collision || !inBounds) {
 			// if there is a collision, we undo coordinate change and set moving to false
