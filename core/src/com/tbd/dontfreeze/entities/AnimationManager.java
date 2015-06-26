@@ -11,6 +11,7 @@ import com.tbd.dontfreeze.WorldScreen;
 import com.tbd.dontfreeze.entities.player.Player;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -36,6 +37,8 @@ public class AnimationManager {
 	private Action lastAction;
 	/** Prefix denoting the current animation type */
 	private String prefix;
+	/** Animation loop time @TODO this is only for 1 type of frame, need to do diff types */
+	private float animationTime;
 
 	/**
 	 * Creates an AnimationSequence, to be used by entities in the game world. Loads all the frames and does everything
@@ -119,6 +122,29 @@ public class AnimationManager {
 			anim.setPlayMode(Animation.PlayMode.LOOP);
 			animations.put(prefix, anim);
 		}
+
+		// set animation time - how long one cycle takes
+		// get any animation at from the anims list
+		Animation randAnim = animations.values().iterator().next(); // will throw exception here if empty animation,
+		this.animationTime = randAnim.getAnimationDuration();
+	}
+
+	/**
+	 * Finds how long this Animation takes to do one complete cycle.
+	 *
+	 * @return animation time
+	 */
+	public float getAnimationTime() {
+		return animationTime;
+	}
+
+	/**
+	 * Sets the stateTime to a given random value.
+	 *
+	 * @param randomStateTime random state time
+	 */
+	public void setRandomStateTime(float randomStateTime) {
+		stateTime = randomStateTime;
 	}
 
 	/**

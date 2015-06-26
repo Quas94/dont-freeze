@@ -69,9 +69,18 @@ public class Monster implements LiveEntity {
 	private int maxHealth;
 	private int health;
 
+	/**
+	 * Constructs a new Monster with the given position. The animation state of the m
+	 *
+	 * @param world the World this monster resides within
+	 * @param x starting coordinate x value
+	 * @param y starting coordinate y value
+	 */
 	public Monster(WorldScreen world, float x, float y) {
 		// initialise technical fields
 		this.world = world;
+		// random seed
+		this.random = new Random();
 
 		this.x = x;
 		this.y = y;
@@ -80,9 +89,14 @@ public class Monster implements LiveEntity {
 
 		this.dir = Direction.LEFT;
 		this.action = Action.IDLE_MOVE;
-		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, PATH, FRAME_RATE);
 
-		this.random = new Random();
+		// create animation manager
+		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, PATH, FRAME_RATE);
+		// generate random state time so monsters are not all in sync animation-frame wise
+		float animationTime = animations.getAnimationTime(); // find time it takes for one loop
+		float randomStateTime = random.nextFloat() * animationTime;
+		animations.setRandomStateTime(randomStateTime);
+
 		this.moving = false;
 		this.timeRemaining = 0;
 

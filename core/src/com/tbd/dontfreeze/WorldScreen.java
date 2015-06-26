@@ -87,7 +87,7 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Tiled Map stuff */
 	private TiledMap tiledMap;
-	private CustomTiledMapRenderer tiledRenderer;
+	private CustomTiledMapRenderer mapRenderer;
 	private final List<Rectangle> obstacleRects;
 	private final List<RectangleBoundedPolygon> obstaclePolys;
 	private final List<Rectangle> allRects; // unmodifiable
@@ -113,8 +113,11 @@ public class WorldScreen extends AbstractScreen {
 	/** Player and other entities in this World */
 	private Player player;
 	private boolean playerExpireComplete;
-	private HashMap<String, Monster> monsters;
-	private HashMap<String, Collectable> collectables; // @TODO: there should be a better data structure for this than ALs
+	// NOTE: all monster add/remove methods must be done on both orderedEntities and monsters
+	private ArrayList<LiveEntity> orderedEntities; // (sorted by y-coord) list of all active monsters and the player
+	private Comparator<LiveEntity> orderedEntitiesComp;
+	private HashMap<String, Monster> monsters; // hashmap of <name, monsterobj>
+	private HashMap<String, Collectable> collectables;
 	private ArrayList<Projectile> projectiles;
 
 	/**
@@ -188,7 +191,7 @@ public class WorldScreen extends AbstractScreen {
 
 		// load Tiled stuffs
 		this.tiledMap = MAP_LOADER.load(MAP_LOCATION);
-		this.tiledRenderer = new CustomTiledMapRenderer(tiledMap);
+		this.mapRenderer = new CustomTiledMapRenderer(tiledMap);
 		MapProperties mapProps = tiledMap.getProperties();
 		// load in map dimensions
 		this.width = mapProps.get(MAP_WIDTH, Integer.class);
@@ -240,8 +243,6 @@ public class WorldScreen extends AbstractScreen {
 		}
 		this.allRects = Collections.unmodifiableList(modiRects);
 		this.allPolys = Collections.unmodifiableList(modiPolys);
-		System.out.println("obstacleRects size: " + obstacleRects.size() + ", obstaclePolys size: " + obstaclePolys.size());
-		System.out.println("allRects size: " + allRects.size() + ", allPolys size: " + allPolys.size());
 
 		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
 		int flipHeight = height - 1;
@@ -249,6 +250,22 @@ public class WorldScreen extends AbstractScreen {
 		int playerSpawnX = Integer.parseInt(mapProps.get(PLAYER_SPAWN_X, String.class));
 		int playerSpawnY = flipHeight - Integer.parseInt(mapProps.get(PLAYER_SPAWN_Y, String.class));
 		this.player = new Player(this, worldInputHandler, playerSpawnX, playerSpawnY);
+		this.orderedEntities = new ArrayList<LiveEntity>();
+		this.orderedEntitiesComp = new Comparator<LiveEntity>() {
+
+			@Override
+			public int compare(LiveEntity e1, LiveEntity e2) {
+				float y1 = e1.getY();
+				float y2 = e2.getY();
+				if (y1 < y2) {
+					return 1;
+				} else if (y1 > y2) {
+					return -1;
+				}
+				return 0; // equal
+			}
+		};
+		orderedEntities.add(player); // add player to the sorted entities list
 
 		// monster spawn points
 		this.monsters = new HashMap<String, Monster>();
@@ -264,7 +281,10 @@ public class WorldScreen extends AbstractScreen {
 			float my = obj.getProperties().get(TILED_PROP_Y, Float.class);
 			Monster monster = new Monster(this, mx, my);
 			monsters.put(name, monster); // add monster to hashmap by key = unique name
+			orderedEntities.add(monster);
 		}
+		// sort ordered entities list
+		sortOrderedEntities();
 
 		// collectable spawn points
 		this.collectables = new HashMap<String, Collectable>();
@@ -304,12 +324,17 @@ public class WorldScreen extends AbstractScreen {
 				monster.load(saver, mkey);
 			} else {
 				removeKeys.add(mkey);
+				// remove from orderedlist also
+				orderedEntities.remove(monster);
 			}
 		}
 		// remove monsters that weren't found in save file
 		for (String mkey : removeKeys) {
 			monsters.remove(mkey);
 		}
+		// sort ordered entities now that monsters have been changed around
+		sortOrderedEntities();
+
 		// check collectables
 		removeKeys.clear();
 		for (String ckey : collectables.keySet()) {
@@ -322,6 +347,13 @@ public class WorldScreen extends AbstractScreen {
 		for (String ckey : removeKeys) {
 			collectables.remove(ckey);
 		}
+	}
+
+	/**
+	 * Sorts the ordered entities ArrayList. Should be called whenever monsters have changed.
+	 */
+	private void sortOrderedEntities() {
+		Collections.sort(orderedEntities, orderedEntitiesComp);
 	}
 
 	/**
@@ -459,11 +491,13 @@ public class WorldScreen extends AbstractScreen {
 				monster.update(DELTA_STEP, allRects, allPolys);
 				if (monster.expireComplete()) {
 					removeKeys.add(mkey);
+					orderedEntities.remove(monster); // remove from orderedEntities as well as monsters list
 				}
 			}
 			for (String mkey : removeKeys) {
 				monsters.remove(mkey);
 			}
+
 			for (Collectable collectable : collectables.values()) {
 				collectable.update(DELTA_STEP, allRects, allPolys);
 			}
@@ -558,9 +592,12 @@ public class WorldScreen extends AbstractScreen {
 			camera.translate(translateX, translateY);
 		}
 
+		// only need to sort once per frame (as opposed to every DELTA_STEP)
+		sortOrderedEntities();
+
 		// update things that bind to camera
 		camera.update();
-		tiledRenderer.setView(camera);
+		mapRenderer.setView(camera);
 	}
 
 	@Override
@@ -578,31 +615,60 @@ public class WorldScreen extends AbstractScreen {
 
 		// start actual rendering
 
-		// render background
-		tiledRenderer.renderNonSpriteLayers();
-		// then render sprite layer
-		float playerY = player.getY();
-		tiledRenderer.renderSpriteLayer(true, playerY);
-
-		spriteBatch.setProjectionMatrix(camera.combined);
-		if (!playerExpireComplete) {
-			spriteBatch.begin();
-			player.render(spriteBatch);
-			spriteBatch.end();
-		}
-
-		// render foreground of tiled map
-		tiledRenderer.renderSpriteLayer(false, playerY);
-
 		// render monsters on top of everything (@TODO: prevent monsters from going near obstacles to circumvent need
 		// render everything else as well @TODO render monsters and obstacles interchangeably, sort by y value
 		// for layering of monster sprites with environment)
 		// @TODO layer projectiles as well - this is gonna be a bit special since the down projectile should be on top
 		// of the player... but it won't be (unless it's made to be very tall? that's an idea)
-		spriteBatch.begin();
-		for (Monster monster : monsters.values()) {
-			monster.render(spriteBatch);
+
+		// render background
+		mapRenderer.renderNonSpriteLayers();
+
+		// now render map obstacles and entities interchangeably, top to bottom
+		int camY = Math.round(cameraPos.y);
+		int screenTop = camY + (winHeight / 2);
+		int screenBot = camY - (winHeight / 2);
+
+		spriteBatch.setProjectionMatrix(camera.combined);
+
+		int numEntities = orderedEntities.size();
+		if (numEntities > 0) {
+			int highestEntityY = (int) orderedEntities.get(0).getY();
+			// first: render from top of screen to highest LiveEntity's y
+			mapRenderer.renderSpriteLayer(screenTop, highestEntityY, false);
+			int lowestRenderedEntityY = 0;
+			// loop and interchangeably render sprites and map layers
+			int i = 0;
+			while (i < numEntities) {
+				LiveEntity e = orderedEntities.get(i);
+				int thisY = (int) e.getY();
+				if (thisY < screenBot - CustomTiledMapRenderer.MAX_SPRITE_HEIGHT) {
+					// we're low enough to ignore everything from here on, break out of loop
+					break;
+				}
+				if (e instanceof Monster || !playerExpireComplete) {
+					spriteBatch.begin();
+					e.render(spriteBatch);
+					spriteBatch.end();
+					lowestRenderedEntityY = thisY;
+				} // else: this entity is completely expired player, so don't render
+
+				i++; // increment i in the middle because next portion needs to check it
+
+				if (i < numEntities) { // if there is another LiveEntity lower, render the gap
+					int nextHighestY = (int) orderedEntities.get(i).getY();
+					mapRenderer.renderSpriteLayer(thisY + 1, nextHighestY, false);
+				}
+			}
+			// lastly, render from lowestRenderedEntityY to bottom of screen
+			mapRenderer.renderSpriteLayer(lowestRenderedEntityY + 1, screenBot, true);
+		} else {
+			// no entities, this shouldn't really happen but just in case - render everything
+			mapRenderer.renderSpriteLayer(screenTop, screenBot, true);
 		}
+
+		spriteBatch.begin();
+		// collectables and projectiles always rendered on the very top
 		for (Collectable collectable : collectables.values()) {
 			collectable.render(spriteBatch);
 		}
