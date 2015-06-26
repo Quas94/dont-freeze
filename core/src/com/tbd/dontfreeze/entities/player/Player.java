@@ -415,7 +415,7 @@ public class Player implements LiveEntity {
 				// limiting sliding guesses to only one collision isn't 100% correct but close enough, and faster
 				// another possible problem is we only test slide against the one shape we previously collided against,
 				// w/o checking if we newly collide with shapes after slide. @TODO if we get sticking issues, refer here
-				float slideDist = dist / 3F; // allow slides of up to 22.5 degrees
+				float slideDist = dist * (float) Math.sqrt(1D / 3D); // allow slides of up to 30 degrees
 				// dist = dist / 3F * 2F; // so dist = 2/3 of original dist, and slideDist = 1/3 of original dist.
 				Shape2D collideShape; // refraining from using ? notation in this project
 				// get the shape we collided with

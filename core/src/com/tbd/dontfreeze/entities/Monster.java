@@ -450,8 +450,9 @@ public class Monster implements LiveEntity {
 		else if (dir == Direction.DOWN) y -= dist;
 
 		// test collision
-		ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
-		ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
+		Rectangle collisionBounds = getCollisionBounds();
+		ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(collisionBounds, rects);
+		ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(collisionBounds, polys);
 		boolean collision = (collideRects.size() + collidePolys.size()) > 0;
 		boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
 		if (collision || !inBounds) {

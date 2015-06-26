@@ -9,10 +9,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
-import com.badlogic.gdx.maps.MapLayer;
-import com.badlogic.gdx.maps.MapObject;
-import com.badlogic.gdx.maps.MapObjects;
-import com.badlogic.gdx.maps.MapProperties;
+import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -59,9 +56,10 @@ public class WorldScreen extends AbstractScreen {
 	private static final String MAP_WIDTH = "width";
 	private static final String MAP_HEIGHT = "height";
 	/** Map layers */
-	private static final String COLLISION_LAYER = "collision";
+	private static final String OBSTACLES_LAYER = "obstacles";
 	private static final String MONSTERS_LAYER = "monsters";
 	private static final String COLLECTABLES_LAYER = "collectables";
+	private static final String GROUNDLESS_LAYER = "groundless";
 	/** Property name constants */
 	private static final String PLAYER_SPAWN_X = "player_spawn_x";
 	private static final String PLAYER_SPAWN_Y = "player_spawn_y";
@@ -90,8 +88,11 @@ public class WorldScreen extends AbstractScreen {
 	/** Tiled Map stuff */
 	private TiledMap tiledMap;
 	private CustomTiledMapRenderer tiledRenderer;
-	private List<Rectangle> rects;
-	private List<RectangleBoundedPolygon> polys;
+	private final List<Rectangle> obstacleRects;
+	private final List<RectangleBoundedPolygon> obstaclePolys;
+	private final List<Rectangle> allRects; // unmodifiable
+	private final List<RectangleBoundedPolygon> allPolys; // unmodifiable
+
 
 	/** Screen dimensions */
 	private int winWidth;
@@ -202,7 +203,8 @@ public class WorldScreen extends AbstractScreen {
 		this.fixedCamera = new OrthographicCamera();
 		fixedCamera.setToOrtho(false);
 		// process collision layer polygons and decompose concave into convex, and put into arraylist fields
-		MapObjects objs = tiledMap.getLayers().get(COLLISION_LAYER).getObjects();
+		MapLayers layers = tiledMap.getLayers();
+		MapObjects objs = layers.get(OBSTACLES_LAYER).getObjects(); // load in obstacles first
 		List<Rectangle> modiRects = new ArrayList<Rectangle>();
 		List<RectangleBoundedPolygon> modiPolys = new ArrayList<RectangleBoundedPolygon>();
 		Array<RectangleMapObject> rectObjs = objs.getByType(RectangleMapObject.class);
@@ -211,12 +213,35 @@ public class WorldScreen extends AbstractScreen {
 			modiRects.add(o.getRectangle());
 		}
 		for (PolygonMapObject o : polyObjs) {
-			Polygon p = o.getPolygon();
-			modiPolys.add(new RectangleBoundedPolygon(p)); // constructor will take care of splitting concave polygons
+			modiPolys.add(new RectangleBoundedPolygon(o.getPolygon())); // constructor will take care of splitting concave polygons
 		}
 		// set rect and polygon lists unmodifiable
-		this.rects = Collections.unmodifiableList(modiRects);
-		this.polys = Collections.unmodifiableList(modiPolys);
+		this.obstacleRects = Collections.unmodifiableList(modiRects);
+		this.obstaclePolys = Collections.unmodifiableList(modiPolys);
+		modiRects = new ArrayList<Rectangle>();
+		modiPolys = new ArrayList<RectangleBoundedPolygon>();
+		// copy over obstacle rects/polys
+		for (Rectangle or : obstacleRects) {
+			modiRects.add(or);
+		}
+		for (RectangleBoundedPolygon op : obstaclePolys) {
+			modiPolys.add(op);
+		}
+		objs = layers.get(GROUNDLESS_LAYER).getObjects();
+		// load in groundless rects/polys and combine them with obstacle rects/polys for allRects and allPolys
+		rectObjs = objs.getByType(RectangleMapObject.class);
+		polyObjs = objs.getByType(PolygonMapObject.class);
+		// add cumulatively onto the obstacle shapes for 'all'
+		for (RectangleMapObject o : rectObjs) {
+			modiRects.add(o.getRectangle());
+		}
+		for (PolygonMapObject o : polyObjs) {
+			modiPolys.add(new RectangleBoundedPolygon(o.getPolygon())); // constructor will take care of splitting concave polygons
+		}
+		this.allRects = Collections.unmodifiableList(modiRects);
+		this.allPolys = Collections.unmodifiableList(modiPolys);
+		System.out.println("obstacleRects size: " + obstacleRects.size() + ", obstaclePolys size: " + obstaclePolys.size());
+		System.out.println("allRects size: " + allRects.size() + ", allPolys size: " + allPolys.size());
 
 		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
 		int flipHeight = height - 1;
@@ -425,17 +450,13 @@ public class WorldScreen extends AbstractScreen {
 			// step through DELTA_STEP milliseconds, and subtract it off the accumulator
 			deltaAccumulator -= DELTA_STEP;
 
-			// get collision objects
-			MapLayer collisionLayer = tiledMap.getLayers().get(COLLISION_LAYER);
-			MapObjects objects = collisionLayer.getObjects();
-
 			// update player and monsters
-			player.update(DELTA_STEP, rects, polys);
+			player.update(DELTA_STEP, allRects, allPolys);
 			// list to store keys for removal, which is done after iteration to prevent ConcurrentModificationException
 			ArrayList<String> removeKeys = new ArrayList<String>();
 			for (String mkey : monsters.keySet()) {
 				Monster monster = monsters.get(mkey);
-				monster.update(DELTA_STEP, rects, polys);
+				monster.update(DELTA_STEP, allRects, allPolys);
 				if (monster.expireComplete()) {
 					removeKeys.add(mkey);
 				}
@@ -444,12 +465,12 @@ public class WorldScreen extends AbstractScreen {
 				monsters.remove(mkey);
 			}
 			for (Collectable collectable : collectables.values()) {
-				collectable.update(DELTA_STEP, rects, polys);
+				collectable.update(DELTA_STEP, allRects, allPolys);
 			}
 			Iterator<Projectile> projIterator = projectiles.iterator();
 			while (projIterator.hasNext()) {
 				Projectile projectile = projIterator.next();
-				projectile.update(DELTA_STEP, rects, polys); // update the projectile
+				projectile.update(DELTA_STEP, obstacleRects, obstaclePolys); // projectiles can fly over groundless
 				// check for expiry of projectiles, and remove from list if so
 				if (projectile.expireComplete()) {
 					projIterator.remove();
@@ -613,7 +634,7 @@ public class WorldScreen extends AbstractScreen {
 			r = player.getCollisionBounds();
 			debugRender(r);
 			// draw terrain collision bounds
-			for (RectangleBoundedPolygon rbp : polys) {
+			for (RectangleBoundedPolygon rbp : allPolys) { // all includes obstacle
 				List<Polygon> ps = rbp.getSubPolygons();
 				for (Polygon p : ps) {
 					debugRenderer.polygon(p.getTransformedVertices()); // render subpolygon
@@ -621,7 +642,7 @@ public class WorldScreen extends AbstractScreen {
 				// render bounding rectangle of the RectangleBoundedPolygon
 				debugRender(rbp.getBoundingRectangle());
 			}
-			for (Rectangle rect : rects) {
+			for (Rectangle rect : allRects) {
 				debugRender(rect);
 			}
 

@@ -7,6 +7,7 @@ import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.tbd.dontfreeze.util.GameUtil;
 import com.tbd.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.List;
@@ -182,7 +183,13 @@ public class Projectile implements Entity {
 			else if (dir == Direction.RIGHT) x += dist;
 			else if (dir == Direction.UP) y += dist;
 			else if (dir == Direction.DOWN) y -= dist;
-			// @TODO collision detection - if there is collision with terrain, set range to 0 instantly
+
+			Rectangle collisionBounds = getCollisionBounds();
+			List<Rectangle> collideRects = GameUtil.collidesWithRects(collisionBounds, rects);
+			List<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(collisionBounds, polys);
+			if (collideRects.size() + collidePolys.size() > 0) { // collision detected
+				setAction(Action.EXPIRING); // end the action
+			}
 
 		} else if (action == Action.EXPIRING) {
 			// finishing up after hitting terrain or a monster
