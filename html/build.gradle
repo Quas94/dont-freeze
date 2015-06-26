@@ -7,8 +7,8 @@ gwt {
     minHeapSize="1G"
 
     src = files(file("src/")) // Needs to be in front of "modules" below.
-    modules 'com.tbd.dontfreeze.GdxDefinition'
-    devModules 'com.tbd.dontfreeze.GdxDefinitionSuperdev'
+    modules 'com.arctite.dontfreeze.GdxDefinition'
+    devModules 'com.arctite.dontfreeze.GdxDefinitionSuperdev'
     project.webAppDirName = 'webapp'
 
     compiler {
