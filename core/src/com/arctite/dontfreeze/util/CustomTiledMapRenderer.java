@@ -41,7 +41,7 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 	 */
 	@Override
 	protected void beginRender () {
-		AnimatedTiledMapTile.updateAnimationBaseTime();
+		// AnimatedTiledMapTile.updateAnimationBaseTime(); // not needed either since we don't use animated tiles
 		// batch.begin();
 	}
 

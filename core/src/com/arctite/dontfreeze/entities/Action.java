@@ -18,6 +18,10 @@ public enum Action {
 	KNOCKBACK("k"),
 	/** Dying or fading */
 	EXPIRING("e"),
+	/** Initialising (being conjured) - projectile only */
+	INITIALISING("i"),
+	/** Looping - projectile only */
+	LOOPING("p"),
 	;
 
 	private String prefix;

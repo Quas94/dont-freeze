@@ -505,7 +505,8 @@ public class WorldScreen extends AbstractScreen {
 				// check for expiry of projectiles, and remove from list if so
 				if (projectile.expireComplete()) {
 					projIterator.remove();
-				} else if (projectile.getAction() == Action.IDLE_MOVE) { // check for collision with monsters
+				} else if (projectile.getAction() == Action.INITIALISING || projectile.getAction() == Action.LOOPING) {
+					// check for player's projectile collision with monsters
 					for (Monster monster : monsters.values()) {
 						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 							// check for collision between projectile's main bounds and monster's defense bounds

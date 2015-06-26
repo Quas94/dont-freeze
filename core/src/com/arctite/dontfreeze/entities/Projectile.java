@@ -16,15 +16,10 @@ import java.util.List;
  */
 public class Projectile implements Entity {
 
-	public static final String PREFIX = "p";
-	public static final String PREFIX_EXPIRING = "pe";
-
 	private static final int SPRITE_WIDTH = 70;
 	private static final int SPRITE_HEIGHT = 60;
 	private static final String FILE = "assets/fireball.atlas";
 	private static final float FRAME_RATE = 0.1F;
-	/** How long it takes for a fireball to expire and completely dissipate */
-	private static final float EXPIRE_TIME = 0.5F;
 
 	private static final int SPEED = 200;
 
@@ -36,8 +31,6 @@ public class Projectile implements Entity {
 	private Action action;
 
 	private AnimationManager animation;
-	/** How long this Projectile has been in Action.EXPIRING state for */
-	private float expireTime;
 
 	/** How much longer this projectile can travel before it expires */
 	private float range;
@@ -57,9 +50,8 @@ public class Projectile implements Entity {
 		this.height = SPRITE_HEIGHT;
 
 		this.dir = dir;
-		// note: projectiles can only be moving or expiring (hitting)
-		// @TODO handle projectile action states and frame repeating
-		this.action = Action.IDLE_MOVE;
+		// note: projectiles can only be  initialising, looping, or expiring
+		this.action = Action.INITIALISING;
 		// only 1 direction for projectiles in the Animation sequence
 		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, FILE, FRAME_RATE);
 
@@ -108,10 +100,7 @@ public class Projectile implements Entity {
 	 */
 	public void setAction(Action action) {
 		this.action = action;
-		if (action == Action.EXPIRING) {
-			// @TODO update animation manager with separate framesets for normal travel and explosion
-			expireTime = 0;
-		}
+		animation.updateAction(action);
 	}
 
 	/**
@@ -121,8 +110,7 @@ public class Projectile implements Entity {
 	 * @return whether this Projectile has completed its expiry animation
 	 */
 	public boolean expireComplete() {
-		// @TODO change this to animation.isComplete() once segmenting of Projectile animation frames is complete
-		return expireTime >= EXPIRE_TIME;
+		return (action == Action.EXPIRING) && animation.isComplete();
 	}
 
 	/**
@@ -165,7 +153,7 @@ public class Projectile implements Entity {
 		// update animation
 		animation.update(delta);
 
-		if (action == Action.IDLE_MOVE) {
+		if (action == Action.LOOPING || action == Action.INITIALISING) { // move only while looping or init, not expire
 			// update range
 			float dist = delta * SPEED;
 			range -= dist;
@@ -186,10 +174,9 @@ public class Projectile implements Entity {
 			if (collideRects.size() + collidePolys.size() > 0) { // collision detected
 				setAction(Action.EXPIRING); // end the action
 			}
-
-		} else if (action == Action.EXPIRING) {
-			// finishing up after hitting terrain or a monster
-			expireTime += delta;
+			if (action == Action.INITIALISING && animation.isComplete()) { // check if we should change init to loop
+				setAction(Action.LOOPING);
+			}
 		}
 	}
 

@@ -77,17 +77,18 @@ public class AnimationManager {
 				array.add(region);
 			} else if (type == MULTI_DIR_CLONE) {
 				// only one direction type in sprite sheets, but we copy and rotate
-				// direction type in sprite sheets will be facing RIGHT
-				// prefix should be "p" or "pe" here
-				if (!prefix.equals(Projectile.PREFIX) && !prefix.equals(Projectile.PREFIX_EXPIRING)) {
-					throw new IllegalStateException("non-projectile texture in MULTI_DIR_CLONE section of AnimationManager constructor");
+				// direction type in sprite sheets will all be facing RIGHT
+				boolean loop = prefix.equals(Action.LOOPING.getPrefix());
+				boolean expiring = prefix.equals(Action.EXPIRING.getPrefix());
+				boolean initialising = prefix.equals(Action.INITIALISING.getPrefix());
+				if (!loop && !expiring && !initialising) {
+					throw new IllegalStateException("non-proj texture in MULTI_DIR_CLONE AnimationManager constructor");
 				}
-				String expiring = ""; // whether this is normal or expiring frame
-				if (prefix.equals(Projectile.PREFIX_EXPIRING)) expiring = Action.EXPIRING.getPrefix();
-				String prefixRight = expiring + Direction.RIGHT.getChar();
-				String prefixLeft = expiring + Direction.LEFT.getChar();
-				String prefixUp = expiring + Direction.UP.getChar();
-				String prefixDown = expiring + Direction.DOWN.getChar();
+
+				String prefixRight = prefix + Direction.RIGHT.getChar();
+				String prefixLeft = prefix + Direction.LEFT.getChar();
+				String prefixUp = prefix + Direction.UP.getChar();
+				String prefixDown = prefix + Direction.DOWN.getChar();
 				String[] prefixes = new String[] { prefixRight, prefixLeft, prefixUp, prefixDown };
 				// create Array objects if not already done, in the map
 				for (String s : prefixes) {
@@ -114,7 +115,12 @@ public class AnimationManager {
 			// @TODO support differing framerates for differing actions
 			Animation anim = new Animation(frameRate, loadedFrames.get(prefix));
 			// @TODO support differing framemode types for differing actions
-			anim.setPlayMode(Animation.PlayMode.LOOP);
+			anim.setPlayMode(Animation.PlayMode.LOOP); // loop for majority of animations
+			if (type == MULTI_DIR_CLONE) { // check for non-looping ones
+				if (prefix.equals(Action.EXPIRING) || prefix.equals(Action.INITIALISING)) {
+					anim.setPlayMode(Animation.PlayMode.NORMAL); // projectile expire/init do not loop
+				}
+			}
 			animations.put(prefix, anim);
 		}
 

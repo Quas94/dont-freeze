@@ -166,16 +166,12 @@ public class Monster implements LiveEntity {
 		dir = from;
 		// set aggressive flag to true since this monster's gonna want payback
 		aggressive = true;
-		// @TODO make it so the monster can't get hit-stunned repeatedly forever (do this for player too)
-		if (health > 0) { // can survive this blow
-			if (action == Action.IDLE_MOVE) {
-				// set action to knocked back
-				setAction(Action.KNOCKBACK);
-			} else if (action == Action.MELEE) {
-				// if monster is already attacking, we don't put it into knockback
-			}
-		} else { // dead!
-			setAction(Action.EXPIRING);
+		// check for monster expire when recovering from knockback state, in update method
+		if (action == Action.IDLE_MOVE) {
+			// set action to knocked back
+			setAction(Action.KNOCKBACK);
+		} else if (action == Action.MELEE) {
+			// if monster is already attacking, we don't put it into knockback
 		}
 		// otherwise the monster is expiring (we do nothing) or already getting hit (we do nothing)
 		// OR the monster is already being knocked back (this shouldn't happen though, the player attack animations are
@@ -318,14 +314,16 @@ public class Monster implements LiveEntity {
 		float dist = delta * SPEED;
 
 		if (action == Action.KNOCKBACK) { // update the knockback
-			// if knockback is complete, set mode back to IDLE_MOVE
 			if (animations.isComplete()) {
-				setAction(Action.IDLE_MOVE);
-				timeRemaining = 0; // prompt new random movement
-				moving = false;
+				if (health > 0) { // still alive, set to idle/move
+					setAction(Action.IDLE_MOVE);
+					timeRemaining = 0; // prompt new random movement
+					moving = false;
+				} else { // start expire
+					setAction(Action.EXPIRING);
+				}
 			}
 		} else if (action == Action.MELEE) { // this monster is currently attacking
-			// @TODO attack player
 			if (animations.isComplete()) { // we just finished the attack animation
 				lastMeleeTime = 0; // time since last melee attack finished: 0 ms
 				setAction(Action.IDLE_MOVE);

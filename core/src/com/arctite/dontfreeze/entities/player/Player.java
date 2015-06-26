@@ -32,7 +32,7 @@ public class Player implements LiveEntity {
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	// private static final float SCALE = 1F;
 	private static final float FRAME_RATE = 0.12F;
-	private static final int FIREBALL_RANGE = 250; // how far this Player's fireball can travel before dissipating
+	private static final int FIREBALL_RANGE = 200; // how far this Player's fireball can travel before dissipating
 	private static final int BASE_HEALTH = 2;
 
 	/** Link to the World this player is currently in */
@@ -130,15 +130,9 @@ public class Player implements LiveEntity {
 	public void hit(Direction from) {
 		health--; // take damage
 		dir = from; // change direction to from
-		if (health > 0) {
-			if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
-				setAction(Action.KNOCKBACK);
-			}
-			// don't do any changes otherwise
-		} else { // start expire frames no matter what action we're currently doing
-			setAction(Action.EXPIRING);
-			dir = Direction.DOWN; // player death frames are down only
-			world.notifyPlayerDeath();
+		// check for death upon finishing knockback animation, in update method
+		if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
+			setAction(Action.KNOCKBACK);
 		}
 	}
 
@@ -263,7 +257,13 @@ public class Player implements LiveEntity {
 		} else if (recoiling) {
 			// we are stunned and cannot do anything until animation ends
 			if (animations.isComplete()) {
-				setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
+				if (health > 0) {
+					setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
+				} else { // start expire frames now
+					setAction(Action.EXPIRING);
+					dir = Direction.DOWN; // player death frames are down only
+					world.notifyPlayerDeath();
+				}
 			}
 		} else {
 			// lastly, if we are not dealing with anything else, we update movement instead
