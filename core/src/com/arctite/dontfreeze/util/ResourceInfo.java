@@ -42,13 +42,13 @@ public enum ResourceInfo {
 	private int height;
 	private int width;
 
-	private ResourceInfo(Type type, int id, int speed, float frameRate, int height, int width) {
+	private ResourceInfo(Type type, int id, int speed, float frameRate, int width, int height) {
 		this.type = type;
 		this.id = id;
 		this.speed = speed;
 		this.frameRate = frameRate;
-		this.height = height;
 		this.width = width;
+		this.height = height;
 	}
 
 	public Type getType() {

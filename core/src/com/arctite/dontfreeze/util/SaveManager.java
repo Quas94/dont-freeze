@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.ObjectMap;
 public class SaveManager {
 
 	/** Save key constants */
+	public static final String PLAYER_MAP_X = "playermapx";
+	public static final String PLAYER_MAP_Y = "playermapy";
 	public static final String CAMERA_X = "camx";
 	public static final String CAMERA_Y = "camy";
 	/** Entity-related save key constants */
@@ -30,7 +32,7 @@ public class SaveManager {
 	public static final String HEALTH = "hp";
 
 	/** Whether or not to encrypt the save file */
-	private static final boolean ENCODE = true;
+	private static final boolean ENCODE = false;
 
 	/** Location of save file */
 	private static class Save {

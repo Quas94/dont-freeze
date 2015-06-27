@@ -1,5 +1,8 @@
 package com.arctite.dontfreeze;
 
+import com.arctite.dontfreeze.entities.Direction;
+import com.arctite.dontfreeze.entities.player.Player;
+import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
@@ -54,18 +57,59 @@ public class GameMain extends Game {
 	/**
 	 * Initialises a new WorldScreen and transitions to that screen.
 	 */
-	public void setNewWorld() {
-		world = new WorldScreen(this, spriteBatch);
+	public void setWorldNewGame() {
+		world = new WorldScreen(this, null, WorldScreen.NEW_GAME_MAP_X, WorldScreen.NEW_GAME_MAP_Y, spriteBatch);
+		setScreen(world);
+	}
+
+	/**
+	 * Initialises a new WorldScreen with the direction to go from that map
+	 *
+	 * @param dir the direction to move from the current WorldScreen
+	 */
+	public void setWorldNewMap(Direction dir) {
+		// de-aggro monsters
+		world.deaggroMonsters();
+		// save this map but not player details
+		world.saveGame(false);
+
+		Player player = world.getPlayer();
+		float playerX = player.getX();
+		float playerY = player.getY();
+		int mapX = world.getMapX();
+		int mapY = world.getMapY();
+		if (dir == Direction.LEFT) {
+			playerX = Player.RIGHTMOST_X - 1;
+			mapX--;
+		} else if (dir == Direction.RIGHT) {
+			playerX = 0;
+			mapX++;
+		} else if (dir == Direction.DOWN) {
+			playerY = Player.HIGHEST_Y - 1;
+			mapY--;
+		} else if (dir == Direction.UP) {
+			playerY = 0;
+			mapY++;
+		}
+
+		this.world = new WorldScreen(this, player, mapX, mapY, spriteBatch);
+		SaveManager saver = new SaveManager(true); // true = load
+		world.loadGame(saver, false); // don't load player details
+		player.setWorldAndPosition(world, playerX, playerY);
 		setScreen(world);
 	}
 
 	/**
 	 * Loads a WorldScreen from the save file and transitions to that screen.
 	 */
-	public void setLoadWorld() {
-		world = new WorldScreen(this, spriteBatch);
+	public void setWorldLoadGame() {
+		// load save manager and get the map chunk to load
+		SaveManager saver = new SaveManager(true); // true = load
+		int chunkX = saver.getDataValue(SaveManager.PLAYER_MAP_X, Integer.class);
+		int chunkY = saver.getDataValue(SaveManager.PLAYER_MAP_Y, Integer.class);
+		world = new WorldScreen(this, null, chunkX, chunkY, spriteBatch);
 		// load the world
-		world.loadGame();
+		world.loadGame(saver, true); // loading a game so load player too
 		// finally, swap into it
 		setScreen(world);
 	}

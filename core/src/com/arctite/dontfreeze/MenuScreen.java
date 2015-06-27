@@ -133,7 +133,7 @@ public class MenuScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
-				getGame().setLoadWorld();
+				getGame().setWorldLoadGame();
 			}
 		});
 		TextButton newGameButton = buttons.get(NEW_GAME);
@@ -141,7 +141,7 @@ public class MenuScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
-				getGame().setNewWorld();
+				getGame().setWorldNewGame();
 			}
 		});
 		TextButton quitGameButton = buttons.get(QUIT_GAME);

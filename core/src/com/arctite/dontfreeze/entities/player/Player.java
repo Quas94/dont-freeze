@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.entities.player;
 
+import com.arctite.dontfreeze.GameMain;
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -28,6 +29,10 @@ public class Player implements LiveEntity {
 	private static final int FIREBALL_RANGE = 200; // how far this Player's fireball can travel before dissipating
 	private static final int BASE_HEALTH = 5;
 
+	/** Limits */
+	public static final int RIGHTMOST_X = WorldScreen.CHUNK_WIDTH - ResourceInfo.PLAYER.getWidth();
+	public static final int HIGHEST_Y = WorldScreen.CHUNK_HEIGHT - ResourceInfo.PLAYER.getHeight();
+
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
 	private WorldInputHandler inputHandler;
@@ -43,9 +48,6 @@ public class Player implements LiveEntity {
 	private int speed;
 	private int width;
 	private int height;
-	/** The furthest this player can go whilst staying in bounds (leftmost and downmost are zero) */
-	private float rightmost;
-	private float upmost;
 
 	/** Combat */
 	/** The amount of time that has elapsed since the start of the melee attack animation */
@@ -68,8 +70,6 @@ public class Player implements LiveEntity {
 		this.speed = ResourceInfo.PLAYER.getSpeed();
 		this.width = ResourceInfo.PLAYER.getWidth();
 		this.height = ResourceInfo.PLAYER.getHeight();
-		this.upmost = world.getHeight() - height;
-		this.rightmost = world.getWidth() - width;
 
 		this.dir = Direction.DOWN;
 		this.action = Action.IDLE_MOVE; // only exception where we don't use setAction()
@@ -83,6 +83,16 @@ public class Player implements LiveEntity {
 		this.fires = 0;
 	}
 
+	public void setInputHandler(WorldInputHandler inputHandler) {
+		this.inputHandler = inputHandler;
+	}
+
+	public void setWorldAndPosition(WorldScreen world, float x, float y) {
+		this.world = world;
+		this.x = x;
+		this.y = y;
+	}
+
 	@Override
 	public int getId() {
 		return ResourceInfo.PLAYER.getId();
@@ -91,29 +101,31 @@ public class Player implements LiveEntity {
 	/**
 	 * Loads the relevant saved fields into this Player object, given the save manager.
 	 *
+	 * @param chunkId the chunk id of the map this monster is in
 	 * @param saver the save manager
 	 */
-	public void load(SaveManager saver) {
-		x = saver.getDataValue(PLAYER + POSITION_X, Float.class);
-		y = saver.getDataValue(PLAYER + POSITION_Y, Float.class);
-		health = saver.getDataValue(PLAYER + HEALTH, Integer.class);
-		int di = saver.getDataValue(PLAYER + DIR_IDX, Integer.class);
+	public void load(String chunkId, SaveManager saver) {
+		x = saver.getDataValue(chunkId + PLAYER + POSITION_X, Float.class);
+		y = saver.getDataValue(chunkId + PLAYER + POSITION_Y, Float.class);
+		health = saver.getDataValue(chunkId + PLAYER + HEALTH, Integer.class);
+		int di = saver.getDataValue(chunkId + PLAYER + DIR_IDX, Integer.class);
 		dir = Direction.getByIndex(di);
 
-		fires = saver.getDataValue(PLAYER + FIRES, Integer.class);
+		fires = saver.getDataValue(chunkId + PLAYER + FIRES, Integer.class);
 	}
 
 	/**
 	 * Saves relevant fields from this Player object into the given save manager.
 	 *
+	 * @param chunkId the chunk id of the map this monster is in
 	 * @param saver the save manager
 	 */
-	public void save(SaveManager saver) {
-		saver.setDataValue(PLAYER + POSITION_X, x);
-		saver.setDataValue(PLAYER + POSITION_Y, y);
-		saver.setDataValue(PLAYER + HEALTH, health);
-		saver.setDataValue(PLAYER + DIR_IDX, dir.getIdx());
-		saver.setDataValue(PLAYER + FIRES, fires);
+	public void save(String chunkId, SaveManager saver) {
+		saver.setDataValue(chunkId + PLAYER + POSITION_X, x);
+		saver.setDataValue(chunkId + PLAYER + POSITION_Y, y);
+		saver.setDataValue(chunkId + PLAYER + HEALTH, health);
+		saver.setDataValue(chunkId + PLAYER + DIR_IDX, dir.getIdx());
+		saver.setDataValue(chunkId + PLAYER + FIRES, fires);
 	}
 
 	@Override
@@ -236,7 +248,7 @@ public class Player implements LiveEntity {
 		if (health <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
 			setAction(Action.EXPIRING);
 			dir = Direction.DOWN; // player death frames are down only
-			world.notifyPlayerDeath();
+			world.deaggroMonsters();
 			SoundManager.playSound(SoundManager.SoundInfo.PLAYER_DEATH);
 		} else if (attacking) {
 			// if melee attack, update time
@@ -498,11 +510,27 @@ public class Player implements LiveEntity {
 				y = oldY;
 			}
 
-			// keep within bounds of map
-			if (x < 0) x = 0;
-			if (x >= rightmost) x = rightmost;
-			if (y < 0) y = 0;
-			if (y >= upmost) y = upmost;
+			// check for map change or in bounds
+			int chunkX = world.getMapX();
+			int chunkY = world.getMapY();
+			GameMain game = world.getGame();
+			// @TODO enable 1 frame to render before changing maps so correct direction is guaranteed to be faced
+			if (x < 0) {
+				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X) x = 0;
+				else game.setWorldNewMap(Direction.LEFT);
+			}
+			if (x >= RIGHTMOST_X) {
+				if (chunkX == WorldScreen.RIGHTMOST_CHUNK_X) x = RIGHTMOST_X;
+				else game.setWorldNewMap(Direction.RIGHT);
+			}
+			if (y < 0) {
+				if (chunkY == WorldScreen.LOWEST_CHUNK_Y) y = 0;
+				else game.setWorldNewMap(Direction.DOWN);
+			}
+			if (y >= HIGHEST_Y) {
+				if (chunkY == WorldScreen.HIGHEST_CHUNK_Y) y = HIGHEST_Y;
+				else game.setWorldNewMap(Direction.UP);
+			}
 		}
 	}
 

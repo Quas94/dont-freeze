@@ -118,32 +118,34 @@ public class Monster implements LiveEntity {
 	 * Loads the relevant saved fields into this Monster object, given the save manager.
 	 * Assumes that this monster's active flag in the save file has already been checked and is true.
 	 *
+	 * @param chunkId the chunk id of the map this monster is in
 	 * @param saver the save manager
 	 * @param name the unique identifier of this monster
 	 */
-	public void load(SaveManager saver, String name) {
-		x = saver.getDataValue(MONSTER + name + POSITION_X, Float.class);
-		y = saver.getDataValue(MONSTER + name + POSITION_Y, Float.class);
-		int di = saver.getDataValue(MONSTER + name + DIR_IDX, Integer.class);
-		health = saver.getDataValue(MONSTER + name + HEALTH, Integer.class);
+	public void load(String chunkId, SaveManager saver, String name) {
+		x = saver.getDataValue(chunkId + MONSTER + name + POSITION_X, Float.class);
+		y = saver.getDataValue(chunkId + MONSTER + name + POSITION_Y, Float.class);
+		int di = saver.getDataValue(chunkId + MONSTER + name + DIR_IDX, Integer.class);
+		health = saver.getDataValue(chunkId + MONSTER + name + HEALTH, Integer.class);
 		dir = Direction.getByIndex(di);
 
-		aggressive = saver.getDataValue(MONSTER + name + AGGRO, Boolean.class);
+		aggressive = saver.getDataValue(chunkId + MONSTER + name + AGGRO, Boolean.class);
 	}
 
 	/**
 	 * Saves relevant fields from this Player object into the given save manager.
 	 *
+	 * @param chunkId the chunk id of the map this monster is in
 	 * @param saver the save manager
 	 * @param name the unique identifier of this monster
 	 */
-	public void save(SaveManager saver, String name) {
-		saver.setDataValue(MONSTER + name + POSITION_X, x);
-		saver.setDataValue(MONSTER + name + POSITION_Y, y);
-		saver.setDataValue(MONSTER + name + HEALTH, health);
-		saver.setDataValue(MONSTER + name + DIR_IDX, dir.getIdx());
+	public void save(String chunkId, SaveManager saver, String name) {
+		saver.setDataValue(chunkId + MONSTER + name + POSITION_X, x);
+		saver.setDataValue(chunkId + MONSTER + name + POSITION_Y, y);
+		saver.setDataValue(chunkId + MONSTER + name + HEALTH, health);
+		saver.setDataValue(chunkId + MONSTER + name + DIR_IDX, dir.getIdx());
 
-		saver.setDataValue(MONSTER+ name + AGGRO, aggressive);
+		saver.setDataValue(chunkId + MONSTER+ name + AGGRO, aggressive);
 	}
 
 	@Override
