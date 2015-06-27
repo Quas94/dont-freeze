@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.entities;
 
+import com.arctite.dontfreeze.util.ResourceInfo;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -16,29 +17,32 @@ import java.util.List;
  */
 public class Collectable implements Entity {
 
-	private static final float FRAME_RATE = 0.1F;
-	private static final String FILE = "assets/fire.atlas";
-	private static final int SPRITE_WIDTH = 50;
-	private static final int SPRITE_HEIGHT = 65;
-
 	/** Technical fields */
 	private WorldScreen world;
+	private int id;
 	private float x;
 	private float y;
 	private int width;
 	private int height;
 	private AnimationManager animation;
 
-	public Collectable(WorldScreen world, float x, float y) {
+	public Collectable(WorldScreen world, int id, float x, float y) {
 		this.world = world;
+		this.id = id;
+		ResourceInfo info = ResourceInfo.getByTypeAndId(ResourceInfo.Type.COLLECTABLE, id);
 
 		this.x = x;
 		this.y = y;
-		this.width = SPRITE_WIDTH;
-		this.height = SPRITE_HEIGHT;
+		this.width = info.getWidth();
+		this.height = info.getHeight();
 
 		// getDirection() always returns down
-		this.animation = new AnimationManager(AnimationManager.UNI_DIR, this, FILE, FRAME_RATE);
+		this.animation = new AnimationManager(AnimationManager.UNI_DIR, this, info);
+	}
+
+	@Override
+	public int getId() {
+		return id;
 	}
 
 	@Override

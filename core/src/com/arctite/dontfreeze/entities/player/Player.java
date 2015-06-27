@@ -1,5 +1,7 @@
 package com.arctite.dontfreeze.entities.player;
 
+import com.arctite.dontfreeze.util.ResourceInfo;
+import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -23,17 +25,11 @@ import static com.arctite.dontfreeze.SaveManager.*;
 public class Player implements LiveEntity {
 
 	/** Sprite constants and other constants. @TODO: don't hardcode this stuff */
-	private static final int SPRITE_WIDTH = 80;
-	private static final int SPRITE_HEIGHT = 95;
 	private static final int COLLISION_WIDTH = 20;
 	private static final int COLLISION_HEIGHT = 10;
-	private static final String PATH = "assets/player.atlas";
-	private static final int SPEED = 150;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
-	// private static final float SCALE = 1F;
-	private static final float FRAME_RATE = 0.12F;
 	private static final int FIREBALL_RANGE = 200; // how far this Player's fireball can travel before dissipating
-	private static final int BASE_HEALTH = 2;
+	private static final int BASE_HEALTH = 5;
 
 	/** Link to the World this player is currently in */
 	private WorldScreen world;
@@ -47,6 +43,7 @@ public class Player implements LiveEntity {
 	private Direction dir;
 	private float x;
 	private float y;
+	private int speed;
 	private int width;
 	private int height;
 	/** The furthest this player can go whilst staying in bounds (leftmost and downmost are zero) */
@@ -71,14 +68,15 @@ public class Player implements LiveEntity {
 
 		this.x = x;
 		this.y = y;
-		this.width = SPRITE_WIDTH;
-		this.height = SPRITE_HEIGHT;
+		this.speed = ResourceInfo.PLAYER.getSpeed();
+		this.width = ResourceInfo.PLAYER.getWidth();
+		this.height = ResourceInfo.PLAYER.getHeight();
 		this.upmost = world.getHeight() - height;
 		this.rightmost = world.getWidth() - width;
 
 		this.dir = Direction.DOWN;
 		this.action = Action.IDLE_MOVE; // only exception where we don't use setAction()
-		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, PATH, FRAME_RATE);
+		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, ResourceInfo.PLAYER);
 
 		this.meleeTime = 0;
 		this.meleeCollisionBounds = null;
@@ -86,6 +84,11 @@ public class Player implements LiveEntity {
 		this.maxHealth = BASE_HEALTH;
 		this.health = maxHealth;
 		this.fires = 0;
+	}
+
+	@Override
+	public int getId() {
+		return ResourceInfo.PLAYER.getId();
 	}
 
 	/**
@@ -233,8 +236,12 @@ public class Player implements LiveEntity {
 			}
 		}
 
-		// attacking
-		if (attacking) {
+		if (health <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
+			setAction(Action.EXPIRING);
+			dir = Direction.DOWN; // player death frames are down only
+			world.notifyPlayerDeath();
+			SoundManager.playSound(SoundManager.SoundInfo.PLAYER_DEATH);
+		} else if (attacking) {
 			// if melee attack, update time
 			if (meleeAttacking) meleeTime += delta;
 
@@ -248,22 +255,18 @@ public class Player implements LiveEntity {
 				// change action field
 				setAction(Action.MELEE);
 				meleeAttack();
+				SoundManager.playSound(SoundManager.SoundInfo.PLAYER_MELEE);
 			} else if (specialAttackPressed) {
 				// launch special attack
 				// @TODO delay fireball generation by a bit
 				setAction(Action.SPECIAL);
 				specialAttack();
+				SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL);
 			}
 		} else if (recoiling) {
 			// we are stunned and cannot do anything until animation ends
 			if (animations.isComplete()) {
-				if (health > 0) {
-					setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
-				} else { // start expire frames now
-					setAction(Action.EXPIRING);
-					dir = Direction.DOWN; // player death frames are down only
-					world.notifyPlayerDeath();
-				}
+				setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
 			}
 		} else {
 			// lastly, if we are not dealing with anything else, we update movement instead
@@ -347,7 +350,7 @@ public class Player implements LiveEntity {
 	 */
 	private void specialAttack() {
 		// create fireball object first with incorrect x, y values - just so we can pull the width and height
-		Projectile fireball = new Projectile(x, y, dir, FIREBALL_RANGE);
+		Projectile fireball = new Projectile(this, x, y, dir, FIREBALL_RANGE);
 		float fx = x;
 		float fy = y;
 		// float fw = fireball.getWidth();
@@ -373,7 +376,7 @@ public class Player implements LiveEntity {
 	private void updateMovement(float delta, boolean leftPressed, boolean rightPressed, boolean upPressed,
 								boolean downPressed, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 
-		float dist = delta * SPEED;
+		float dist = delta * speed;
 
 		float oldX = x;
 		float oldY = y;

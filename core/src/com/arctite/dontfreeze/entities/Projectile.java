@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.entities;
 
+import com.arctite.dontfreeze.util.ResourceInfo;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -16,15 +17,10 @@ import java.util.List;
  */
 public class Projectile implements Entity {
 
-	private static final int SPRITE_WIDTH = 70;
-	private static final int SPRITE_HEIGHT = 60;
-	private static final String FILE = "assets/fireball.atlas";
-	private static final float FRAME_RATE = 0.1F;
-
-	private static final int SPEED = 200;
-
+	private Entity owner;
 	private float x;
 	private float y;
+	private int speed;
 	private int width;
 	private int height;
 	private Direction dir;
@@ -38,24 +34,39 @@ public class Projectile implements Entity {
 	/**
 	 * Creates a new Projectile with the given location, direction and maximum range.
 	 *
+	 * @param owner the Entity that created this Projectile
 	 * @param x starting x coordinate
 	 * @param y starting y coordinate
 	 * @param dir direction this projectile is travelling in
 	 * @param range the range this projectile may travel before expiring
 	 */
-	public Projectile(float x, float y, Direction dir, int range) {
+	public Projectile(LiveEntity owner, float x, float y, Direction dir, int range) {
+		this.owner = owner;
+		ResourceInfo info = ResourceInfo.getByTypeAndId(ResourceInfo.Type.PROJECTILE, owner.getId());
+
 		this.x = x;
 		this.y = y;
-		this.width = SPRITE_WIDTH;
-		this.height = SPRITE_HEIGHT;
+		this.speed = info.getSpeed();
+		this.width = info.getWidth();
+		this.height = info.getHeight();
 
 		this.dir = dir;
 		// note: projectiles can only be  initialising, looping, or expiring
 		this.action = Action.INITIALISING;
 		// only 1 direction for projectiles in the Animation sequence
-		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, FILE, FRAME_RATE);
+		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, info);
 
 		this.range = range;
+	}
+
+	/**
+	 * Gets the id of this Projectile, which is equivalent to this Projectile's owner Entity's id
+	 *
+	 * @return the id of this projectile
+	 */
+	@Override
+	public int getId() {
+		return owner.getId();
 	}
 
 	@Override
@@ -155,7 +166,7 @@ public class Projectile implements Entity {
 
 		if (action == Action.LOOPING || action == Action.INITIALISING) { // move only while looping or init, not expire
 			// update range
-			float dist = delta * SPEED;
+			float dist = delta * speed;
 			range -= dist;
 			if (range <= 0) {
 				// no range left, start expiring

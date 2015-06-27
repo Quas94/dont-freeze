@@ -28,6 +28,13 @@ public interface Entity {
 	public Action getAction();
 
 	/**
+	 * Gets the id of this Entity. (Player = 0, Monsters have ids ranging from 1 upwards)
+	 *
+	 * @return the id of this Entity
+	 */
+	public int getId();
+
+	/**
 	 * Gets this Entity's main collision bounds.
 	 * The main collision bounds are representative of this Entity's non-combat interactions, eg. any entity's
 	 * interaction with the terrain obstacles, or a Collectable's interaction with a Player picking it up.

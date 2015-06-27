@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze;
 
+import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
@@ -49,9 +50,11 @@ public class WorldScreen extends AbstractScreen {
 	private static final float DELTA_STEP = 1 / 120F;
 
 	/** Map (TileD) related constants */
-	private static final String MAP_LOCATION = "assets/map1.tmx";
+	private static final String DIRECTORY = "assets/maps/";
+	private static final String MAP_1 = DIRECTORY + "map1.tmx";
 	private static final String TILED_PROP_X = "x";
 	private static final String TILED_PROP_Y = "y";
+	private static final String TILED_PROP_ID = "type"; // id of entities
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
 	/** Map dimensions */
@@ -152,6 +155,7 @@ public class WorldScreen extends AbstractScreen {
 		endGameButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				getGame().setMenu();
 			}
 		});
@@ -163,6 +167,7 @@ public class WorldScreen extends AbstractScreen {
 		resumeButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				flipPaused();
 			}
 		});
@@ -173,6 +178,7 @@ public class WorldScreen extends AbstractScreen {
 		saveAndExitButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				saveGame(); // save the game
 				getGame().setMenu();
 			}
@@ -187,7 +193,7 @@ public class WorldScreen extends AbstractScreen {
 		inputMultiplexer.addProcessor(worldInputHandler);
 
 		// load Tiled stuffs
-		this.tiledMap = MAP_LOADER.load(MAP_LOCATION);
+		this.tiledMap = MAP_LOADER.load(MAP_1);
 		this.mapRenderer = new CustomTiledMapRenderer(tiledMap, spriteBatch);
 		MapProperties mapProps = tiledMap.getProperties();
 		// load in map dimensions
@@ -276,7 +282,8 @@ public class WorldScreen extends AbstractScreen {
 			names.add(name);
 			float mx = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float my = obj.getProperties().get(TILED_PROP_Y, Float.class);
-			Monster monster = new Monster(this, mx, my);
+			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_ID, String.class));
+			Monster monster = new Monster(this, id, mx, my);
 			monsters.put(name, monster); // add monster to hashmap by key = unique name
 			orderedEntities.add(monster);
 		}
@@ -295,7 +302,8 @@ public class WorldScreen extends AbstractScreen {
 			names.add(name);
 			float cx = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float cy = obj.getProperties().get(TILED_PROP_Y, Float.class);
-			Collectable collectable = new Collectable(this, cx, cy);
+			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_ID, String.class));
+			Collectable collectable = new Collectable(this, id, cx, cy);
 			collectables.put(name, collectable); // add collectable to hashmap by key = unique name
 		}
 
@@ -514,6 +522,7 @@ public class WorldScreen extends AbstractScreen {
 								projectile.setAction(Action.EXPIRING);
 								Direction from = Direction.getOpposite(projectile.getDirection());
 								monster.hit(from);
+								SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_EXPLOSION);
 							}
 						}
 					}
@@ -556,6 +565,7 @@ public class WorldScreen extends AbstractScreen {
 						monster.setMeleeHit();
 						Direction from = Direction.getOpposite(monster.getDirection());
 						player.hit(from);
+						SoundManager.playSound(SoundManager.SoundInfo.MONSTER_MELEE);
 					}
 				}
 			}

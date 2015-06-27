@@ -1,5 +1,8 @@
 package com.arctite.dontfreeze;
 
+import com.arctite.dontfreeze.entities.LiveEntity;
+import com.arctite.dontfreeze.util.ResourceInfo;
+import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
@@ -16,9 +19,7 @@ import com.arctite.dontfreeze.entities.Monster;
 import static com.arctite.dontfreeze.GameMain.BUTTON_WIDTH;
 import static com.arctite.dontfreeze.GameMain.BUTTON_HEIGHT;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Handles all operations to do with starting/saving/loading games, credits, pausing, and a bunch of other stuff.
@@ -27,11 +28,13 @@ import java.util.Random;
  */
 public class MenuScreen extends AbstractScreen {
 
+	private static final String MENU_FOLDER = "assets/menu/";
+
 	/** Menu background image file */
-	private static final String MENU_BACKGROUND = "assets/menubg.png";
+	private static final String MENU_BACKGROUND = MENU_FOLDER + "menubg.png";
 	/** Logo */
-	private static final String LOGO_FIRE_PATH = "assets/logofire.atlas";
-	private static final String LOGO_MAIN_PATH = "assets/logomain.png";
+	private static final String LOGO_FIRE_PATH = MENU_FOLDER + "logofire.atlas";
+	private static final String LOGO_MAIN_PATH = MENU_FOLDER + "logomain.png";
 	private static final float LOGO_FRAME_RATE = 0.12F;
 
 	/** Number of snow babies to have jumping around to server as decorations */
@@ -40,7 +43,7 @@ public class MenuScreen extends AbstractScreen {
 	private static final int DECORATION_Y_BOUND = 310;
 
 	/** Credits text */
-	public static final String CREDITS_TEXT = "Developer: Quasar\n\nArt: Axelsior\n\nThe Gimp Master: Rethiqlor";
+	public static final String CREDITS_TEXT = "Developer: Quasar\n\nArt: Axelsior\n\nContent Creator: Reth";
 
 	/** Button names */
 	private static final String LOAD_GAME = "Load Game";
@@ -128,6 +131,7 @@ public class MenuScreen extends AbstractScreen {
 		loadGameButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				getGame().setLoadWorld();
 			}
 		});
@@ -135,6 +139,7 @@ public class MenuScreen extends AbstractScreen {
 		newGameButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				getGame().setNewWorld();
 			}
 		});
@@ -142,12 +147,14 @@ public class MenuScreen extends AbstractScreen {
 		quitGameButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				Gdx.app.exit();
 			}
 		});
 		ClickListener flipCreditsModeListener = new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				SoundManager.playClick();
 				flipCreditsMode();
 			}
 		};
@@ -160,17 +167,18 @@ public class MenuScreen extends AbstractScreen {
 		labelStyle.font = new BitmapFont();
 		labelStyle.fontColor = Color.BLACK;
 		this.creditsLabel = new Label(CREDITS_TEXT, labelStyle);
-		creditsLabel.setPosition(winWidth / 2 - 85, winHeight / 2 - 80);
+		creditsLabel.setPosition(winWidth / 2 - 70, winHeight / 2 - 80);
 		creditsLabel.setVisible(false);
 		stage.addActor(creditsLabel);
 
 		// initialise decorations
 		this.decorations = new ArrayList<Monster>();
 		Random random = new Random();
+		ResourceInfo info = ResourceInfo.SNOW_BABY;
 		for (int i = 0; i < NUM_DECORATIONS; i++) {
-			float randX = random.nextFloat() * (winWidth - Monster.SPRITE_WIDTH);
-			float randY = random.nextFloat() * (DECORATION_Y_BOUND - Monster.SPRITE_HEIGHT);
-			Monster dec = new Monster(null, randX, randY);
+			float randX = random.nextFloat() * (winWidth - info.getWidth());
+			float randY = random.nextFloat() * (DECORATION_Y_BOUND - info.getHeight());
+			Monster dec = new Monster(null, info.getId(), randX, randY);
 			decorations.add(dec);
 		}
 	}
@@ -210,6 +218,20 @@ public class MenuScreen extends AbstractScreen {
 		spriteBatch.begin();
 		// draw background
 		background.draw(spriteBatch);
+		// sort monsters
+		Collections.sort(decorations, new Comparator<LiveEntity>() {
+			@Override
+			public int compare(LiveEntity e1, LiveEntity e2) {
+				float y1 = e1.getY();
+				float y2 = e2.getY();
+				if (y1 < y2) {
+					return 1;
+				} else if (y1 > y2) {
+					return -1;
+				}
+				return 0; // equal
+			}
+		});
 		// draw decoration monsters
 		for (Monster dec : decorations) {
 			dec.render(spriteBatch);

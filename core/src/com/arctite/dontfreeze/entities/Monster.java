@@ -1,5 +1,7 @@
 package com.arctite.dontfreeze.entities;
 
+import com.arctite.dontfreeze.util.ResourceInfo;
+import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -23,12 +25,6 @@ import static com.arctite.dontfreeze.SaveManager.*;
  */
 public class Monster implements LiveEntity {
 
-	private static final String PATH = "assets/snowbaby.atlas";
-	private static final float FRAME_RATE = 0.1F;
-	private static final int SPEED = 30;
-	public static final int SPRITE_WIDTH = 55;
-	public static final int SPRITE_HEIGHT = 50;
-
 	// timing values for monster random movement
 	private static final float MIN_RAND_TIME = 1.0F;
 	private static final float MAX_RAND_TIME = 4.0F;
@@ -38,8 +34,10 @@ public class Monster implements LiveEntity {
 
 	/** Connection to world */
 	private WorldScreen world;
+	private int id;
 	private float x;
 	private float y;
+	private int speed;
 	private int width;
 	private int height;
 	private Direction dir;
@@ -75,22 +73,27 @@ public class Monster implements LiveEntity {
 	 * @param x starting coordinate x value
 	 * @param y starting coordinate y value
 	 */
-	public Monster(WorldScreen world, float x, float y) {
+	public Monster(WorldScreen world, int id, float x, float y) {
 		// initialise technical fields
 		this.world = world;
 		// random seed
 		this.random = new Random();
 
+		// id info
+		this.id = id;
+		ResourceInfo info = ResourceInfo.getByTypeAndId(ResourceInfo.Type.ENTITY, id);
+
 		this.x = x;
 		this.y = y;
-		this.width = SPRITE_WIDTH;
-		this.height = SPRITE_HEIGHT;
+		this.speed = info.getSpeed();
+		this.width = info.getWidth();
+		this.height = info.getHeight();
 
 		this.dir = Direction.LEFT;
 		this.action = Action.IDLE_MOVE;
 
 		// create animation manager
-		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, PATH, FRAME_RATE);
+		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, info);
 		// generate random state time so monsters are not all in sync animation-frame wise
 		float animationTime = animations.getAnimationTime(); // find time it takes for one loop
 		float randomStateTime = random.nextFloat() * animationTime;
@@ -108,6 +111,11 @@ public class Monster implements LiveEntity {
 		// initialise game mechanic related fields
 		this.maxHealth = BASE_HEALTH;
 		this.health = maxHealth;
+	}
+
+	@Override
+	public int getId() {
+		return id;
 	}
 
 	/**
@@ -311,17 +319,16 @@ public class Monster implements LiveEntity {
 		lastMeleeTime += delta;
 
 		// calculate distance we can move, if we choose to move
-		float dist = delta * SPEED;
+		float dist = delta * speed;
 
-		if (action == Action.KNOCKBACK) { // update the knockback
+		if (health <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
+			setAction(Action.EXPIRING);
+			SoundManager.playSound(SoundManager.SoundInfo.MONSTER_DEATH);
+		} else if (action == Action.KNOCKBACK) { // update the knockback
 			if (animations.isComplete()) {
-				if (health > 0) { // still alive, set to idle/move
-					setAction(Action.IDLE_MOVE);
-					timeRemaining = 0; // prompt new random movement
-					moving = false;
-				} else { // start expire
-					setAction(Action.EXPIRING);
-				}
+				setAction(Action.IDLE_MOVE);
+				timeRemaining = 0; // prompt new random movement
+				moving = false;
 			}
 		} else if (action == Action.MELEE) { // this monster is currently attacking
 			if (animations.isComplete()) { // we just finished the attack animation
@@ -422,7 +429,7 @@ public class Monster implements LiveEntity {
 		timeRemaining -= delta;
 		// now actually move
 		if (moving) {
-			float dist = delta * SPEED;
+			float dist = delta * speed;
 
 			if (dir == Direction.LEFT) x -= dist;
 			else if (dir == Direction.RIGHT) x += dist;
@@ -465,7 +472,7 @@ public class Monster implements LiveEntity {
 		ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(collisionBounds, rects);
 		ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(collisionBounds, polys);
 		boolean collision = (collideRects.size() + collidePolys.size()) > 0;
-		boolean inBounds = (x >= 0) && (y >= 0) && (x + SPRITE_WIDTH <= world.getWidth()) && (y + SPRITE_HEIGHT <= world.getHeight());
+		boolean inBounds = (x >= 0) && (y >= 0) && (x + width <= world.getWidth()) && (y + height <= world.getHeight());
 		if (collision || !inBounds) {
 			// if there is a collision, we undo coordinate change and set moving to false
 			// the leftover seconds on timeRemaining will be spent idling

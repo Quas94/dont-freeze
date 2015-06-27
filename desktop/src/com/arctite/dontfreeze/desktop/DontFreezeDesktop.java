@@ -12,6 +12,7 @@ public class DontFreezeDesktop {
 		config.width = GameMain.GAME_WINDOW_WIDTH;
 		config.title = GameMain.GAME_WINDOW_TITLE;
 		config.vSyncEnabled = false;
+		// config.foregroundFPS = 0;
 		// config.addIcon(); @TODO add icon
 		config.resizable = false; // don't allow resizing
 		new LwjglApplication(new GameMain(), config);

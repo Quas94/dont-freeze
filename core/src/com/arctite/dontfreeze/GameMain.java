@@ -1,6 +1,8 @@
 package com.arctite.dontfreeze;
 
+import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -75,9 +77,33 @@ public class GameMain extends Game {
 		setScreen(menu);
 	}
 
+	/**
+	 * Adds extra functionality: changes music to new screen's.
+	 *
+	 * @param screen the screen we're changing to
+	 */
+	@Override
+	public void setScreen(Screen screen) {
+		super.setScreen(screen);
+
+		// change music
+		SoundManager.stopCurrentMusic();
+		// play new music
+		if (screen instanceof MenuScreen) {
+			SoundManager.playMusic(SoundManager.MENU_BG_MUSIC);
+		} else if (screen instanceof WorldScreen) {
+			// @TODO world music
+		}
+	}
+
 	@Override
 	public void create() {
 		this.spriteBatch = new SpriteBatch();
+
+		// load sounds first
+		SoundManager.loadSounds();
+		// start playing music
+		SoundManager.playMusic(SoundManager.MENU_BG_MUSIC);
 
 		menu = new MenuScreen(this, spriteBatch);
 		setScreen(menu);

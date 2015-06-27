@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.entities;
 
+import com.arctite.dontfreeze.util.ResourceInfo;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -45,10 +46,9 @@ public class AnimationManager {
 	 *
 	 * @param type The type of animation sequence it is (see this class' constants)
 	 * @param entity The Entity that this Animation is rendering for
-	 * @param file The file to pull this Animation's sprites from
-	 * @param frameRate How long to hold each frame for before moving onto next
+	 * @param info The ResourceInfo containing relevant information on file locations and framerate
 	 */
-	public AnimationManager(int type, Entity entity, String file, float frameRate) {
+	public AnimationManager(int type, Entity entity, ResourceInfo info) {
 		this.entity = entity;
 		this.lastAction = entity.getAction();
 		this.prefix = lastAction.getPrefix() + entity.getDirection().getChar();
@@ -60,7 +60,7 @@ public class AnimationManager {
 		HashMap<String, Array<TextureRegion>> loadedFrames = new HashMap<String, Array<TextureRegion>>();
 
 		// load animation
-		TextureAtlas atlas = new TextureAtlas(Gdx.files.internal(file));
+		TextureAtlas atlas = new TextureAtlas(Gdx.files.internal(info.getLocation()));
 		for (AtlasRegion region : atlas.getRegions()) {
 			// initialise the Array within the HashMap with given key, if it hasn't already been initialised
 			String prefix = region.name.replaceAll("[0-9]", ""); // prefix = type of frame this is, can be 1 or 2 letters
@@ -113,7 +113,7 @@ public class AnimationManager {
 		}
 		for (String prefix : loadedFrames.keySet()) {
 			// @TODO support differing framerates for differing actions
-			Animation anim = new Animation(frameRate, loadedFrames.get(prefix));
+			Animation anim = new Animation(info.getFrameRate(), loadedFrames.get(prefix));
 			// @TODO support differing framemode types for differing actions
 			anim.setPlayMode(Animation.PlayMode.LOOP); // loop for majority of animations
 			if (type == MULTI_DIR_CLONE) { // check for non-looping ones

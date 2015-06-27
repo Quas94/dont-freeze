@@ -112,7 +112,6 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 		if (last) { // render deeper only if this is the last call of the frame
 			endY -= MAX_SPRITE_HEIGHT;
 		}
-		if(Gdx.input.isKeyJustPressed(Input.Keys.W))System.out.printf("sw = %d, sh = %d, startX = %d, startY = %d\n", sw, sh, startX, startY);
 		for (int y = startY; y >= endY; y--) { // render from the top down
 			for (int x = startX; x <= endX; x++) {
 				Cell cell = layer.getCell(x, y);
