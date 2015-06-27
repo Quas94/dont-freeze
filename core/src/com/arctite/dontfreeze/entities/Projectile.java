@@ -4,8 +4,6 @@ import com.arctite.dontfreeze.util.ResourceInfo;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
-import com.arctite.dontfreeze.util.GameUtil;
-import com.arctite.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.List;
 
@@ -180,8 +178,8 @@ public class Projectile implements Entity {
 			else if (dir == Direction.DOWN) y -= dist;
 
 			Rectangle collisionBounds = getCollisionBounds();
-			List<Rectangle> collideRects = GameUtil.collidesWithRects(collisionBounds, rects);
-			List<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(collisionBounds, polys);
+			List<Rectangle> collideRects = Collisions.collidesWithRects(collisionBounds, rects);
+			List<RectangleBoundedPolygon> collidePolys = Collisions.collidesWithPolys(collisionBounds, polys);
 			if (collideRects.size() + collidePolys.size() > 0) { // collision detected
 				setAction(Action.EXPIRING); // end the action
 			}

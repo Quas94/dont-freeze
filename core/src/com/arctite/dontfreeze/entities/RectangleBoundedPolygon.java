@@ -1,4 +1,4 @@
-package com.arctite.dontfreeze.util;
+package com.arctite.dontfreeze.entities;
 
 import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;

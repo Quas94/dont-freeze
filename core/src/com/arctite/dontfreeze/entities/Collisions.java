@@ -1,4 +1,4 @@
-package com.arctite.dontfreeze.util;
+package com.arctite.dontfreeze.entities;
 
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Polygon;
@@ -15,7 +15,7 @@ import java.util.List;
  *
  * Created by Quasar on 19/06/2015.
  */
-public class GameUtil {
+public class Collisions {
 
 	/**
 	 * Checks if the given Entity's collision bounds collide with the given RectangleMapObjects. If a collision is
@@ -93,6 +93,6 @@ public class GameUtil {
 		}
 	}
 
-	private GameUtil() {
+	private Collisions() {
 	}
 }

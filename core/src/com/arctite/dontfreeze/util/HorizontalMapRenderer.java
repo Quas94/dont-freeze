@@ -1,7 +1,5 @@
 package com.arctite.dontfreeze.util;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.MapLayer;
@@ -11,14 +9,13 @@ import com.badlogic.gdx.maps.tiled.TiledMapTile;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
-import com.badlogic.gdx.maps.tiled.tiles.AnimatedTiledMapTile;
 
 /**
  * Extension of the OrthogonalTiledMapRenderer.
  *
  * Created by Quasar on 17/06/2015.
  */
-public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
+public class HorizontalMapRenderer extends OrthogonalTiledMapRenderer {
 
 	/** Map layers */
 	public static final String SPRITE_LAYER = "sprites";
@@ -32,7 +29,7 @@ public class CustomTiledMapRenderer extends OrthogonalTiledMapRenderer {
 	public static final int MAX_SPRITE_WIDTH = 300;
 	public static final int MAX_SPRITE_HEIGHT = 300;
 
-	public CustomTiledMapRenderer(TiledMap tiledMap, SpriteBatch spriteBatch) {
+	public HorizontalMapRenderer(TiledMap tiledMap, SpriteBatch spriteBatch) {
 		super(tiledMap, spriteBatch);
 	}
 

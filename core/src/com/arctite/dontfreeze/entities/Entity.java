@@ -2,7 +2,6 @@ package com.arctite.dontfreeze.entities;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
-import com.arctite.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.List;
 

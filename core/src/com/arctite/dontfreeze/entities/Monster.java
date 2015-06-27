@@ -1,22 +1,18 @@
 package com.arctite.dontfreeze.entities;
 
-import com.arctite.dontfreeze.util.ResourceInfo;
-import com.arctite.dontfreeze.util.SoundManager;
+import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
-import com.arctite.dontfreeze.SaveManager;
 import com.arctite.dontfreeze.WorldScreen;
 import com.arctite.dontfreeze.entities.player.Player;
-import com.arctite.dontfreeze.util.GameUtil;
-import com.arctite.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static com.arctite.dontfreeze.SaveManager.*;
+import static com.arctite.dontfreeze.util.SaveManager.*;
 
 /**
  * Base class for all Monsters.
@@ -469,8 +465,8 @@ public class Monster implements LiveEntity {
 
 		// test collision
 		Rectangle collisionBounds = getCollisionBounds();
-		ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(collisionBounds, rects);
-		ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(collisionBounds, polys);
+		ArrayList<Rectangle> collideRects = Collisions.collidesWithRects(collisionBounds, rects);
+		ArrayList<RectangleBoundedPolygon> collidePolys = Collisions.collidesWithPolys(collisionBounds, polys);
 		boolean collision = (collideRects.size() + collidePolys.size()) > 0;
 		boolean inBounds = (x >= 0) && (y >= 0) && (x + width <= world.getWidth()) && (y + height <= world.getHeight());
 		if (collision || !inBounds) {

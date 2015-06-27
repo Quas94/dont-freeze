@@ -2,6 +2,7 @@ package com.arctite.dontfreeze;
 
 import com.arctite.dontfreeze.entities.LiveEntity;
 import com.arctite.dontfreeze.util.ResourceInfo;
+import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;

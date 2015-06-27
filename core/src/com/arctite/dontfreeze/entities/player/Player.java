@@ -1,21 +1,18 @@
 package com.arctite.dontfreeze.entities.player;
 
-import com.arctite.dontfreeze.util.ResourceInfo;
-import com.arctite.dontfreeze.util.SoundManager;
+import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Shape2D;
-import com.arctite.dontfreeze.SaveManager;
 import com.arctite.dontfreeze.WorldScreen;
 import com.arctite.dontfreeze.entities.*;
-import com.arctite.dontfreeze.util.GameUtil;
-import com.arctite.dontfreeze.util.RectangleBoundedPolygon;
+import com.arctite.dontfreeze.entities.Collisions;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.arctite.dontfreeze.SaveManager.*;
+import static com.arctite.dontfreeze.util.SaveManager.*;
 
 /**
  * Player class for all things related to the fire elemental.
@@ -408,8 +405,8 @@ public class Player implements LiveEntity {
 		// check collisions and stuff only if directions were pressed (since otherwise we wouldn't have moved at all)
 		if (dirsPressed > 0) {
 			// check if we collide with stuff after
-			ArrayList<Rectangle> collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
-			ArrayList<RectangleBoundedPolygon> collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
+			ArrayList<Rectangle> collideRects = Collisions.collidesWithRects(getCollisionBounds(), rects);
+			ArrayList<RectangleBoundedPolygon> collidePolys = Collisions.collidesWithPolys(getCollisionBounds(), polys);
 			int collisions = collideRects.size() + collidePolys.size();
 
 			if (collisions > 0 && dirsPressed == 1) {
@@ -427,25 +424,25 @@ public class Player implements LiveEntity {
 					collideShape = collidePolys.get(0);
 				}
 				boolean slideSuccess;
-				if (leftPressed || rightPressed) {// try sliding up or down
+				if (leftPressed || rightPressed) { // try sliding up or down
 					if (leftPressed) x += slideDist; // undo left covered by slideDist
 					else x -= slideDist; // rightPressed - undo right covered by slideDist
 					// slide up attempt
 					y += slideDist;
-					slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
+					slideSuccess = !Collisions.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
 					if (!slideSuccess) { // try sliding down instead
 						y = oldY - slideDist;
-						slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
+						slideSuccess = !Collisions.collidesShapes(getCollisionBounds(), collideShape); // test again
 					}
 				} else { // if (upPressed || downPressed) - try sliding left or right
 					if (upPressed) y -= slideDist; // undo up covered by slideDist
 					else y += slideDist; // undo down covered by slideDist
 					// slide left attempt
 					x -= slideDist; // slide left
-					slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
+					slideSuccess = !Collisions.collidesShapes(getCollisionBounds(), collideShape); // test with the shape
 					if (!slideSuccess) { // try sliding right instead
 						x = oldX + slideDist;
-						slideSuccess = !GameUtil.collidesShapes(getCollisionBounds(), collideShape); // test again
+						slideSuccess = !Collisions.collidesShapes(getCollisionBounds(), collideShape); // test again
 					}
 				}
 				if (!slideSuccess) { // if slide was not successful, we undo changes
@@ -463,8 +460,8 @@ public class Player implements LiveEntity {
 				if (leftPressed) x -= dist;
 				if (rightPressed) x += dist;
 				// check for collisions after updating x
-				collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
-				collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
+				collideRects = Collisions.collidesWithRects(getCollisionBounds(), rects);
+				collidePolys = Collisions.collidesWithPolys(getCollisionBounds(), polys);
 				collisions = collideRects.size() + collidePolys.size();
 				if (collisions > 0) { // if there are collisions after updating x only, under x changes
 					leftPressed = false;
@@ -476,8 +473,8 @@ public class Player implements LiveEntity {
 				if (upPressed) y += dist;
 				if (downPressed) y -= dist;
 				// check for collisions after updating y
-				collideRects = GameUtil.collidesWithRects(getCollisionBounds(), rects);
-				collidePolys = GameUtil.collidesWithPolys(getCollisionBounds(), polys);
+				collideRects = Collisions.collidesWithRects(getCollisionBounds(), rects);
+				collidePolys = Collisions.collidesWithPolys(getCollisionBounds(), polys);
 				collisions = collideRects.size() + collidePolys.size();
 				if (collisions > 0) { // if there are collisions after updating x only, under x changes
 					upPressed = false;

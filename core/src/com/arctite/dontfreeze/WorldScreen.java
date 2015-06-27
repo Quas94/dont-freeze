@@ -1,6 +1,6 @@
 package com.arctite.dontfreeze;
 
-import com.arctite.dontfreeze.util.SoundManager;
+import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
@@ -27,19 +27,16 @@ import com.badlogic.gdx.utils.Array;
 import com.arctite.dontfreeze.entities.*;
 import com.arctite.dontfreeze.entities.player.WorldInputHandler;
 import com.arctite.dontfreeze.entities.player.Player;
-import com.arctite.dontfreeze.util.CustomTiledMapRenderer;
-import com.arctite.dontfreeze.util.GameUtil;
-import com.arctite.dontfreeze.util.RectangleBoundedPolygon;
 
 import java.util.*;
 
-import static com.arctite.dontfreeze.SaveManager.*;
-import static com.arctite.dontfreeze.util.CustomTiledMapRenderer.*;
+import static com.arctite.dontfreeze.util.SaveManager.*;
+import static com.arctite.dontfreeze.util.HorizontalMapRenderer.*;
 
 /**
  * In-game screen where the actual gameplaying will take place.
  *
- * Map rendering will be done by rendering the current 640x480 chunk the player is standing on, and then rendering the
+ * Map rendering will be done by rendering the current chunk the player is standing on, and then rendering the
  * neighbouring chunks as necessary.
  *
  * Created by Quasar on 14/06/2015.
@@ -51,7 +48,8 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Map (TileD) related constants */
 	private static final String DIRECTORY = "assets/maps/";
-	private static final String MAP_1 = DIRECTORY + "map1.tmx";
+	private static final String EXT = ".tmx";
+	private static final String MAP_1 = DIRECTORY + "0_0" + EXT;
 	private static final String TILED_PROP_X = "x";
 	private static final String TILED_PROP_Y = "y";
 	private static final String TILED_PROP_ID = "type"; // id of entities
@@ -87,7 +85,7 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Tiled Map stuff */
 	private TiledMap tiledMap;
-	private CustomTiledMapRenderer mapRenderer;
+	private HorizontalMapRenderer mapRenderer;
 	private final List<Rectangle> obstacleRects;
 	private final List<RectangleBoundedPolygon> obstaclePolys;
 	private final List<Rectangle> allRects; // unmodifiable
@@ -194,7 +192,7 @@ public class WorldScreen extends AbstractScreen {
 
 		// load Tiled stuffs
 		this.tiledMap = MAP_LOADER.load(MAP_1);
-		this.mapRenderer = new CustomTiledMapRenderer(tiledMap, spriteBatch);
+		this.mapRenderer = new HorizontalMapRenderer(tiledMap, spriteBatch);
 		MapProperties mapProps = tiledMap.getProperties();
 		// load in map dimensions
 		this.width = mapProps.get(MAP_WIDTH, Integer.class);
@@ -518,7 +516,7 @@ public class WorldScreen extends AbstractScreen {
 					for (Monster monster : monsters.values()) {
 						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 							// check for collision between projectile's main bounds and monster's defense bounds
-							if (GameUtil.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
+							if (Collisions.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
 								projectile.setAction(Action.EXPIRING);
 								Direction from = Direction.getOpposite(projectile.getDirection());
 								monster.hit(from);
@@ -533,7 +531,7 @@ public class WorldScreen extends AbstractScreen {
 			removeKeys.clear(); // prep remove keys list for removal from collectables hashmap
 			for (String ckey : collectables.keySet()) {
 				Collectable c = collectables.get(ckey);
-				if (GameUtil.collidesShapes(player.getCollisionBounds(), c.getCollisionBounds())) {
+				if (Collisions.collidesShapes(player.getCollisionBounds(), c.getCollisionBounds())) {
 					// remove from the map, because we picked it up
 					removeKeys.add(ckey);
 					// increment our collected counter
@@ -550,7 +548,7 @@ public class WorldScreen extends AbstractScreen {
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
 				for (Monster monster : monsters.values()) {
 					if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
-						if (GameUtil.collidesShapes(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
+						if (Collisions.collidesShapes(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
 							player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
 							Direction from = Direction.getOpposite(player.getDirection());
 							monster.hit(from);
@@ -561,7 +559,7 @@ public class WorldScreen extends AbstractScreen {
 			// monster melee attack collision with player
 			for (Monster monster : monsters.values()) {
 				if (monster.getAction() == Action.MELEE && !monster.getMeleeHit() && monster.getMeleeCanHit()) {
-					if (GameUtil.collidesShapes(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
+					if (Collisions.collidesShapes(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
 						monster.setMeleeHit();
 						Direction from = Direction.getOpposite(monster.getDirection());
 						player.hit(from);
@@ -651,7 +649,7 @@ public class WorldScreen extends AbstractScreen {
 			while (i < numEntities) {
 				LiveEntity e = orderedEntities.get(i);
 				int thisY = (int) e.getY();
-				if (thisY < screenBot - CustomTiledMapRenderer.MAX_SPRITE_HEIGHT) {
+				if (thisY < screenBot - HorizontalMapRenderer.MAX_SPRITE_HEIGHT) {
 					// we're low enough to ignore everything from here on, break out of loop
 					break;
 				}
