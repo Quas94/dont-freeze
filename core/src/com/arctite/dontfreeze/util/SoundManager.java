@@ -3,8 +3,10 @@ package com.arctite.dontfreeze.util;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.files.FileHandle;
 
 import java.util.HashMap;
+import java.util.logging.FileHandler;
 
 /**
  * Static class that is used to store and playback sound effects and music.
@@ -56,18 +58,38 @@ public class SoundManager {
 	 * Stops the current music which is playing and disposes of the resources.
 	 */
 	public static void stopCurrentMusic() {
-		currentMusic.stop();
-		currentMusic.dispose();
+		if (currentMusic != null) {
+			currentMusic.stop();
+			currentMusic.dispose();
+			currentMusic = null;
+		}
 	}
 
 	/**
-	 * Plays the music file at the given location
-	 * @param file location of music file
+	 * Plays the music file with the given name.
+	 *
+	 * @param file the name of the music file
 	 */
 	public static void playMusic(String file) {
 		currentMusic = Gdx.audio.newMusic(Gdx.files.internal(FOLDER + file + MUSIC_EXT));
 		currentMusic.setLooping(true);
-		currentMusic.play();
+		currentMusic.play();}
+
+	/**
+	 * Plays the music file for the given chunk, or outputs a message if no music has been assigned yet
+	 * @param chunkX the x coordinate of the chunk to play music for
+	 * @param chunkY the y coordinate of the chunk to play music for
+	 */
+	public static void playMusic(int chunkX, int chunkY) {
+		String file = chunkX + "_" + chunkY;
+		FileHandle musicFile = Gdx.files.internal(FOLDER + file + MUSIC_EXT);
+		if (musicFile.exists()) {
+			currentMusic = Gdx.audio.newMusic(musicFile);
+			currentMusic.setLooping(true);
+			currentMusic.play();
+		} else {
+			System.out.printf("chunk (%d, %d) has no assigned music\n", chunkX, chunkY);
+		}
 	}
 
 	/**

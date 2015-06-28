@@ -46,8 +46,8 @@ public class WorldScreen extends AbstractScreen {
 	/** New game stuff */
 	public static final int NEW_GAME_CHUNK_X = 1;
 	public static final int NEW_GAME_CHUNK_Y = 5;
-	public static final int NEW_GAME_PLAYER_X = 100;
-	public static final int NEW_GAME_PLAYER_Y = 100;
+	public static final int NEW_GAME_PLAYER_X = 400;
+	public static final int NEW_GAME_PLAYER_Y = 400;
 
 	/** Map chunk info */
 	public static final int LEFTMOST_CHUNK_X = 0;
@@ -721,11 +721,13 @@ public class WorldScreen extends AbstractScreen {
 
 				if (i < numEntities) { // if there is another LiveEntity lower, render the gap
 					int nextHighestY = (int) orderedEntities.get(i).getY();
-					mapRenderer.renderSpriteLayer(thisY + 1, nextHighestY, false);
+					mapRenderer.renderSpriteLayer(thisY - 1, nextHighestY, false);
 				}
 			}
 			// lastly, render from lowestRenderedEntityY to bottom of screen
-			mapRenderer.renderSpriteLayer(lowestRenderedEntityY + 1, screenBot, true);
+			//if (screenBot >= lowestRenderedEntityY - 1) {
+				mapRenderer.renderSpriteLayer(lowestRenderedEntityY - 1, screenBot, true);
+			//}
 		} else {
 			// no entities, this shouldn't really happen but just in case - render everything
 			mapRenderer.renderSpriteLayer(screenTop, screenBot, true);

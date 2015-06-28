@@ -1,5 +1,7 @@
 package com.arctite.dontfreeze.util;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.MapLayer;
@@ -99,7 +101,7 @@ public class HorizontalMapRenderer extends OrthogonalTiledMapRenderer {
 	 */
 	private void renderSpriteLayerInternal(TiledMapTileLayer layer, int portionTop, int portionBot, boolean last) {
 		int sw = (int) viewBounds.width;
-		int sh = (int) viewBounds.height;
+		// int sh = (int) viewBounds.height;
 		int startX = (int) viewBounds.x;
 		int endX = startX + sw;
 		int startY = portionTop;

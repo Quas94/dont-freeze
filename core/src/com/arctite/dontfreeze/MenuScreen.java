@@ -193,6 +193,10 @@ public class MenuScreen extends AbstractScreen {
 		for (String s : MAIN_BUTTON_NAMES) {
 			buttons.get(s).setVisible(!creditsMode);
 		}
+		// loadgame button is special
+		boolean saveExists = SaveManager.saveFileExists();
+		buttons.get(LOAD_GAME).setVisible(saveExists && !creditsMode);
+
 		buttons.get(CREDITS_BACK).setVisible(creditsMode);
 		creditsLabel.setVisible(creditsMode);
 	}

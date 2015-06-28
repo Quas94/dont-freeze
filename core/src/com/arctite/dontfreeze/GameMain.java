@@ -101,10 +101,10 @@ public class GameMain extends Game {
 
 		// set which chunk the player is in now
 		player.setChunk(mapX, mapY);
-		player.save();
+		player.setPosition(playerX, playerY);
+		// player.save(); // don't need to save player when changing maps
 		// don't save to file when changing maps
 
-		player.setPosition(playerX, playerY);
 		// load the new chunk into a new WorldScreen (dropping the old WorldScreen instance completely)
 		this.world = new WorldScreen(this, worldInputHandler, player, spriteBatch);
 		world.loadValues();
@@ -151,7 +151,9 @@ public class GameMain extends Game {
 		if (screen instanceof MenuScreen) {
 			SoundManager.playMusic(SoundManager.MENU_BG_MUSIC);
 		} else if (screen instanceof WorldScreen) {
-			// @TODO world music
+			WorldScreen world = (WorldScreen) screen;
+			// play music for this chunk
+			SoundManager.playMusic(world.getChunkX(), world.getChunkY());
 		}
 	}
 
@@ -161,8 +163,6 @@ public class GameMain extends Game {
 
 		// load sounds first
 		SoundManager.loadSounds();
-		// start playing music
-		SoundManager.playMusic(SoundManager.MENU_BG_MUSIC);
 
 		menu = new MenuScreen(this, spriteBatch);
 		setScreen(menu);
