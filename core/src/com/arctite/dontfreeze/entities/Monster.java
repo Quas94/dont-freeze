@@ -119,10 +119,10 @@ public class Monster implements LiveEntity {
 	 * Assumes that this monster's active flag in the save file has already been checked and is true.
 	 *
 	 * @param chunkId the chunk id of the map this monster is in
-	 * @param saver the save manager
 	 * @param name the unique identifier of this monster
 	 */
-	public void load(String chunkId, SaveManager saver, String name) {
+	public void load(String chunkId, String name) {
+		SaveManager saver = SaveManager.getSaveManager();
 		x = saver.getDataValue(chunkId + MONSTER + name + POSITION_X, Float.class);
 		y = saver.getDataValue(chunkId + MONSTER + name + POSITION_Y, Float.class);
 		int di = saver.getDataValue(chunkId + MONSTER + name + DIR_IDX, Integer.class);
@@ -136,10 +136,11 @@ public class Monster implements LiveEntity {
 	 * Saves relevant fields from this Player object into the given save manager.
 	 *
 	 * @param chunkId the chunk id of the map this monster is in
-	 * @param saver the save manager
 	 * @param name the unique identifier of this monster
 	 */
-	public void save(String chunkId, SaveManager saver, String name) {
+	public void save(String chunkId, String name) {
+		SaveManager saver = SaveManager.getSaveManager();
+
 		saver.setDataValue(chunkId + MONSTER + name + POSITION_X, x);
 		saver.setDataValue(chunkId + MONSTER + name + POSITION_Y, y);
 		saver.setDataValue(chunkId + MONSTER + name + HEALTH, health);

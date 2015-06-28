@@ -15,8 +15,9 @@ import com.badlogic.gdx.utils.ObjectMap;
 public class SaveManager {
 
 	/** Save key constants */
-	public static final String PLAYER_MAP_X = "playermapx";
-	public static final String PLAYER_MAP_Y = "playermapy";
+	public static final String PLAYER_CHUNK_X = "playerchunkx";
+	public static final String PLAYER_CHUNK_Y = "playerchunky";
+	public static final String VISITED_CHUNK = "visitedchunk";
 	public static final String CAMERA_X = "camx";
 	public static final String CAMERA_Y = "camy";
 	/** Entity-related save key constants */
@@ -34,6 +35,16 @@ public class SaveManager {
 	/** Whether or not to encrypt the save file */
 	private static final boolean ENCODE = false;
 
+	/** Singleton */
+	private static SaveManager singleton;
+
+	public static SaveManager getSaveManager() {
+		if (singleton == null) {
+			singleton = new SaveManager();
+		}
+		return singleton;
+	}
+
 	/** Location of save file */
 	private static class Save {
 
@@ -45,32 +56,32 @@ public class SaveManager {
 		}
 	}
 
-	private static final String SAVE_LOCATION = "save.json";
+	private static final String SAVE_FILE = "save.json";
 
 	/** Save file handle */
 	private FileHandle file;
-	/** Save object */
+	/** Save object containing mappings */
 	private Save save;
 
-	public SaveManager(boolean load) {
+	private SaveManager() {
 		this.save = new Save();
-		this.file = Gdx.files.local(SAVE_LOCATION);
+		this.file = Gdx.files.local(SAVE_FILE);
+	}
 
-		if (load) {
-			if (!file.exists()) {
-				throw new RuntimeException("Attempting to load save file: none found");
-			}
-			Json json = new Json();
-			String fileString = file.readString();
-			if (ENCODE) {
-				fileString = Base64Coder.decodeString(fileString);
-			}
-			save = json.fromJson(Save.class, fileString);
+	public void load() {
+		if (!file.exists()) {
+			throw new RuntimeException("Attempting to load save file: none found");
 		}
+		Json json = new Json();
+		String fileString = file.readString();
+		if (ENCODE) {
+			fileString = Base64Coder.decodeString(fileString);
+		}
+		save = json.fromJson(Save.class, fileString);
 	}
 
 	public static boolean saveFileExists() {
-		return Gdx.files.local(SAVE_LOCATION).exists();
+		return Gdx.files.local(SAVE_FILE).exists();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -83,6 +94,19 @@ public class SaveManager {
 
 	public boolean hasDataValue(String key) {
 		return save.data.containsKey(key);
+	}
+
+	/**
+	 * Removes all mappings from the Save object which have a key with a prefix of the given chunkId
+	 *
+	 * @param chunkId the chunk prefix
+	 */
+	public void removeChunkDataValues(String chunkId) {
+		for (String key :save.data.keys()) {
+			if (key.startsWith(chunkId)) {
+				save.data.remove(key);
+			}
+		}
 	}
 
 	/**
@@ -106,5 +130,12 @@ public class SaveManager {
 	 */
 	public void setDataValue(String key, Object object) {
 		save.data.put(key, object);
+	}
+
+	/**
+	 * Clears all data in this SaveManager. Done when starting a new game.
+	 */
+	public void clearAll() {
+		save.data.clear();
 	}
 }

@@ -44,10 +44,10 @@ import static com.arctite.dontfreeze.util.HorizontalMapRenderer.*;
 public class WorldScreen extends AbstractScreen {
 
 	/** New game stuff */
-	public static final int NEW_GAME_MAP_X = 1;
-	public static final int NEW_GAME_MAP_Y = 5;
-	public static final int NEW_GAME_PLAYER_X = 300;
-	public static final int NEW_GAME_PLAYER_Y = 1120;
+	public static final int NEW_GAME_CHUNK_X = 1;
+	public static final int NEW_GAME_CHUNK_Y = 5;
+	public static final int NEW_GAME_PLAYER_X = 100;
+	public static final int NEW_GAME_PLAYER_Y = 100;
 
 	/** Map chunk info */
 	public static final int LEFTMOST_CHUNK_X = 0;
@@ -90,7 +90,6 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Input handling */
 	private InputMultiplexer inputMultiplexer; // since both WorldInputHandler and Stage will need inputs on this screen
-	private WorldInputHandler worldInputHandler;
 
 	/** Whether or not this world is paused */
 	private boolean paused;
@@ -102,8 +101,8 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Tiled Map stuff */
 	private TiledMap tiledMap;
-	private int mapX;
-	private int mapY;
+	private int chunkX;
+	private int chunkY;
 	private HorizontalMapRenderer mapRenderer;
 	private final List<Rectangle> obstacleRects;
 	private final List<RectangleBoundedPolygon> obstaclePolys;
@@ -141,11 +140,11 @@ public class WorldScreen extends AbstractScreen {
 	 * Loads Tiled map data and initialises cameras.
 	 *
 	 * @param game the Game object that this screen belongs to
-	 * @param mapX the chunk x coord of the map to load
-	 * @param mapY the chunk y coord of the map to load
+	 * @param worldInputHandler the WorldInputHandler which remains consistent throughout the entire game application
+	 * @param p the Player object
 	 * @param spriteBatch the SpriteBatch that this game is using
 	 */
-	public WorldScreen(GameMain game, Player p, int mapX, int mapY, SpriteBatch spriteBatch) {
+	public WorldScreen(GameMain game, WorldInputHandler worldInputHandler, Player p, SpriteBatch spriteBatch) {
 		super(game, spriteBatch);
 
 		// screen dimensions
@@ -198,7 +197,9 @@ public class WorldScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
-				saveGame(true); // save the game and save player too
+				saveValues(); // save the game and save player too
+				player.save();
+				SaveManager.getSaveManager().saveToJson();
 				getGame().setMenu();
 			}
 		});
@@ -206,15 +207,39 @@ public class WorldScreen extends AbstractScreen {
 		stage.addActor(saveAndExitButton);
 
 		// input handlers
-		this.worldInputHandler = new WorldInputHandler();
 		this.inputMultiplexer = new InputMultiplexer();
 		inputMultiplexer.addProcessor(stage); // stage gets priority for UI
 		inputMultiplexer.addProcessor(worldInputHandler);
 
+		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
+		// player spawnpoint
+		if (p == null) {
+			this.player = new Player(this, worldInputHandler, NEW_GAME_PLAYER_X, NEW_GAME_PLAYER_Y);
+			player.setChunk(WorldScreen.NEW_GAME_CHUNK_X, WorldScreen.NEW_GAME_CHUNK_Y);
+		} else {
+			this.player = p;
+			player.setWorld(this, worldInputHandler);
+		}
+		this.orderedEntities = new ArrayList<LiveEntity>();
+		this.orderedEntitiesComp = new Comparator<LiveEntity>() {
+			@Override
+			public int compare(LiveEntity e1, LiveEntity e2) {
+				float y1 = e1.getY();
+				float y2 = e2.getY();
+				if (y1 < y2) {
+					return 1;
+				} else if (y1 > y2) {
+					return -1;
+				}
+				return 0; // equal
+			}
+		};
+		orderedEntities.add(player); // add player to the sorted entities list
+
 		// load Tiled stuffs
-		this.mapX = mapX;
-		this.mapY = mapY;
-		this.tiledMap = MAP_LOADER.load(DIRECTORY + mapX + UNDERSCORE + mapY + EXT);
+		this.chunkX = player.getChunkX();
+		this.chunkY = player.getChunkY();
+		this.tiledMap = MAP_LOADER.load(DIRECTORY + chunkX + UNDERSCORE + chunkY + EXT);
 		this.mapRenderer = new HorizontalMapRenderer(tiledMap, spriteBatch);
 		MapProperties mapProps = tiledMap.getProperties();
 		// load in map dimensions
@@ -268,31 +293,6 @@ public class WorldScreen extends AbstractScreen {
 		this.allRects = Collections.unmodifiableList(modiRects);
 		this.allPolys = Collections.unmodifiableList(modiPolys);
 
-		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
-		// player spawnpoint
-		if (p == null) {
-			this.player = new Player(this, worldInputHandler, NEW_GAME_PLAYER_X, NEW_GAME_PLAYER_Y);
-		} else {
-			this.player = p;
-			player.setInputHandler(worldInputHandler);
-		}
-
-		this.orderedEntities = new ArrayList<LiveEntity>();
-		this.orderedEntitiesComp = new Comparator<LiveEntity>() {
-			@Override
-			public int compare(LiveEntity e1, LiveEntity e2) {
-				float y1 = e1.getY();
-				float y2 = e2.getY();
-				if (y1 < y2) {
-					return 1;
-				} else if (y1 > y2) {
-					return -1;
-				}
-				return 0; // equal
-			}
-		};
-		orderedEntities.add(player); // add player to the sorted entities list
-
 		// monster spawn points
 		this.monsters = new HashMap<String, Monster>();
 		MapObjects monsterObjects = tiledMap.getLayers().get(MONSTERS_LAYER).getObjects();
@@ -331,84 +331,78 @@ public class WorldScreen extends AbstractScreen {
 		}
 
 		this.projectiles = new ArrayList<Projectile>();
+
+		updateCamera();
 	}
 
 	/**
 	 * Loads values from the save file into this game world.
 	 */
-	public void loadGame(SaveManager saver, boolean loadPlayer) {
+	public void loadValues() {
+		SaveManager saver = SaveManager.getSaveManager();
 		// map number prefix
-		String chunkId = (new String() + mapX) + mapY;
-		if (loadPlayer) {
-			// load camera position
-			cameraPos.x = saver.getDataValue(chunkId + CAMERA_X, Float.class);
-			cameraPos.y = saver.getDataValue(chunkId + CAMERA_Y, Float.class);
-			// load player info
-			player.load(chunkId, saver);
-		} // otherwise we just load collectables and monsters and stuff
-		// check monsters
-		ArrayList<String> removeKeys = new ArrayList<String>();
-		for (String mkey : monsters.keySet()) { // key is name
-			Monster monster = monsters.get(mkey);
-			boolean active = saver.hasDataValue(chunkId + MONSTER + mkey + ACTIVE);
-			if (active) {
-				monster.load(chunkId, saver, mkey);
-			} else {
-				removeKeys.add(mkey);
-				// remove from orderedlist also
-				orderedEntities.remove(monster);
+		String chunkId = (new String() + chunkX) + chunkY;
+		if (saver.hasDataValue(VISITED_CHUNK + chunkId)) { // otherwise the constructor has loaded defaults for this map
+			// check monsters
+			ArrayList<String> removeKeys = new ArrayList<String>();
+			for (String mkey : monsters.keySet()) { // key is name
+				Monster monster = monsters.get(mkey);
+				boolean active = saver.hasDataValue(chunkId + MONSTER + mkey + ACTIVE);
+				if (active) {
+					monster.load(chunkId, mkey);
+				} else {
+					removeKeys.add(mkey);
+					// remove from orderedlist also
+					orderedEntities.remove(monster);
+				}
 			}
-		}
-		// remove monsters that weren't found in save file
-		for (String mkey : removeKeys) {
-			monsters.remove(mkey);
-		}
-		// sort ordered entities now that monsters have been changed around
-		sortOrderedEntities();
+			// remove monsters that weren't found in save file
+			for (String mkey : removeKeys) {
+				monsters.remove(mkey);
+			}
+			// sort ordered entities now that monsters have been changed around
+			sortOrderedEntities();
 
-		// check collectables
-		removeKeys.clear();
-		for (String ckey : collectables.keySet()) {
-			boolean active = saver.hasDataValue(chunkId + COLLECTABLE + ckey + ACTIVE);
-			if (!active) {
-				removeKeys.add(ckey);
+			// check collectables
+			removeKeys.clear();
+			for (String ckey : collectables.keySet()) {
+				boolean active = saver.hasDataValue(chunkId + COLLECTABLE + ckey + ACTIVE);
+				if (!active) {
+					removeKeys.add(ckey);
+				}
+			}
+			// remove collectables that weren't found in save file
+			for (String ckey : removeKeys) {
+				collectables.remove(ckey);
 			}
 		}
-		// remove collectables that weren't found in save file
-		for (String ckey : removeKeys) {
-			collectables.remove(ckey);
-		}
+		updateCamera();
 	}
 
 	/**
-	 * Saves this game world into the save file.
+	 * Saves this game world into the SaveManager (but does not explicitly write to file).
 	 */
-	public void saveGame(boolean savePlayer) {
-		SaveManager saver = new SaveManager(false); // false = write
-		String chunkId = (new String() + mapX) + mapY;
-		if (savePlayer) {
-			// save chunk coords
-			saver.setDataValue(PLAYER_MAP_X, mapX);
-			saver.setDataValue(PLAYER_MAP_Y, mapY);
-			// save camera position
-			saver.setDataValue(chunkId + CAMERA_X, cameraPos.x);
-			saver.setDataValue(chunkId + CAMERA_Y, cameraPos.y);
-			// save player
-			player.save(chunkId, saver);
-		}
+	public void saveValues() {
+		String chunkId = (new String() + chunkX) + chunkY;
+		SaveManager saver = SaveManager.getSaveManager();
+		// firstly, remove all previous values associated with this map chunk
+		saver.removeChunkDataValues(chunkId);
+		// set chunk as visited
+		saver.setDataValue(VISITED_CHUNK + chunkId, true);
+
+		// now write the updated values in
 		for (String mkey : monsters.keySet()) {
 			Monster m = monsters.get(mkey);
 			if (m.getHealth() > 0) { // excludes expiring monsters
 				// firstly: set this monster as active
 				saver.setDataValue(chunkId + MONSTER + mkey + ACTIVE, true);
 				// then save fields
-				m.save(chunkId, saver, mkey);
+				m.save(chunkId, mkey);
 			}
 		}
 		for (String ckey : collectables.keySet()) {
 			saver.setDataValue(chunkId + COLLECTABLE + ckey + ACTIVE, true); // collectables don't know their own key (name)
 		}
-		saver.saveToJson();
 	}
 
 	/**
@@ -422,8 +416,8 @@ public class WorldScreen extends AbstractScreen {
 	 *
 	 * @return chunk x coord
 	 */
-	public int getMapX() {
-		return mapX;
+	public int getChunkX() {
+		return chunkX;
 	}
 
 	/**
@@ -431,8 +425,8 @@ public class WorldScreen extends AbstractScreen {
 	 *
 	 * @return chunk y coord
 	 */
-	public int getMapY() {
-		return mapY;
+	public int getChunkY() {
+		return chunkY;
 	}
 
 	/**
@@ -616,45 +610,8 @@ public class WorldScreen extends AbstractScreen {
 				}
 			}
 
-			// now check camera
-			// get player details
-			float playerX = player.getX();
-			float playerY = player.getY();
-			int playerWidth = player.getWidth();
-			int playerHeight = player.getHeight();
-			// move camera depending on player position
-			float distSide = ((float) winWidth) / 4; // 20% of the window size
-			float distUd = ((float) winHeight) / 4; // also 20% of win size. ud = up/down
-			// difference between player sprite (nearest edge) and side of the window
-			float diffLeft = playerX - (cameraPos.x - (winWidth / 2));
-			float diffRight = (cameraPos.x + (winWidth / 2)) - (playerX + playerWidth);
-			float diffDown = playerY - (cameraPos.y - (winHeight / 2));
-			float diffUp = (cameraPos.y + (winHeight / 2)) - (playerY + playerHeight);
-			// if player is getting too close to the edge of the screen, move the camera
-			float translateX = 0;
-			float translateY = 0;
-			if (diffLeft < distSide) {
-				translateX = -(distSide - diffLeft);
-			} else if (diffRight < distSide) {
-				translateX = distSide - diffRight;
-			}
-			if (diffUp < distUd) {
-				translateY = distUd - diffUp;
-			} else if (diffDown < distUd) {
-				translateY = -(distUd - diffDown);
-			}
-			camera.translate(translateX, translateY);
-			// make sure camera stays within bounds so no black screen portions are shown
-			if (cameraPos.x < CAM_MIN_X) {
-				cameraPos.x = CAM_MIN_X;
-			} else if (cameraPos.x > CAM_MAX_X) {
-				cameraPos.x = CAM_MAX_X;
-			}
-			if (cameraPos.y < CAM_MIN_Y) {
-				cameraPos.y = CAM_MIN_Y;
-			} else if (cameraPos.y > CAM_MAX_Y) {
-				cameraPos.y = CAM_MAX_Y;
-			}
+			// update camera
+			updateCamera();
 		}
 
 		// only need to sort once per frame (as opposed to every DELTA_STEP)
@@ -664,12 +621,58 @@ public class WorldScreen extends AbstractScreen {
 		camera.update();
 	}
 
+	/**
+	 * Updates camera and moves it to be in the appropriate place relative to the player.
+	 */
+	private void updateCamera() {
+		// now check camera
+		// get player details
+		float playerX = player.getX();
+		float playerY = player.getY();
+		int playerWidth = player.getWidth();
+		int playerHeight = player.getHeight();
+		// move camera depending on player position
+		float distSide = ((float) winWidth) / 4; // 20% of the window size
+		float distUd = ((float) winHeight) / 4; // also 20% of win size. ud = up/down
+		// difference between player sprite (nearest edge) and side of the window
+		float diffLeft = playerX - (cameraPos.x - (winWidth / 2));
+		float diffRight = (cameraPos.x + (winWidth / 2)) - (playerX + playerWidth);
+		float diffDown = playerY - (cameraPos.y - (winHeight / 2));
+		float diffUp = (cameraPos.y + (winHeight / 2)) - (playerY + playerHeight);
+		// if player is getting too close to the edge of the screen, move the camera
+		float translateX = 0;
+		float translateY = 0;
+		if (diffLeft < distSide) {
+			translateX = -(distSide - diffLeft);
+		} else if (diffRight < distSide) {
+			translateX = distSide - diffRight;
+		}
+		if (diffUp < distUd) {
+			translateY = distUd - diffUp;
+		} else if (diffDown < distUd) {
+			translateY = -(distUd - diffDown);
+		}
+		camera.translate(translateX, translateY);
+		// make sure camera stays within bounds so no black screen portions are shown
+		if (cameraPos.x < CAM_MIN_X) {
+			cameraPos.x = CAM_MIN_X;
+		} else if (cameraPos.x > CAM_MAX_X) {
+			cameraPos.x = CAM_MAX_X;
+		}
+		if (cameraPos.y < CAM_MIN_Y) {
+			cameraPos.y = CAM_MIN_Y;
+		} else if (cameraPos.y > CAM_MAX_Y) {
+			cameraPos.y = CAM_MAX_Y;
+		}
+	}
+
 	@Override
 	public void render(float delta) {
 		if (delta > DELTA_LIMIT) {
 			// delta too high, probably recovered from long freeze, skip it
 			return;
 		}
+		//if(delta >System.out.println("delta is " + delta);
 
 		// call update() first
 		update(delta);
@@ -745,7 +748,7 @@ public class WorldScreen extends AbstractScreen {
 		spriteBatch.begin();
 		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
 		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
-		font.draw(spriteBatch, "Current Map: (" + mapX + ", " + mapY + ")", 20, winHeight - 50);
+		font.draw(spriteBatch, "Current Map: (" + chunkX + ", " + chunkY + ")", 20, winHeight - 50);
 		font.draw(spriteBatch, "HP: " + player.getHealth(), 20, winHeight - 65);
 		spriteBatch.end();
 		// draw hitboxes and stuff here

@@ -2,6 +2,7 @@ package com.arctite.dontfreeze;
 
 import com.arctite.dontfreeze.entities.Direction;
 import com.arctite.dontfreeze.entities.player.Player;
+import com.arctite.dontfreeze.entities.player.WorldInputHandler;
 import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Game;
@@ -47,18 +48,23 @@ public class GameMain extends Game {
 	private MenuScreen menu;
 	/** Screen representing the game world, where the majority of the game will be played */
 	private WorldScreen world;
+	/** WorldInputHandler which should stay the same throughout the entire game application */
+	private WorldInputHandler worldInputHandler;
 
 	/**
 	 * Creates a new instance of GameMain.
 	 */
 	public GameMain() {
+		this.worldInputHandler = new WorldInputHandler();
 	}
 
 	/**
 	 * Initialises a new WorldScreen and transitions to that screen.
 	 */
 	public void setWorldNewGame() {
-		world = new WorldScreen(this, null, WorldScreen.NEW_GAME_MAP_X, WorldScreen.NEW_GAME_MAP_Y, spriteBatch);
+		world = new WorldScreen(this, worldInputHandler, null, spriteBatch);
+		// new game, so clear save manager
+		SaveManager.getSaveManager().clearAll();
 		setScreen(world);
 	}
 
@@ -67,17 +73,18 @@ public class GameMain extends Game {
 	 *
 	 * @param dir the direction to move from the current WorldScreen
 	 */
-	public void setWorldNewMap(Direction dir) {
-		// de-aggro monsters
+	public void setWorldChangeMap(Direction dir) {
+		// de-aggro monsters in from-chunk
 		world.deaggroMonsters();
-		// save this map but not player details
-		world.saveGame(false);
+		// save from-chunk's values
+		world.saveValues();
 
+		// calculate player's new chunk and coordinates within that new chunk
 		Player player = world.getPlayer();
 		float playerX = player.getX();
 		float playerY = player.getY();
-		int mapX = world.getMapX();
-		int mapY = world.getMapY();
+		int mapX = world.getChunkX();
+		int mapY = world.getChunkY();
 		if (dir == Direction.LEFT) {
 			playerX = Player.RIGHTMOST_X - 1;
 			mapX--;
@@ -92,10 +99,17 @@ public class GameMain extends Game {
 			mapY++;
 		}
 
-		this.world = new WorldScreen(this, player, mapX, mapY, spriteBatch);
-		SaveManager saver = new SaveManager(true); // true = load
-		world.loadGame(saver, false); // don't load player details
-		player.setWorldAndPosition(world, playerX, playerY);
+		// set which chunk the player is in now
+		player.setChunk(mapX, mapY);
+		player.save();
+		// don't save to file when changing maps
+
+		player.setPosition(playerX, playerY);
+		// load the new chunk into a new WorldScreen (dropping the old WorldScreen instance completely)
+		this.world = new WorldScreen(this, worldInputHandler, player, spriteBatch);
+		world.loadValues();
+
+		// finally, new screen
 		setScreen(world);
 	}
 
@@ -104,12 +118,13 @@ public class GameMain extends Game {
 	 */
 	public void setWorldLoadGame() {
 		// load save manager and get the map chunk to load
-		SaveManager saver = new SaveManager(true); // true = load
-		int chunkX = saver.getDataValue(SaveManager.PLAYER_MAP_X, Integer.class);
-		int chunkY = saver.getDataValue(SaveManager.PLAYER_MAP_Y, Integer.class);
-		world = new WorldScreen(this, null, chunkX, chunkY, spriteBatch);
+		SaveManager.getSaveManager().load();
+		// load player info first
+		Player player = new Player(null, null, 0, 0);
+		player.load();
+		world = new WorldScreen(this, worldInputHandler, player, spriteBatch);
 		// load the world
-		world.loadGame(saver, true); // loading a game so load player too
+		world.loadValues();
 		// finally, swap into it
 		setScreen(world);
 	}

@@ -43,6 +43,9 @@ public class Player implements LiveEntity {
 
 	/** Position and dimensions of the player */
 	private Direction dir;
+	private Direction lastRenderedDir; // flag for map changing, so map will only change if player facing correct dir
+	private int chunkX;
+	private int chunkY;
 	private float x;
 	private float y;
 	private int speed;
@@ -72,6 +75,7 @@ public class Player implements LiveEntity {
 		this.height = ResourceInfo.PLAYER.getHeight();
 
 		this.dir = Direction.DOWN;
+		this.lastRenderedDir = null;
 		this.action = Action.IDLE_MOVE; // only exception where we don't use setAction()
 		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, ResourceInfo.PLAYER);
 
@@ -83,12 +87,18 @@ public class Player implements LiveEntity {
 		this.fires = 0;
 	}
 
-	public void setInputHandler(WorldInputHandler inputHandler) {
+	/**
+	 * Sets this Player's WorldScreen reference as well as WorldInputHandler reference
+	 *
+	 * @param world WorldScreen
+	 * @param inputHandler WorldInputHandler
+	 */
+	public void setWorld(WorldScreen world, WorldInputHandler inputHandler) {
+		this.world = world;
 		this.inputHandler = inputHandler;
 	}
 
-	public void setWorldAndPosition(WorldScreen world, float x, float y) {
-		this.world = world;
+	public void setPosition(float x, float y) {
 		this.x = x;
 		this.y = y;
 	}
@@ -100,32 +110,50 @@ public class Player implements LiveEntity {
 
 	/**
 	 * Loads the relevant saved fields into this Player object, given the save manager.
-	 *
-	 * @param chunkId the chunk id of the map this monster is in
-	 * @param saver the save manager
 	 */
-	public void load(String chunkId, SaveManager saver) {
-		x = saver.getDataValue(chunkId + PLAYER + POSITION_X, Float.class);
-		y = saver.getDataValue(chunkId + PLAYER + POSITION_Y, Float.class);
-		health = saver.getDataValue(chunkId + PLAYER + HEALTH, Integer.class);
-		int di = saver.getDataValue(chunkId + PLAYER + DIR_IDX, Integer.class);
+	public void load() {
+		SaveManager saver = SaveManager.getSaveManager();
+
+		// load chunk data
+		chunkX = saver.getDataValue(PLAYER_CHUNK_X, Integer.class);
+		chunkY = saver.getDataValue(PLAYER_CHUNK_Y, Integer.class);
+
+		x = saver.getDataValue(PLAYER + POSITION_X, Float.class);
+		y = saver.getDataValue(PLAYER + POSITION_Y, Float.class);
+		health = saver.getDataValue(PLAYER + HEALTH, Integer.class);
+		int di = saver.getDataValue(PLAYER + DIR_IDX, Integer.class);
 		dir = Direction.getByIndex(di);
 
-		fires = saver.getDataValue(chunkId + PLAYER + FIRES, Integer.class);
+		fires = saver.getDataValue(PLAYER + FIRES, Integer.class);
 	}
 
 	/**
 	 * Saves relevant fields from this Player object into the given save manager.
-	 *
-	 * @param chunkId the chunk id of the map this monster is in
-	 * @param saver the save manager
 	 */
-	public void save(String chunkId, SaveManager saver) {
-		saver.setDataValue(chunkId + PLAYER + POSITION_X, x);
-		saver.setDataValue(chunkId + PLAYER + POSITION_Y, y);
-		saver.setDataValue(chunkId + PLAYER + HEALTH, health);
-		saver.setDataValue(chunkId + PLAYER + DIR_IDX, dir.getIdx());
-		saver.setDataValue(chunkId + PLAYER + FIRES, fires);
+	public void save() {
+		SaveManager saver = SaveManager.getSaveManager();
+
+		saver.setDataValue(PLAYER_CHUNK_X, chunkX);
+		saver.setDataValue(PLAYER_CHUNK_Y, chunkY);
+
+		saver.setDataValue(PLAYER + POSITION_X, x);
+		saver.setDataValue(PLAYER + POSITION_Y, y);
+		saver.setDataValue(PLAYER + HEALTH, health);
+		saver.setDataValue(PLAYER + DIR_IDX, dir.getIdx());
+		saver.setDataValue(PLAYER + FIRES, fires);
+	}
+
+	public int getChunkX() {
+		return chunkX;
+	}
+
+	public int getChunkY() {
+		return chunkY;
+	}
+
+	public void setChunk(int chunkX, int chunkY) {
+		this.chunkX = chunkX;
+		this.chunkY = chunkY;
 	}
 
 	@Override
@@ -511,31 +539,32 @@ public class Player implements LiveEntity {
 			}
 
 			// check for map change or in bounds
-			int chunkX = world.getMapX();
-			int chunkY = world.getMapY();
+			int chunkX = world.getChunkX();
+			int chunkY = world.getChunkY();
 			GameMain game = world.getGame();
-			// @TODO enable 1 frame to render before changing maps so correct direction is guaranteed to be faced
+			// lastRenderedDir is used so that the screen displays the player facing the correct dir before map change
 			if (x < 0) {
-				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X) x = 0;
-				else game.setWorldNewMap(Direction.LEFT);
+				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X || lastRenderedDir != dir) x = 0;
+				else game.setWorldChangeMap(Direction.LEFT);
 			}
 			if (x >= RIGHTMOST_X) {
-				if (chunkX == WorldScreen.RIGHTMOST_CHUNK_X) x = RIGHTMOST_X;
-				else game.setWorldNewMap(Direction.RIGHT);
+				if (chunkX == WorldScreen.RIGHTMOST_CHUNK_X || lastRenderedDir != dir) x = RIGHTMOST_X;
+				else game.setWorldChangeMap(Direction.RIGHT);
 			}
 			if (y < 0) {
-				if (chunkY == WorldScreen.LOWEST_CHUNK_Y) y = 0;
-				else game.setWorldNewMap(Direction.DOWN);
+				if (chunkY == WorldScreen.LOWEST_CHUNK_Y || lastRenderedDir != dir) y = 0;
+				else game.setWorldChangeMap(Direction.DOWN);
 			}
 			if (y >= HIGHEST_Y) {
-				if (chunkY == WorldScreen.HIGHEST_CHUNK_Y) y = HIGHEST_Y;
-				else game.setWorldNewMap(Direction.UP);
+				if (chunkY == WorldScreen.HIGHEST_CHUNK_Y || lastRenderedDir != dir) y = HIGHEST_Y;
+				else game.setWorldChangeMap(Direction.UP);
 			}
 		}
 	}
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
+		lastRenderedDir = dir; // update flag
 		TextureRegion frame = animations.getCurrentFrame(dir);
 		spriteBatch.draw(frame, x, y);
 	}

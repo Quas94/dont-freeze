@@ -12,8 +12,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
  */
 public abstract class AbstractScreen implements Screen {
 
-	/** If delta exceeds this limit in milliseconds, update is skipped */
-	protected static final int DELTA_LIMIT = 1000;
+	/** If delta exceeds this limit in seconds, update is skipped */
+	protected static final float DELTA_LIMIT = 0.25F; // quarter of a second
 
 	/** The SpriteBatch which renders this Screen (and every other Screen in the game) */
 	protected final SpriteBatch spriteBatch;
