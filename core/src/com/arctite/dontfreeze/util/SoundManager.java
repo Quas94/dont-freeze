@@ -15,7 +15,6 @@ import java.util.logging.FileHandler;
  */
 public class SoundManager {
 
-
 	/**
 	 * Contains list of sound ids coupled with their filename.
 	 */
@@ -54,6 +53,33 @@ public class SoundManager {
 
 	private static Music currentMusic;
 
+	/** Volume level */
+	private static float volume;
+
+	/**
+	 * If enabling sound and music, if there is music loaded and ready to be streamed, this method starts playing it.
+	 *
+	 * If disabling sound and music, if there is music playing, this method stops playing it.
+	 */
+	public static void setEnabled(boolean enabled) {
+		if (enabled) {
+			volume = 1.0F; // set volume to max
+		} else {
+			volume = 0.0F;
+		}
+		if (currentMusic != null) {
+			currentMusic.setVolume(volume);
+		}
+	}
+
+	/**
+	 * Checks whether or not sound and music are currently enabled.
+	 * @return whether sound/music are enabled
+	 */
+	public static boolean isEnabled() {
+		return volume > 0F;
+	}
+
 	/**
 	 * Stops the current music which is playing and disposes of the resources.
 	 */
@@ -73,7 +99,9 @@ public class SoundManager {
 	public static void playMusic(String file) {
 		currentMusic = Gdx.audio.newMusic(Gdx.files.internal(FOLDER + file + MUSIC_EXT));
 		currentMusic.setLooping(true);
-		currentMusic.play();}
+		currentMusic.setVolume(volume);
+		currentMusic.play();
+	}
 
 	/**
 	 * Plays the music file for the given chunk, or outputs a message if no music has been assigned yet
@@ -86,6 +114,7 @@ public class SoundManager {
 		if (musicFile.exists()) {
 			currentMusic = Gdx.audio.newMusic(musicFile);
 			currentMusic.setLooping(true);
+			currentMusic.setVolume(volume);
 			currentMusic.play();
 		} else {
 			System.out.printf("chunk (%d, %d) has no assigned music\n", chunkX, chunkY);
@@ -108,14 +137,14 @@ public class SoundManager {
 	 * @param si the SoundInfo enum instance representing the sound to be played
 	 */
 	public static void playSound(SoundInfo si) {
-		sounds.get(si.id).play(1.0F);
+		sounds.get(si.id).play(volume);
 	}
 
 	/**
 	 * Shorthand for playing the MENU_CLICK sound.
 	 */
 	public static void playClick() {
-		sounds.get(SoundInfo.MENU_CLICK.id).play(1.0F);
+			sounds.get(SoundInfo.MENU_CLICK.id).play(volume);
 	}
 
 	private SoundManager() {

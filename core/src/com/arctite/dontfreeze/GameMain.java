@@ -6,6 +6,8 @@ import com.arctite.dontfreeze.entities.player.WorldInputHandler;
 import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -44,6 +46,8 @@ public class GameMain extends Game {
 	/** The single SpriteBatch which renders the entire game, all the screens */
 	private SpriteBatch spriteBatch;
 
+	/** Settings */
+
 	/** The menu screen, handling new games, saving/loading, credits, pausing, etc */
 	private MenuScreen menu;
 	/** Screen representing the game world, where the majority of the game will be played */
@@ -55,7 +59,16 @@ public class GameMain extends Game {
 	 * Creates a new instance of GameMain.
 	 */
 	public GameMain() {
-		this.worldInputHandler = new WorldInputHandler();
+	}
+
+	/**
+	 * Checks for the pressing of keyboard key M and toggles sound if pressed.
+	 */
+	public void checkToggleSound() {
+		// toggle sound if M key pressed
+		if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+			SoundManager.setEnabled(!SoundManager.isEnabled());
+		}
 	}
 
 	/**
@@ -159,13 +172,22 @@ public class GameMain extends Game {
 
 	@Override
 	public void create() {
+		// initialise sprite batch
 		this.spriteBatch = new SpriteBatch();
+
+		// load input handler
+		this.worldInputHandler = new WorldInputHandler();
 
 		// load sounds first
 		SoundManager.loadSounds();
 
 		menu = new MenuScreen(this, spriteBatch);
 		setScreen(menu);
+
+		// load settings
+		SaveManager settings = SaveManager.getSettings();
+		float volume = settings.getDataValue(SaveManager.VOLUME, Float.class);
+		SoundManager.setEnabled(volume > 0);
 	}
 
 	/**

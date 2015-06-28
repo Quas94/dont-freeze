@@ -504,6 +504,9 @@ public class WorldScreen extends AbstractScreen {
 	 */
 	@Override
 	public void update(float delta) {
+		// check toggle sound
+		getGame().checkToggleSound();
+
 		// update scene2d first regardless of this world's pause status
 		stage.act(delta);
 
@@ -672,7 +675,6 @@ public class WorldScreen extends AbstractScreen {
 			// delta too high, probably recovered from long freeze, skip it
 			return;
 		}
-		//if(delta >System.out.println("delta is " + delta);
 
 		// call update() first
 		update(delta);
@@ -752,6 +754,7 @@ public class WorldScreen extends AbstractScreen {
 		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
 		font.draw(spriteBatch, "Current Map: (" + chunkX + ", " + chunkY + ")", 20, winHeight - 50);
 		font.draw(spriteBatch, "HP: " + player.getHealth(), 20, winHeight - 65);
+		font.draw(spriteBatch, "Sound: " + (SoundManager.isEnabled() ? "On" : "Off"), 20, winHeight - 80);
 		spriteBatch.end();
 		// draw hitboxes and stuff here
 		if (debugMode) {

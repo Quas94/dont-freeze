@@ -149,6 +149,8 @@ public class MenuScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
+				// save settings
+				SaveManager.getSettings().saveToJson();
 				Gdx.app.exit();
 			}
 		});
@@ -203,6 +205,9 @@ public class MenuScreen extends AbstractScreen {
 
 	@Override
 	public void update(float delta) {
+		// check toggle sound
+		getGame().checkToggleSound();
+
 		// update UI
 		stage.act(delta);
 		// update logo fire

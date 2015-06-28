@@ -10,6 +10,8 @@ import com.badlogic.gdx.utils.ObjectMap;
 /**
  * Manages game saving and loading.
  *
+ * Also manages game settings that aren't save-file-specific.
+ *
  * Created by Quasar on 24/06/2015.
  */
 public class SaveManager {
@@ -32,17 +34,29 @@ public class SaveManager {
 	public static final String DIR_IDX = "d";
 	public static final String HEALTH = "hp";
 
-	/** Whether or not to encrypt the save file */
+	/** Settings constants */
+	// NOTE: when adding something here the default value must be specified in settings constructor (see below)
+	public static final String VOLUME = "volume";
+
+	/** Whether or not to encrypt the output file */
 	private static final boolean ENCODE = false;
 
-	/** Singleton */
+	/** Singletons */
 	private static SaveManager singleton;
+	private static SaveManager settings;
 
 	public static SaveManager getSaveManager() {
 		if (singleton == null) {
 			singleton = new SaveManager();
 		}
 		return singleton;
+	}
+
+	public static SaveManager getSettings() {
+		if (settings == null) {
+			settings = new SaveManager(SETTINGS_FILE);
+		}
+		return settings;
 	}
 
 	/** Location of save file */
@@ -57,6 +71,7 @@ public class SaveManager {
 	}
 
 	private static final String SAVE_FILE = "save.json";
+	private static final String SETTINGS_FILE = "settings.json";
 
 	/** Save file handle */
 	private FileHandle file;
@@ -68,9 +83,25 @@ public class SaveManager {
 		this.file = Gdx.files.local(SAVE_FILE);
 	}
 
+	/**
+	 * Used for constructing a save manager which actually handles settings.
+	 *
+	 * @param settings the settings file
+	 */
+	private SaveManager(String settings) {
+		this.save = new Save();
+		this.file = Gdx.files.local(settings);
+		if (file.exists()) {
+			load(); // load settings immediately upon object construction if we find a file
+		} else {
+			// DEFAULT SETTINGS HERE
+			setDataValue(VOLUME, 1.0F);
+		}
+	}
+
 	public void load() {
 		if (!file.exists()) {
-			throw new RuntimeException("Attempting to load save file: none found");
+			throw new RuntimeException("Attempting to load file (" + file.name() + "), not found");
 		}
 		Json json = new Json();
 		String fileString = file.readString();
