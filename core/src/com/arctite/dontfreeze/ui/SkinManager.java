@@ -59,7 +59,6 @@ public class SkinManager {
 		TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
 		style.up = menuButtonSkin.newDrawable(BACKGROUND, Color.GRAY);
 		style.down = menuButtonSkin.newDrawable(BACKGROUND, Color.DARK_GRAY);
-		// style.checked = skin.newDrawable(BACKGROUND, Color.DARK_GRAY);
 		style.over = menuButtonSkin.newDrawable(BACKGROUND, Color.LIGHT_GRAY);
 		style.font = menuButtonSkin.getFont(DEFAULT);
 		menuButtonSkin.add(DEFAULT, style);

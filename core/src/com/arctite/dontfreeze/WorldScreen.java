@@ -8,8 +8,6 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -24,11 +22,9 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.arctite.dontfreeze.entities.*;
 import com.arctite.dontfreeze.entities.player.WorldInputHandler;
@@ -78,7 +74,9 @@ public class WorldScreen extends AbstractScreen {
 	private static final String EXT = ".tmx";
 	private static final String TILED_PROP_X = "x";
 	private static final String TILED_PROP_Y = "y";
-	private static final String TILED_PROP_ID = "type"; // id of entities
+	private static final String TILED_PROP_WIDTH = "width";
+	private static final String TILED_PROP_HEIGHT = "height";
+	private static final String TILED_PROP_TYPE = "type"; // id of entities, and type of events
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
 	/** Map dimensions */
@@ -142,6 +140,7 @@ public class WorldScreen extends AbstractScreen {
 	private HashMap<String, Monster> monsters; // hashmap of <name, monsterobj>
 	private HashMap<String, Collectable> collectables;
 	private ArrayList<Projectile> projectiles;
+	private ArrayList<Event> events;
 
 	/**
 	 * Creates a new WorldScreen. Initialises all fields, initialises and sets an InputHandler.
@@ -318,7 +317,7 @@ public class WorldScreen extends AbstractScreen {
 			names.add(name);
 			float mx = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float my = obj.getProperties().get(TILED_PROP_Y, Float.class);
-			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_ID, String.class));
+			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_TYPE, String.class));
 			Monster monster = new Monster(this, id, mx, my);
 			monsters.put(name, monster); // add monster to hashmap by key = unique name
 			orderedEntities.add(monster);
@@ -338,12 +337,27 @@ public class WorldScreen extends AbstractScreen {
 			names.add(name);
 			float cx = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float cy = obj.getProperties().get(TILED_PROP_Y, Float.class);
-			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_ID, String.class));
+			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_TYPE, String.class));
 			Collectable collectable = new Collectable(this, id, cx, cy);
 			collectables.put(name, collectable); // add collectable to hashmap by key = unique name
 		}
 
+		// initialise projectiles
 		this.projectiles = new ArrayList<Projectile>();
+
+		// load in event objects
+		this.events = new ArrayList<Event>();
+		MapObjects eventObjects = tiledMap.getLayers().get(EVENTS_LAYER).getObjects();
+		for (MapObject obj : eventObjects) {
+			String eventName = obj.getName();
+			String eventType = obj.getProperties().get(TILED_PROP_TYPE, String.class);
+			float ex = obj.getProperties().get(TILED_PROP_X, Float.class);
+			float ey = obj.getProperties().get(TILED_PROP_Y, Float.class);
+			float ew = obj.getProperties().get(TILED_PROP_WIDTH, Float.class);
+			float eh = obj.getProperties().get(TILED_PROP_HEIGHT, Float.class);
+			Event event = new Event(eventName, eventType, (int) ex, (int) ey, ew, eh);
+			events.add(event);
+		}
 
 		updateCamera();
 	}
@@ -520,8 +534,12 @@ public class WorldScreen extends AbstractScreen {
 		// check toggle sound
 		getGame().checkToggleSound();
 
-		// @TODO remove this test stuff
-		if (Gdx.input.isKeyJustPressed(Input.Keys.V)) convoBox.setVisible(!convoBox.isVisible());
+		// enter = next message, if convo box is active
+		if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+			if (convoBox.isActive()) {
+				convoBox.nextMessage();
+			}
+		}
 
 		// update scene2d first regardless of this world's pause status
 		stage.act(delta);
@@ -629,6 +647,16 @@ public class WorldScreen extends AbstractScreen {
 				}
 			}
 
+			// event triggering
+			for (Event event : events) {
+				if (!event.hasTriggered()) {
+					if (Collisions.collidesShapes(player.getCollisionBounds(), event.getBounds())) {
+						// trigger this event
+						event.trigger(this);
+					}
+				}
+			}
+
 			// update camera
 			updateCamera();
 		}
@@ -638,6 +666,14 @@ public class WorldScreen extends AbstractScreen {
 
 		// update things that bind to camera
 		camera.update();
+	}
+
+	/**
+	 * Starts off the convo box with the given message(s)
+	 * @param message the message(s), separated by GameMessages.SEPARATOR if multiple
+	 */
+	public void startConvoBox(String message) {
+		convoBox.setMessages(message);
 	}
 
 	/**

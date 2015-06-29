@@ -1,7 +1,5 @@
 package com.arctite.dontfreeze.util;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.MapLayer;
@@ -26,6 +24,7 @@ public class HorizontalMapRenderer extends OrthogonalTiledMapRenderer {
 	public static final String COLLECTABLES_LAYER = "collectables";
 	public static final String GROUNDLESS_LAYER = "groundless";
 	public static final String BACKGROUND_LAYER = "background";
+	public static final String EVENTS_LAYER = "events";
 
 	/** Static constants for the renderSpriteLayerInternal() method */
 	public static final int MAX_SPRITE_WIDTH = 300;
@@ -49,7 +48,7 @@ public class HorizontalMapRenderer extends OrthogonalTiledMapRenderer {
 	 */
 	@Override
 	protected void endRender () {
-		//batch.end();
+		// batch.end();
 	}
 
 	/**

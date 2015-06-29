@@ -4,6 +4,7 @@ import com.arctite.dontfreeze.entities.Direction;
 import com.arctite.dontfreeze.entities.player.Player;
 import com.arctite.dontfreeze.entities.player.WorldInputHandler;
 import com.arctite.dontfreeze.ui.SkinManager;
+import com.arctite.dontfreeze.util.GameMessages;
 import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Game;
@@ -180,6 +181,9 @@ public class GameMain extends Game {
 
 		// initialise skins
 		SkinManager.loadSkins();
+
+		// load event-triggered messages from file
+		GameMessages.loadMessages();
 
 		// lastly, create screen and change over
 		menu = new MenuScreen(this, spriteBatch);
