@@ -1,6 +1,6 @@
 package com.arctite.dontfreeze;
 
-import com.arctite.dontfreeze.ui.ConvoLabel;
+import com.arctite.dontfreeze.ui.ConversationBox;
 import com.arctite.dontfreeze.ui.SkinManager;
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
@@ -103,7 +103,7 @@ public class WorldScreen extends AbstractScreen {
 	private TextButton resumeButton;
 	private TextButton saveAndExitButton;
 	/** Conversation box label */
-	private ConvoLabel convoBox;
+	private ConversationBox convoBox;
 
 	/** Tiled Map stuff */
 	private TiledMap tiledMap;
@@ -173,8 +173,8 @@ public class WorldScreen extends AbstractScreen {
 		Skin menuButtonSkin = SkinManager.getSkin(SkinManager.MENU_BUTTON_SKIN);
 
 		// conversation box style
-		this.convoBox = new ConvoLabel();
-		convoBox.addToStage(stage);
+		this.convoBox = new ConversationBox();
+		stage.addActor(convoBox);
 
 		// middle of the screen position for endgame and pause buttons
 		float buttonX = (winWidth / 2) - (SkinManager.MENU_BUTTON_WIDTH / 2);
@@ -552,13 +552,13 @@ public class WorldScreen extends AbstractScreen {
 
 		// enter = next message, if convo box is active
 		if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-			if (convoBox.isActive()) {
-				convoBox.nextMessage();
+			if (convoBox.isVisible()) {
+				convoBox.next();
 			}
 		}
 
 		// either esc-pause or convobox active are effectively pauses for game logic update purposes
-		boolean convoActive = convoBox.isActive();
+		boolean convoActive = convoBox.isVisible();
 		boolean effectivePause = paused || convoActive;
 
 		// toggle paused mode if player isn't dead
@@ -684,7 +684,7 @@ public class WorldScreen extends AbstractScreen {
 	/**
 	 * Gets the convo box label in this world.
 	 */
-	public ConvoLabel getConvoBox() {
+	public ConversationBox getConvoBox() {
 		return convoBox;
 	}
 

@@ -10,7 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 
 import java.util.HashMap;
 
-import static com.arctite.dontfreeze.ui.ConvoLabel.*;
+import static com.arctite.dontfreeze.ui.ConversationBox.*;
 
 /**
  * Static class which initialises and manages skins for all of the game's UI elements.
