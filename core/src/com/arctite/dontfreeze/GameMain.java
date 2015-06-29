@@ -3,6 +3,7 @@ package com.arctite.dontfreeze;
 import com.arctite.dontfreeze.entities.Direction;
 import com.arctite.dontfreeze.entities.player.Player;
 import com.arctite.dontfreeze.entities.player.WorldInputHandler;
+import com.arctite.dontfreeze.ui.SkinManager;
 import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Game;
@@ -33,15 +34,6 @@ public class GameMain extends Game {
 	public static final int GAME_WINDOW_WIDTH = 640;
 	/** Width of the game window across all platforms */
 	public static final int GAME_WINDOW_HEIGHT = 480;
-
-	/** Scene2d button dimensions */
-	public static final int BUTTON_WIDTH = 130;
-	public static final int BUTTON_HEIGHT = 30;
-	/** Scene2d UI stuff */
-	private static final String DEFAULT = "default";
-	private static final String BACKGROUND = "background";
-	/** Default skin, for the getDefaultSkin() method */
-	private static Skin defaultSkin;
 
 	/** The single SpriteBatch which renders the entire game, all the screens */
 	private SpriteBatch spriteBatch;
@@ -178,43 +170,19 @@ public class GameMain extends Game {
 		// load input handler
 		this.worldInputHandler = new WorldInputHandler();
 
-		// load sounds first
-		SoundManager.loadSounds();
-
-		menu = new MenuScreen(this, spriteBatch);
-		setScreen(menu);
-
 		// load settings
 		SaveManager settings = SaveManager.getSettings();
 		float volume = settings.getDataValue(SaveManager.VOLUME, Float.class);
 		SoundManager.setEnabled(volume > 0);
-	}
 
-	/**
-	 * Creates the default Skin that all screens in the game can use.
-	 *
-	 * @return the default Skin
-	 */
-	public static Skin getDefaultSkin() {
-		if (defaultSkin == null) {
-			BitmapFont font = new BitmapFont();
-			defaultSkin = new Skin();
-			defaultSkin.add(DEFAULT, font);
+		// load sounds
+		SoundManager.loadSounds();
 
-			// button background pixmap
-			Pixmap pixmap = new Pixmap(BUTTON_WIDTH, BUTTON_HEIGHT, Pixmap.Format.RGB888);
-			pixmap.setColor(Color.WHITE);
-			pixmap.fill();
-			defaultSkin.add(BACKGROUND, new Texture(pixmap));
-			// create button style
-			TextButton.TextButtonStyle style = new TextButtonStyle();
-			style.up = defaultSkin.newDrawable(BACKGROUND, Color.GRAY);
-			style.down = defaultSkin.newDrawable(BACKGROUND, Color.DARK_GRAY);
-			// style.checked = skin.newDrawable(BACKGROUND, Color.DARK_GRAY);
-			style.over = defaultSkin.newDrawable(BACKGROUND, Color.LIGHT_GRAY);
-			style.font = defaultSkin.getFont(DEFAULT);
-			defaultSkin.add(DEFAULT, style);
-		}
-		return defaultSkin;
+		// initialise skins
+		SkinManager.loadSkins();
+
+		// lastly, create screen and change over
+		menu = new MenuScreen(this, spriteBatch);
+		setScreen(menu);
 	}
 }

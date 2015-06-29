@@ -1,11 +1,15 @@
 package com.arctite.dontfreeze;
 
+import com.arctite.dontfreeze.ui.ConvoLabel;
+import com.arctite.dontfreeze.ui.SkinManager;
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -20,9 +24,11 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.arctite.dontfreeze.entities.*;
 import com.arctite.dontfreeze.entities.player.WorldInputHandler;
@@ -98,6 +104,8 @@ public class WorldScreen extends AbstractScreen {
 	private TextButton endGameButton;
 	private TextButton resumeButton;
 	private TextButton saveAndExitButton;
+	/** Conversation box label */
+	private ConvoLabel convoBox;
 
 	/** Tiled Map stuff */
 	private TiledMap tiledMap;
@@ -122,7 +130,7 @@ public class WorldScreen extends AbstractScreen {
 	/** Time stepping accumulator */
 	private float deltaAccumulator;
 
-	/** Graphics stuff */
+	/** Separate font for debugging. For non-debug fonts, use SkinManager.getFont() */
 	private BitmapFont font;
 
 	/** Player and other entities in this World */
@@ -163,12 +171,17 @@ public class WorldScreen extends AbstractScreen {
 		this.paused = false;
 		// intialise scene2d and related ui fields
 		this.stage = new Stage();
-		Skin skin = GameMain.getDefaultSkin();
+		Skin menuButtonSkin = SkinManager.getSkin(SkinManager.MENU_BUTTON_SKIN);
+
+		// conversation box style
+		this.convoBox = new ConvoLabel();
+		convoBox.addToStage(stage);
+
 		// middle of the screen position for endgame and pause buttons
-		float buttonX = (winWidth / 2) - (GameMain.BUTTON_WIDTH / 2);
-		float buttonY = (winHeight / 2) - (GameMain.BUTTON_HEIGHT / 2);
+		float buttonX = (winWidth / 2) - (SkinManager.MENU_BUTTON_WIDTH / 2);
+		float buttonY = (winHeight / 2) - (SkinManager.MENU_BUTTON_HEIGHT / 2);
 		// endgame button
-		this.endGameButton = new TextButton(END_GAME, skin);
+		this.endGameButton = new TextButton(END_GAME, menuButtonSkin);
 		endGameButton.setPosition(buttonX, buttonY);
 		endGameButton.addListener(new ClickListener() {
 			@Override
@@ -180,7 +193,7 @@ public class WorldScreen extends AbstractScreen {
 		endGameButton.setVisible(false);
 		stage.addActor(endGameButton);
 		// resume from pause button
-		this.resumeButton = new TextButton(RESUME_GAME, skin);
+		this.resumeButton = new TextButton(RESUME_GAME, menuButtonSkin);
 		resumeButton.setPosition(buttonX, winHeight / 2 + 5);
 		resumeButton.addListener(new ClickListener() {
 			@Override
@@ -191,8 +204,8 @@ public class WorldScreen extends AbstractScreen {
 		});
 		resumeButton.setVisible(false);
 		stage.addActor(resumeButton);
-		this.saveAndExitButton = new TextButton(SAVE_AND_EXIT, skin);
-		saveAndExitButton.setPosition(buttonX, (winHeight / 2) - GameMain.BUTTON_HEIGHT - 5);
+		this.saveAndExitButton = new TextButton(SAVE_AND_EXIT, menuButtonSkin);
+		saveAndExitButton.setPosition(buttonX, (winHeight / 2) - SkinManager.MENU_BUTTON_HEIGHT - 5);
 		saveAndExitButton.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
@@ -506,6 +519,9 @@ public class WorldScreen extends AbstractScreen {
 	public void update(float delta) {
 		// check toggle sound
 		getGame().checkToggleSound();
+
+		// @TODO remove this test stuff
+		if (Gdx.input.isKeyJustPressed(Input.Keys.V)) convoBox.setVisible(!convoBox.isVisible());
 
 		// update scene2d first regardless of this world's pause status
 		stage.act(delta);

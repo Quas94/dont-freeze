@@ -29,8 +29,7 @@ public class SoundManager {
 		PLAYER_SPECIAL(5, "player_special"),
 		PLAYER_SPECIAL_EXPLOSION(6, "player_special_hit"),
 		PLAYER_DEATH(7, "player_death"),
-
-		// pickup fire
+		PLAYER_PICKUP_FIRE(8, "player_pickup_fire"),
 		;
 
 		private int id;
@@ -78,6 +77,14 @@ public class SoundManager {
 	 */
 	public static boolean isEnabled() {
 		return volume > 0F;
+	}
+
+	/**
+	 * Gets the current volume level.
+	 * @return the current volume level
+	 */
+	public static float getVolume() {
+		return volume;
 	}
 
 	/**
@@ -134,17 +141,19 @@ public class SoundManager {
 	/**
 	 * Plays the given sound.
 	 *
+	 * Sounds are played at (volume / 2) as opposed to music which is played at full volume.
+	 *
 	 * @param si the SoundInfo enum instance representing the sound to be played
 	 */
 	public static void playSound(SoundInfo si) {
-		sounds.get(si.id).play(volume);
+		sounds.get(si.id).play(volume / 2);
 	}
 
 	/**
 	 * Shorthand for playing the MENU_CLICK sound.
 	 */
 	public static void playClick() {
-			sounds.get(SoundInfo.MENU_CLICK.id).play(volume);
+		playSound(SoundInfo.MENU_CLICK);
 	}
 
 	private SoundManager() {

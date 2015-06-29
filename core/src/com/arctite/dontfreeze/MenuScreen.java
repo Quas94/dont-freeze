@@ -1,6 +1,7 @@
 package com.arctite.dontfreeze;
 
 import com.arctite.dontfreeze.entities.LiveEntity;
+import com.arctite.dontfreeze.ui.SkinManager;
 import com.arctite.dontfreeze.util.ResourceInfo;
 import com.arctite.dontfreeze.util.SaveManager;
 import com.arctite.dontfreeze.util.SoundManager;
@@ -16,9 +17,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.arctite.dontfreeze.entities.Monster;
-
-import static com.arctite.dontfreeze.GameMain.BUTTON_WIDTH;
-import static com.arctite.dontfreeze.GameMain.BUTTON_HEIGHT;
 
 import java.util.*;
 
@@ -106,14 +104,16 @@ public class MenuScreen extends AbstractScreen {
 		this.stage = new Stage();
 
 		// get the skin
-		Skin skin = GameMain.getDefaultSkin();
+		Skin skin = SkinManager.getSkin(SkinManager.MENU_BUTTON_SKIN);
 
 		// initialise main buttons
+		int buttonWidth = SkinManager.MENU_BUTTON_WIDTH;
+		int buttonHeight = SkinManager.MENU_BUTTON_HEIGHT;
 		this.buttons = new HashMap<String, TextButton>();
 		for (int i = 0; i < MAIN_BUTTON_NAMES.length; i++) {
 			TextButton button = new TextButton(MAIN_BUTTON_NAMES[i], skin);
-			button.setPosition((winWidth / 2) - (BUTTON_WIDTH / 2),
-					(winHeight / 2) - BUTTON_HEIGHT -  (i * (BUTTON_HEIGHT + 10)));
+			button.setPosition((winWidth / 2) - (buttonWidth / 2),
+					(winHeight / 2) - buttonHeight -  (i * (buttonHeight + 10)));
 
 			// add to stage and map
 			stage.addActor(button);
@@ -121,8 +121,8 @@ public class MenuScreen extends AbstractScreen {
 		}
 		// return to menu from credits button
 		TextButton creditsBackButton = new TextButton(CREDITS_BACK, skin);
-		creditsBackButton.setPosition((winWidth / 2) - (BUTTON_WIDTH / 2),
-				(winHeight / 2) - BUTTON_HEIGHT - ((MAIN_BUTTON_NAMES.length - 1) * (BUTTON_HEIGHT + 10)));
+		creditsBackButton.setPosition((winWidth / 2) - (buttonWidth / 2),
+				(winHeight / 2) - buttonHeight - ((MAIN_BUTTON_NAMES.length - 1) * (buttonHeight + 10)));
 		creditsBackButton.setVisible(false);
 		stage.addActor(creditsBackButton);
 		buttons.put(CREDITS_BACK, creditsBackButton);
@@ -150,6 +150,7 @@ public class MenuScreen extends AbstractScreen {
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
 				// save settings
+				SaveManager.getSettings().setDataValue(SaveManager.VOLUME, SoundManager.getVolume());
 				SaveManager.getSettings().saveToJson();
 				Gdx.app.exit();
 			}

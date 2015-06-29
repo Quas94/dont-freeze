@@ -181,6 +181,9 @@ public class Player implements LiveEntity {
 	}
 
 	public void collectFire() {
+		// play pickup fire sound
+		SoundManager.playSound(SoundManager.SoundInfo.PLAYER_PICKUP_FIRE);
+
 		fires++;
 	}
 
