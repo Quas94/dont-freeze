@@ -14,7 +14,15 @@ public interface Entity {
 
 	public Direction getDirection();
 
-	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys);
+	/**
+	 * Updates this given Entity.
+	 *
+	 * @param delta time in seconds passed since last frame render
+	 * @param paused whether or not the game is currently paused
+	 * @param rects list of Rectangle objects to check for collision against
+	 * @param polys list of RectangleBoundedPolygon objects to check for collision against
+	 */
+	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys);
 
 	public void render(SpriteBatch spriteBatch);
 

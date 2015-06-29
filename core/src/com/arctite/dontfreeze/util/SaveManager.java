@@ -20,15 +20,18 @@ public class SaveManager {
 	public static final String PLAYER_CHUNK_X = "playerchunkx";
 	public static final String PLAYER_CHUNK_Y = "playerchunky";
 	public static final String VISITED_CHUNK = "visitedchunk";
-	public static final String CAMERA_X = "camx";
-	public static final String CAMERA_Y = "camy";
+	// camera location isn't saved anymore, just centred and adjusted accordingly
+	//public static final String CAMERA_X = "camx";
+	//public static final String CAMERA_Y = "camy";
 	/** Entity-related save key constants */
 	public static final String ACTIVE = "active"; // whether this monster/collectable is still alive/not-picked-up
+	public static final String TRIGGERED = "trig"; // whether this event has been triggered yet
 	public static final String PLAYER = "player";
 	public static final String FIRES = "f"; // player only, but still need PLAYER prefix
 	public static final String MONSTER = "m";
 	public static final String AGGRO = "a"; // monster only, but still need MONSTER prefix
 	public static final String COLLECTABLE = "c";
+	public static final String EVENT = "evt";
 	public static final String POSITION_X = "x";
 	public static final String POSITION_Y = "y";
 	public static final String DIR_IDX = "d";

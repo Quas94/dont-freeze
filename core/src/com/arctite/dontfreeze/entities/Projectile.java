@@ -158,30 +158,32 @@ public class Projectile implements Entity {
 	}
 
 	@Override
-	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
+	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		// update animation
 		animation.update(delta);
 
 		if (action == Action.LOOPING || action == Action.INITIALISING) { // move only while looping or init, not expire
-			// update range
-			float dist = delta * speed;
-			range -= dist;
-			if (range <= 0) {
-				// no range left, start expiring
-				setAction(Action.EXPIRING);
-			}
+			if (!paused) { // movement: only do this if game not paused
+				// update range
+				float dist = delta * speed;
+				range -= dist;
+				if (range <= 0) {
+					// no range left, start expiring
+					setAction(Action.EXPIRING);
+				}
 
-			// move by dist
-			if (dir == Direction.LEFT) x -= dist;
-			else if (dir == Direction.RIGHT) x += dist;
-			else if (dir == Direction.UP) y += dist;
-			else if (dir == Direction.DOWN) y -= dist;
+				// move by dist
+				if (dir == Direction.LEFT) x -= dist;
+				else if (dir == Direction.RIGHT) x += dist;
+				else if (dir == Direction.UP) y += dist;
+				else if (dir == Direction.DOWN) y -= dist;
 
-			Rectangle collisionBounds = getCollisionBounds();
-			List<Rectangle> collideRects = Collisions.collidesWithRects(collisionBounds, rects);
-			List<RectangleBoundedPolygon> collidePolys = Collisions.collidesWithPolys(collisionBounds, polys);
-			if (collideRects.size() + collidePolys.size() > 0) { // collision detected
-				setAction(Action.EXPIRING); // end the action
+				Rectangle collisionBounds = getCollisionBounds();
+				List<Rectangle> collideRects = Collisions.collidesWithRects(collisionBounds, rects);
+				List<RectangleBoundedPolygon> collidePolys = Collisions.collidesWithPolys(collisionBounds, polys);
+				if (collideRects.size() + collidePolys.size() > 0) { // collision detected
+					setAction(Action.EXPIRING); // end the action
+				}
 			}
 			if (action == Action.INITIALISING && animation.isComplete()) { // check if we should change init to loop
 				setAction(Action.LOOPING);

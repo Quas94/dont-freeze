@@ -40,7 +40,7 @@ public abstract class AbstractScreen implements Screen {
 	}
 
 	/**
-	 * Method in which all the game logic and transitions will be applied.
+	 * Method in which all the animation updates, game logic changes and transitions will be applied.
 	 *
 	 * This method should be called by render() in all subclasses.
 	 *
@@ -49,14 +49,24 @@ public abstract class AbstractScreen implements Screen {
 	public abstract void update(float delta);
 
 	/**
-	 * This method should firstly call update() first and pass along delta.
-	 *
-	 * Is responsible for rendering all screen elements (after calling update()).
+	 * Actually renders the screen elements.
+	 */
+	public abstract void render();
+
+	/**
+	 * This method calls the updateAnimations, updateLogic, and renderVisuals methods, in that order.
 	 *
 	 * @param delta The amount of time that has passed since the last time this method was called
 	 */
 	@Override
-	public abstract void render(float delta);
+	public final void render(float delta) {
+		if (delta > DELTA_LIMIT) {
+			// delta too high, probably recovered from long freeze, skip it
+			return;
+		}
+		update(delta);
+		render();
+	}
 
 	@Override
 	public void resize(int width, int height) {

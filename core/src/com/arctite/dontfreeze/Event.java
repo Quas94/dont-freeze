@@ -46,11 +46,20 @@ public class Event {
 
 		if (type.equals(TYPE_MESSAGE)) {
 			// get the game message corresponding to this event's name
-			world.startConvoBox(GameMessages.getMessage(name));
+			world.getConvoBox().setMessages(GameMessages.getMessage(name));
 		} else {
 			// we don't have a handler for this type of event yet
 			throw new RuntimeException("unsupported event type: " + type);
 		}
+	}
+
+	/**
+	 * Sets the triggered flag of this event to the given boolean value. Used when loading from save files.
+	 *
+	 * @param triggered value to set the triggered flag to
+	 */
+	public void setTriggered(boolean triggered) {
+		this.triggered = triggered;
 	}
 
 	/**

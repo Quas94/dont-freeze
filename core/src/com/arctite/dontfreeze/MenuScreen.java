@@ -220,9 +220,7 @@ public class MenuScreen extends AbstractScreen {
 	}
 
 	@Override
-	public void render(float delta) {
-		// unlike World, we don't care if the delta is huge in the menu due to lag
-		update(delta);
+	public void render() {
 		// prepare for new frame
 		clearScreen();
 

@@ -241,7 +241,7 @@ public class Player implements LiveEntity {
 	}
 
 	@Override
-	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
+	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		if (action == Action.EXPIRING) {
 			if (!animations.isComplete()) {
 				animations.update(delta / 2);
@@ -268,11 +268,12 @@ public class Player implements LiveEntity {
 		boolean recoiling = (action == Action.KNOCKBACK); // being knocked back
 		boolean attacking = meleeAttacking || specialAttacking; // either type of attacking
 
-		// set direction
-		if (!attacking && !recoiling) { // can only change dir if not attacking or recoiling (getting knocked back)
-			Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
-			if (newDir != null) {
-				dir = newDir;
+		if (!paused) { // can't change directions if paused
+			if (!attacking && !recoiling) { // can only change dir if not attacking or recoiling (getting knocked back)
+				Direction newDir = Direction.getByKey(inputHandler.getNewKey()); // newKey is highest priority for direction
+				if (newDir != null) {
+					dir = newDir;
+				}
 			}
 		}
 
@@ -290,7 +291,8 @@ public class Player implements LiveEntity {
 				// change action back to idle/move
 				setAction(Action.IDLE_MOVE);
 			}
-		} else if (attackPressed || specialAttackPressed) { // if not already attacking, consider starting to attack
+		} else if (!paused && (attackPressed || specialAttackPressed)) {
+			// if not paused and not already attacking, consider starting to attack
 			if (attackPressed) {
 				// change action field
 				setAction(Action.MELEE);
@@ -308,7 +310,7 @@ public class Player implements LiveEntity {
 			if (animations.isComplete()) {
 				setAction(Action.IDLE_MOVE); // finish the knockback and revert to idle/move
 			}
-		} else {
+		} else if (!paused) { // can only move if not paused
 			// lastly, if we are not dealing with anything else, we update movement instead
 			updateMovement(delta, leftPressed, rightPressed, upPressed, downPressed, rects, polys);
 		}

@@ -86,7 +86,7 @@ public class Collectable implements Entity {
 	}
 
 	@Override
-	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
+	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		animation.update(delta);
 	}
 

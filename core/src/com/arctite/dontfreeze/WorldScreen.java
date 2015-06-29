@@ -402,6 +402,11 @@ public class WorldScreen extends AbstractScreen {
 			for (String ckey : removeKeys) {
 				collectables.remove(ckey);
 			}
+			// update event triggered flags
+			for (Event event : events) {
+				boolean triggered = saver.getDataValue(chunkId + EVENT + event.getName() + TRIGGERED, Boolean.class);
+				event.setTriggered(triggered);
+			}
 		}
 		updateCamera();
 	}
@@ -428,7 +433,12 @@ public class WorldScreen extends AbstractScreen {
 			}
 		}
 		for (String ckey : collectables.keySet()) {
-			saver.setDataValue(chunkId + COLLECTABLE + ckey + ACTIVE, true); // collectables don't know their own key (name)
+			saver.setDataValue(chunkId + COLLECTABLE + ckey + ACTIVE, true);
+		}
+		// save the events
+		for (Event event : events) {
+			// here, active = not triggered
+			saver.setDataValue(chunkId + EVENT + event.getName() + TRIGGERED, event.hasTriggered());
 		}
 	}
 
@@ -482,6 +492,9 @@ public class WorldScreen extends AbstractScreen {
 	 */
 	public void notifyPlayerDeathComplete() {
 		playerExpireComplete = true;
+		// in case player paused during the final hit
+		resumeButton.setVisible(false);
+		saveAndExitButton.setVisible(false);
 		endGameButton.setVisible(true);
 	}
 
@@ -527,10 +540,13 @@ public class WorldScreen extends AbstractScreen {
 	 * @TODO toy with ways to make projectiles go a little further into collision boxes before exploding
 	 * @TODO related but could be separate - consider using centre-points of entities as defense "bounds" (points)
 	 *
-	 * @param delta The amount of time that has passed since the last time this method was called
+	 * @param delta The amount of time that has passed since the last frame
 	 */
 	@Override
 	public void update(float delta) {
+		// update scene2d first regardless of this world's pause status
+		stage.act(delta);
+
 		// check toggle sound
 		getGame().checkToggleSound();
 
@@ -541,16 +557,13 @@ public class WorldScreen extends AbstractScreen {
 			}
 		}
 
-		// update scene2d first regardless of this world's pause status
-		stage.act(delta);
+		// either esc-pause or convobox active are effectively pauses for game logic update purposes
+		boolean convoActive = convoBox.isActive();
+		boolean effectivePause = paused || convoActive;
 
 		// toggle paused mode if player isn't dead
-		if (!playerExpireComplete && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+		if (!playerExpireComplete && !convoActive && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 			flipPaused();
-		}
-		// if paused, return from this method early without updating the world with delta
-		if (paused) {
-			return;
 		}
 
 		// toggle debug mode
@@ -565,12 +578,12 @@ public class WorldScreen extends AbstractScreen {
 			deltaAccumulator -= DELTA_STEP;
 
 			// update player and monsters
-			player.update(DELTA_STEP, allRects, allPolys);
+			player.update(DELTA_STEP, effectivePause, allRects, allPolys);
 			// list to store keys for removal, which is done after iteration to prevent ConcurrentModificationException
 			ArrayList<String> removeKeys = new ArrayList<String>();
 			for (String mkey : monsters.keySet()) {
 				Monster monster = monsters.get(mkey);
-				monster.update(DELTA_STEP, allRects, allPolys);
+				monster.update(DELTA_STEP, effectivePause, allRects, allPolys);
 				if (monster.expireComplete()) {
 					removeKeys.add(mkey);
 					orderedEntities.remove(monster); // remove from orderedEntities as well as monsters list
@@ -581,12 +594,12 @@ public class WorldScreen extends AbstractScreen {
 			}
 
 			for (Collectable collectable : collectables.values()) {
-				collectable.update(DELTA_STEP, allRects, allPolys);
+				collectable.update(DELTA_STEP, effectivePause, allRects, allPolys);
 			}
 			Iterator<Projectile> projIterator = projectiles.iterator();
 			while (projIterator.hasNext()) {
 				Projectile projectile = projIterator.next();
-				projectile.update(DELTA_STEP, obstacleRects, obstaclePolys); // projectiles can fly over groundless
+				projectile.update(DELTA_STEP, effectivePause, obstacleRects, obstaclePolys); // projectiles can fly over groundless
 				// check for expiry of projectiles, and remove from list if so
 				if (projectile.expireComplete()) {
 					projIterator.remove();
@@ -669,11 +682,10 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	/**
-	 * Starts off the convo box with the given message(s)
-	 * @param message the message(s), separated by GameMessages.SEPARATOR if multiple
+	 * Gets the convo box label in this world.
 	 */
-	public void startConvoBox(String message) {
-		convoBox.setMessages(message);
+	public ConvoLabel getConvoBox() {
+		return convoBox;
 	}
 
 	/**
@@ -722,15 +734,7 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	@Override
-	public void render(float delta) {
-		if (delta > DELTA_LIMIT) {
-			// delta too high, probably recovered from long freeze, skip it
-			return;
-		}
-
-		// call update() first
-		update(delta);
-
+	public void render() {
 		// clear screen
 		clearScreen();
 
@@ -813,12 +817,15 @@ public class WorldScreen extends AbstractScreen {
 			debugRenderer.setProjectionMatrix(camera.combined);
 			debugRenderer.setColor(Color.BLACK);
 			debugRenderer.begin(ShapeType.Line);
-			// draw player hitboxes
-			Rectangle r = player.getDefenseCollisionBounds();
-			debugRender(r);
-			// draw player terrain collision box too
-			r = player.getCollisionBounds();
-			debugRender(r);
+			// draw player hitboxes if player alive
+			Rectangle r;
+			if (!playerExpireComplete) {
+				r = player.getDefenseCollisionBounds();
+				debugRender(r);
+				// draw player terrain collision box too
+				r = player.getCollisionBounds();
+				debugRender(r);
+			}
 			// draw terrain collision bounds
 			for (RectangleBoundedPolygon rbp : allPolys) { // all includes obstacle
 				List<Polygon> ps = rbp.getSubPolygons();
@@ -857,6 +864,18 @@ public class WorldScreen extends AbstractScreen {
 			}
 			r = player.getDefenseCollisionBounds();
 			debugRender(r);
+			debugRenderer.end();
+			debugRenderer.setColor(Color.GREEN);
+			debugRenderer.begin(ShapeType.Line);
+			for (Event event : events) {
+				if (!event.hasTriggered()) debugRender(event.getBounds()); // draw untriggered events in green
+			}
+			debugRenderer.end();
+			debugRenderer.setColor(Color.RED);
+			debugRenderer.begin(ShapeType.Line);
+			for (Event event : events) {
+				if (event.hasTriggered()) debugRender(event.getBounds()); // draw already-triggered events in red
+			}
 			debugRenderer.end();
 		}
 	}

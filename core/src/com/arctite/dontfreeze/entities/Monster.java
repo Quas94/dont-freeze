@@ -306,16 +306,20 @@ public class Monster implements LiveEntity {
 	}
 
 	@Override
-	public void update(float delta, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
+	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		// @TODO remove this if-condition after implementing different speeds for different animation types per manager
-		if (action == Action.EXPIRING) { animations.update(delta / 5); } else if (action == Action.KNOCKBACK) { animations.update(delta / 1.5F); } else
+		if (action == Action.EXPIRING) { animations.update(delta / 5);
+		} else if (action == Action.KNOCKBACK) { animations.update(delta / 1.5F); } else
 
 		// update animation
 		animations.update(delta);
 
-		// add to attack counters
+		// add to meleeTime even if paused, since when pausing we allow any attacks already started to be carried out
 		meleeTime += delta;
-		lastMeleeTime += delta;
+
+		if (!paused) { // can't update lastMeleeTime flag if paused
+			lastMeleeTime += delta;
+		}
 
 		// calculate distance we can move, if we choose to move
 		float dist = delta * speed;
@@ -334,7 +338,7 @@ public class Monster implements LiveEntity {
 				lastMeleeTime = 0; // time since last melee attack finished: 0 ms
 				setAction(Action.IDLE_MOVE);
 			}
-		} else if (action == Action.IDLE_MOVE) { // update movement
+		} else if (action == Action.IDLE_MOVE && !paused) { // update movement if not paused
 			// @TODO make the monster less stupid and not get stuck behind obstacles - pathfinding algorithm
 			if (aggressive) { // aggressive and can attack
 				// calculate player and this monster's centre positions
@@ -401,7 +405,7 @@ public class Monster implements LiveEntity {
 				}
 			}
 		}
-		// otherwise, action is probably expiring - we do nothing
+		// otherwise, action is probably expiring, or game is paused, in which case we do nothing
 	}
 
 	/**

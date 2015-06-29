@@ -120,7 +120,7 @@ public class ConvoLabel {
 	/**
 	 * Sets this entire ConvoLabel's visibility.
 	 */
-	public void setActive(boolean active) {
+	private void setActive(boolean active) {
 		outerLabel.setVisible(active);
 		innerLabel.setVisible(active);
 	}
