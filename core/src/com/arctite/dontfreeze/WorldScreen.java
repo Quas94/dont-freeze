@@ -77,6 +77,9 @@ public class WorldScreen extends AbstractScreen {
 	private static final String TILED_PROP_WIDTH = "width";
 	private static final String TILED_PROP_HEIGHT = "height";
 	private static final String TILED_PROP_TYPE = "type"; // id of entities, and type of events
+	private static final String TILED_PROP_DEFAULT = "default"; // default status of monsters - notSpawned
+	/** Monster default spawn status (property name is default in tiled) */
+	private static final String DEFAULT_NOT_SPAWNED = "notSpawned";
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
 	/** Map dimensions */
@@ -138,6 +141,7 @@ public class WorldScreen extends AbstractScreen {
 	private ArrayList<LiveEntity> orderedEntities; // (sorted by y-coord) list of all active monsters and the player
 	private Comparator<LiveEntity> orderedEntitiesComp;
 	private HashMap<String, Monster> monsters; // hashmap of <name, monsterobj>
+	private HashMap<String, Monster> spawnableMonsters; // monsters that have default=notSpawned
 	private HashMap<String, Collectable> collectables;
 	private ArrayList<Projectile> projectiles;
 	private ArrayList<Event> events;
@@ -305,8 +309,9 @@ public class WorldScreen extends AbstractScreen {
 		this.allRects = Collections.unmodifiableList(modiRects);
 		this.allPolys = Collections.unmodifiableList(modiPolys);
 
-		// monster spawn points
+		// monsters layer
 		this.monsters = new HashMap<String, Monster>();
+		this.spawnableMonsters = new HashMap<String, Monster>();
 		MapObjects monsterObjects = tiledMap.getLayers().get(MONSTERS_LAYER).getObjects();
 		HashSet<String> names = new HashSet<String>();
 		for (MapObject obj : monsterObjects) {
@@ -318,9 +323,18 @@ public class WorldScreen extends AbstractScreen {
 			float mx = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float my = obj.getProperties().get(TILED_PROP_Y, Float.class);
 			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_TYPE, String.class));
+			boolean hasDefault = obj.getProperties().containsKey(TILED_PROP_DEFAULT);
 			Monster monster = new Monster(this, id, mx, my);
-			monsters.put(name, monster); // add monster to hashmap by key = unique name
-			orderedEntities.add(monster);
+			if (hasDefault) {
+				String defaultValue = obj.getProperties().get(TILED_PROP_DEFAULT, String.class);
+				if (!defaultValue.equals(DEFAULT_NOT_SPAWNED)) {
+					throw new RuntimeException("monster default can only be notSpawned, was " + defaultValue);
+				}
+				spawnableMonsters.put(name, monster); // not spawned by default, so put in spawnable list
+			} else {
+				monsters.put(name, monster); // add monster to hashmap by key = unique name
+				orderedEntities.add(monster);
+			}
 		}
 		// sort ordered entities list
 		sortOrderedEntities();
@@ -370,8 +384,8 @@ public class WorldScreen extends AbstractScreen {
 		// map number prefix
 		String chunkId = (new String() + chunkX) + chunkY;
 		if (saver.hasDataValue(VISITED_CHUNK + chunkId)) { // otherwise the constructor has loaded defaults for this map
-			// check monsters
 			ArrayList<String> removeKeys = new ArrayList<String>();
+			// check spawned monsters
 			for (String mkey : monsters.keySet()) { // key is name
 				Monster monster = monsters.get(mkey);
 				boolean active = saver.hasDataValue(chunkId + MONSTER + mkey + ACTIVE);
@@ -387,6 +401,28 @@ public class WorldScreen extends AbstractScreen {
 			for (String mkey : removeKeys) {
 				monsters.remove(mkey);
 			}
+			// check spawnable monsters
+			for (String mkey : spawnableMonsters.keySet()) {
+				Monster monster = spawnableMonsters.get(mkey);
+				boolean active = saver.hasDataValue(chunkId + MONSTER + mkey + ACTIVE);
+				if (active) {
+					boolean notSpawned = saver.getDataValue(chunkId + MONSTER + mkey + DEFAULT_NOT_SPAWNED, Boolean.class);
+					if (!notSpawned) {
+						// this monster has been spawned, so remove from spawnable and add to monsters
+						removeKeys.add(mkey);
+						monsters.put(mkey, monster);
+						orderedEntities.add(monster); // add to both monsters and orderedEntities
+					}
+					// else, this monster is still waiting for spawn. leave in spawnable
+				} else {
+					removeKeys.add(mkey); // this monster not active, straight up remove
+				}
+			}
+			// remove spawnable monsters that were either not found in save file, or moved to spawned
+			for (String mkey : removeKeys) {
+				spawnableMonsters.remove(mkey);
+			}
+
 			// sort ordered entities now that monsters have been changed around
 			sortOrderedEntities();
 
@@ -426,11 +462,22 @@ public class WorldScreen extends AbstractScreen {
 		for (String mkey : monsters.keySet()) {
 			Monster m = monsters.get(mkey);
 			if (m.getHealth() > 0) { // excludes expiring monsters
-				// firstly: set this monster as active
+				// firstly: set this monster as active (active means alive, not necessarily spawned)
 				saver.setDataValue(chunkId + MONSTER + mkey + ACTIVE, true);
+				// set default=notSpawned as false
+				saver.setDataValue(chunkId + MONSTER + mkey + DEFAULT_NOT_SPAWNED, false);
 				// then save fields
 				m.save(chunkId, mkey);
 			}
+		}
+		for (String mkey : spawnableMonsters.keySet()) {
+			Monster m = spawnableMonsters.get(mkey);
+			// firstly: set this monster as active (active means alive, not necessarily spawned)
+			saver.setDataValue(chunkId + MONSTER + mkey + ACTIVE, true);
+			// set default=notSpawned as false
+			saver.setDataValue(chunkId + MONSTER + mkey + DEFAULT_NOT_SPAWNED, true);
+			// then save fields
+			m.save(chunkId, mkey);
 		}
 		for (String ckey : collectables.keySet()) {
 			saver.setDataValue(chunkId + COLLECTABLE + ckey + ACTIVE, true);
@@ -496,6 +543,23 @@ public class WorldScreen extends AbstractScreen {
 		resumeButton.setVisible(false);
 		saveAndExitButton.setVisible(false);
 		endGameButton.setVisible(true);
+	}
+
+	/**
+	 * Spawns the monster with the given name, ie. moves the monster from the spawnableMonsters map into the normal
+	 * monsters map (as well as orderedEntities list).
+	 *
+	 * If the monster name is invalid (or otherwise unsuccessful at spawning), an exception will be thrown.
+	 *
+	 * @param mkey the monster name
+	 */
+	public void spawn(String mkey) {
+		Monster toSpawn = spawnableMonsters.get(mkey);
+		if (toSpawn == null) throw new RuntimeException("attempting to spawn monster '" + mkey + "' failed");
+		spawnableMonsters.remove(mkey); // remove from spawnable
+		monsters.put(mkey, toSpawn);
+		orderedEntities.add(toSpawn);
+		// no need to sort ordered entities here, will be done at end of update() after this
 	}
 
 	/**

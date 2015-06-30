@@ -11,6 +11,7 @@ import com.badlogic.gdx.math.Rectangle;
 public class Event {
 
 	public static final String TYPE_MESSAGE = "message";
+	public static final String TYPE_SPAWN = "spawn";
 
 	/** Name of this event, as per Tiled object name property */
 	private String name;
@@ -47,6 +48,8 @@ public class Event {
 		if (type.equals(TYPE_MESSAGE)) {
 			// get the game message corresponding to this event's name
 			world.getConvoBox().setMessages(GameMessages.getMessage(name));
+		} else if (type.equals(TYPE_SPAWN)) {
+			world.spawn(name);
 		} else {
 			// we don't have a handler for this type of event yet
 			throw new RuntimeException("unsupported event type: " + type);
