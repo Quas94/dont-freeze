@@ -40,6 +40,11 @@ public class SaveManager {
 	/** Settings constants */
 	// NOTE: when adding something here the default value must be specified in settings constructor (see below)
 	public static final String VOLUME = "volume";
+	/** New game stuff */
+	public static final String NEW_GAME_CHUNK_X = "newgamechunkx";
+	public static final String NEW_GAME_CHUNK_Y = "newgamechunky";
+	public static final String NEW_GAME_PLAYER_X = "newgameplayerx";
+	public static final String NEW_GAME_PLAYER_Y = "newgameplayery";
 
 	/** Whether or not to encrypt the output file */
 	private static final boolean ENCODE = false;
@@ -99,6 +104,10 @@ public class SaveManager {
 		} else {
 			// DEFAULT SETTINGS HERE
 			setDataValue(VOLUME, 1.0F);
+			setDataValue(NEW_GAME_CHUNK_X, 0);
+			setDataValue(NEW_GAME_CHUNK_Y, 5);
+			setDataValue(NEW_GAME_PLAYER_X, 270);
+			setDataValue(NEW_GAME_PLAYER_Y, 940);
 		}
 	}
 

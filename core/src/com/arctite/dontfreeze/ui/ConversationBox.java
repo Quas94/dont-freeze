@@ -56,7 +56,7 @@ public class ConversationBox extends Group {
 	private int textSpeed;
 
 	/**
-	 * Creates a new ConvoLabel, which is composed of an outer Label (providing the semi-transparent background) and an
+	 * Creates a new ConversationBox, which is composed of an outer Label (providing the semi-transparent background) and an
 	 * inner Label (container for the text).
 	 */
 	public ConversationBox() {
@@ -85,14 +85,14 @@ public class ConversationBox extends Group {
 	}
 
 	/**
-	 * Sets the text for this ConvoLabel.
+	 * Sets the text for this ConversationBox.
 	 *
 	 * Very long messages must be broken up by the SEPARATOR symbol (currently tilda ~) otherwise they will overflow
 	 * the label and off the bottom of the screen.
 	 *
 	 * If a message is partitioned, they are stored in the queue.
 	 *
-	 * This method sets the ConvoLabel to visible.
+	 * This method sets the ConversationBox to visible.
 	 *
 	 * @param text the text to set to
 	 */
@@ -125,7 +125,7 @@ public class ConversationBox extends Group {
 	 */
 	public void next() {
 		if (!isVisible()) {
-			throw new RuntimeException("ConvoLabel.nextMessage() called when inactive");
+			throw new RuntimeException("ConversationBox.nextMessage() called when inactive");
 		}
 		if (charsShowing < currentMessage.length()) { // haven't finished showing current message, speed it up
 			textSpeed = TEXT_SPEED_FAST;
@@ -167,6 +167,7 @@ public class ConversationBox extends Group {
 					y = -CONVO_HEIGHT;
 					shifting = false;
 					super.setVisible(false); // now set to invis
+					innerLabel.setText(null); // clear inner label on invis
 				}
 			}
 			setY(y);

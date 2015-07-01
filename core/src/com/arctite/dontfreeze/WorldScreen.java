@@ -45,12 +45,6 @@ import static com.arctite.dontfreeze.util.HorizontalMapRenderer.*;
  */
 public class WorldScreen extends AbstractScreen {
 
-	/** New game stuff */
-	public static final int NEW_GAME_CHUNK_X = 1;
-	public static final int NEW_GAME_CHUNK_Y = 5;
-	public static final int NEW_GAME_PLAYER_X = 400;
-	public static final int NEW_GAME_PLAYER_Y = 400;
-
 	/** Map chunk info */
 	public static final int LEFTMOST_CHUNK_X = 0;
 	public static final int RIGHTMOST_CHUNK_X = 4;
@@ -143,6 +137,7 @@ public class WorldScreen extends AbstractScreen {
 	private HashMap<String, Monster> monsters; // hashmap of <name, monsterobj>
 	private HashMap<String, Monster> spawnableMonsters; // monsters that have default=notSpawned
 	private HashMap<String, Collectable> collectables;
+	private HashMap<String, Collectable> spawnableCollectables; // collectables that have default=notSpawned
 	private ArrayList<Projectile> projectiles;
 	private ArrayList<Event> events;
 
@@ -230,8 +225,13 @@ public class WorldScreen extends AbstractScreen {
 		// will need to flip y coordinate (flipHeight - y) because tiled coordinates are y-down
 		// player spawnpoint
 		if (p == null) {
-			this.player = new Player(this, worldInputHandler, NEW_GAME_PLAYER_X, NEW_GAME_PLAYER_Y);
-			player.setChunk(WorldScreen.NEW_GAME_CHUNK_X, WorldScreen.NEW_GAME_CHUNK_Y);
+			SaveManager sets = SaveManager.getSettings();
+			int newGamePlayerX = sets.getDataValue(SaveManager.NEW_GAME_PLAYER_X, Integer.class);
+			int newGamePlayerY = sets.getDataValue(NEW_GAME_PLAYER_Y, Integer.class);
+			int newGameChunkX = sets.getDataValue(NEW_GAME_CHUNK_X, Integer.class);
+			int newGameChunkY = sets.getDataValue(NEW_GAME_CHUNK_Y, Integer.class);
+			this.player = new Player(this, worldInputHandler, newGamePlayerX, newGamePlayerY);
+			player.setChunk(newGameChunkX, newGameChunkY);
 		} else {
 			this.player = p;
 			player.setWorld(this, worldInputHandler);
@@ -341,6 +341,7 @@ public class WorldScreen extends AbstractScreen {
 
 		// collectable spawn points
 		this.collectables = new HashMap<String, Collectable>();
+		this.spawnableCollectables = new HashMap<String, Collectable>();
 		MapObjects collectableObjects = tiledMap.getLayers().get(COLLECTABLES_LAYER).getObjects();
 		names.clear(); // prep names set for collectable name checking
 		for (MapObject obj : collectableObjects) {
@@ -352,8 +353,17 @@ public class WorldScreen extends AbstractScreen {
 			float cx = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float cy = obj.getProperties().get(TILED_PROP_Y, Float.class);
 			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_TYPE, String.class));
+			boolean hasDefault = obj.getProperties().containsKey(TILED_PROP_DEFAULT);
 			Collectable collectable = new Collectable(this, id, cx, cy);
-			collectables.put(name, collectable); // add collectable to hashmap by key = unique name
+			if (hasDefault) {
+				String defaultValue = obj.getProperties().get(TILED_PROP_DEFAULT, String.class);
+				if (!defaultValue.equals(DEFAULT_NOT_SPAWNED)) {
+					throw new RuntimeException("collectable default can only be notSpawned, was " + defaultValue);
+				}
+				spawnableCollectables.put(name, collectable); // add collectable to hashmap by key = unique name
+			} else {
+				collectables.put(name, collectable);
+			}
 		}
 
 		// initialise projectiles
@@ -385,7 +395,7 @@ public class WorldScreen extends AbstractScreen {
 		String chunkId = (new String() + chunkX) + chunkY;
 		if (saver.hasDataValue(VISITED_CHUNK + chunkId)) { // otherwise the constructor has loaded defaults for this map
 			ArrayList<String> removeKeys = new ArrayList<String>();
-			// check spawned monsters
+			// check spawned monsters (no default=notSpawned)
 			for (String mkey : monsters.keySet()) { // key is name
 				Monster monster = monsters.get(mkey);
 				boolean active = saver.hasDataValue(chunkId + MONSTER + mkey + ACTIVE);
@@ -402,6 +412,7 @@ public class WorldScreen extends AbstractScreen {
 				monsters.remove(mkey);
 			}
 			// check spawnable monsters
+			removeKeys.clear();
 			for (String mkey : spawnableMonsters.keySet()) {
 				Monster monster = spawnableMonsters.get(mkey);
 				boolean active = saver.hasDataValue(chunkId + MONSTER + mkey + ACTIVE);
@@ -426,7 +437,7 @@ public class WorldScreen extends AbstractScreen {
 			// sort ordered entities now that monsters have been changed around
 			sortOrderedEntities();
 
-			// check collectables
+			// check normal collectables
 			removeKeys.clear();
 			for (String ckey : collectables.keySet()) {
 				boolean active = saver.hasDataValue(chunkId + COLLECTABLE + ckey + ACTIVE);
@@ -438,6 +449,21 @@ public class WorldScreen extends AbstractScreen {
 			for (String ckey : removeKeys) {
 				collectables.remove(ckey);
 			}
+			// check spawnable collectables
+			removeKeys.clear();
+			for (String ckey : spawnableCollectables.keySet()) {
+				boolean active = saver.hasDataValue(chunkId + COLLECTABLE + ckey + ACTIVE);
+				if (active) {
+					boolean notSpawned = saver.getDataValue(chunkId + COLLECTABLE + ckey + DEFAULT_NOT_SPAWNED, Boolean.class);
+					if (!notSpawned) { // this has since been spawned, remove from spawnable and add to normal
+						collectables.put(ckey, spawnableCollectables.get(ckey));
+						removeKeys.add(ckey);
+					}
+				} else {
+					removeKeys.add(ckey); // gone, straight up remove
+				}
+			}
+
 			// update event triggered flags
 			for (Event event : events) {
 				boolean triggered = saver.getDataValue(chunkId + EVENT + event.getName() + TRIGGERED, Boolean.class);
@@ -474,13 +500,18 @@ public class WorldScreen extends AbstractScreen {
 			Monster m = spawnableMonsters.get(mkey);
 			// firstly: set this monster as active (active means alive, not necessarily spawned)
 			saver.setDataValue(chunkId + MONSTER + mkey + ACTIVE, true);
-			// set default=notSpawned as false
+			// set default=notSpawned as true
 			saver.setDataValue(chunkId + MONSTER + mkey + DEFAULT_NOT_SPAWNED, true);
 			// then save fields
 			m.save(chunkId, mkey);
 		}
 		for (String ckey : collectables.keySet()) {
 			saver.setDataValue(chunkId + COLLECTABLE + ckey + ACTIVE, true);
+			saver.setDataValue(chunkId + COLLECTABLE + ckey + DEFAULT_NOT_SPAWNED, false);
+		}
+		for (String ckey : spawnableCollectables.keySet()) {
+			saver.setDataValue(chunkId + COLLECTABLE + ckey + ACTIVE, true);
+			saver.setDataValue(chunkId + COLLECTABLE + ckey + DEFAULT_NOT_SPAWNED, true);
 		}
 		// save the events
 		for (Event event : events) {
