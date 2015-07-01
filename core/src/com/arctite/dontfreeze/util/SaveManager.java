@@ -7,6 +7,9 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.JsonWriter;
 import com.badlogic.gdx.utils.ObjectMap;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Manages game saving and loading.
  *
@@ -23,6 +26,8 @@ public class SaveManager {
 	// camera location isn't saved anymore, just centred and adjusted accordingly
 	//public static final String CAMERA_X = "camx";
 	//public static final String CAMERA_Y = "camy";
+	/** Event settings */
+	public static final String EVENT_PROPERTY_SETTING = "eventpropset";
 	/** Entity-related save key constants */
 	public static final String ACTIVE = "active"; // whether this monster/collectable is still alive/not-picked-up
 	public static final String TRIGGERED = "trig"; // whether this event has been triggered yet
@@ -133,6 +138,20 @@ public class SaveManager {
 			return (T) save.data.get(key);
 		}
 		return null;
+	}
+
+	/**
+	 * Returns all keys in the data that are prefixed by the given String.
+	 *
+	 * @param prefix the prefix of wanted keys
+	 * @return list of all keys with given prefix
+	 */
+	public ArrayList<String> getKeysByPrefix(String prefix) {
+		ArrayList<String> list = new ArrayList<String>();
+		for (String key : save.data.keys()) {
+			if (key.startsWith(prefix)) list.add(key);
+		}
+		return list;
 	}
 
 	public boolean hasDataValue(String key) {

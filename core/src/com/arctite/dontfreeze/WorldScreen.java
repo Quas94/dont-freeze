@@ -72,6 +72,7 @@ public class WorldScreen extends AbstractScreen {
 	private static final String TILED_PROP_HEIGHT = "height";
 	private static final String TILED_PROP_TYPE = "type"; // id of entities, and type of events
 	private static final String TILED_PROP_DEFAULT = "default"; // default status of monsters - notSpawned
+	private static final String TILED_PROP_EVENT_REQ = "req";
 	/** Monster default spawn status (property name is default in tiled) */
 	private static final String DEFAULT_NOT_SPAWNED = "notSpawned";
 	/** MapLoader that loads Tiled maps */
@@ -130,6 +131,7 @@ public class WorldScreen extends AbstractScreen {
 
 	/** Player and other entities in this World */
 	private Player player;
+	private HashMap<String, String> eventProps; // event-set properties (with set-type events)
 	private boolean playerExpireComplete;
 	// NOTE: all monster add/remove methods must be done on both orderedEntities and monsters
 	private ArrayList<LiveEntity> orderedEntities; // (sorted by y-coord) list of all active monsters and the player
@@ -236,6 +238,10 @@ public class WorldScreen extends AbstractScreen {
 			this.player = p;
 			player.setWorld(this, worldInputHandler);
 		}
+		// initialise event property settings hashmap
+		this.eventProps = new HashMap<String, String>();
+
+		// ordered entities list (player + monsters)
 		this.orderedEntities = new ArrayList<LiveEntity>();
 		this.orderedEntitiesComp = new Comparator<LiveEntity>() {
 			@Override
@@ -380,6 +386,14 @@ public class WorldScreen extends AbstractScreen {
 			float ew = obj.getProperties().get(TILED_PROP_WIDTH, Float.class);
 			float eh = obj.getProperties().get(TILED_PROP_HEIGHT, Float.class);
 			Event event = new Event(eventName, eventType, (int) ex, (int) ey, ew, eh);
+			boolean hasReq = obj.getProperties().containsKey(TILED_PROP_EVENT_REQ);
+			if (hasReq) { // check and set requirement if any
+				String req = obj.getProperties().get(TILED_PROP_EVENT_REQ, String.class);
+				String[] split = req.split(Event.EQUALS);
+				String name = split[0];
+				String value = split[1];
+				event.setRequirement(name, value);
+			}
 			events.add(event);
 		}
 
@@ -469,6 +483,13 @@ public class WorldScreen extends AbstractScreen {
 				boolean triggered = saver.getDataValue(chunkId + EVENT + event.getName() + TRIGGERED, Boolean.class);
 				event.setTriggered(triggered);
 			}
+
+			// load event properties
+			for (String key : saver.getKeysByPrefix(EVENT_PROPERTY_SETTING)) {
+				String propName = key.substring(EVENT_PROPERTY_SETTING.length()); // get rid of the EPS prefix
+				String propValue = saver.getDataValue(key, String.class);
+				eventProps.put(propName, propValue);
+			}
 		}
 		updateCamera();
 	}
@@ -517,6 +538,10 @@ public class WorldScreen extends AbstractScreen {
 		for (Event event : events) {
 			// here, active = not triggered
 			saver.setDataValue(chunkId + EVENT + event.getName() + TRIGGERED, event.hasTriggered());
+		}
+		// save event properties
+		for (String key : eventProps.keySet()) {
+			saver.setDataValue(EVENT_PROPERTY_SETTING + key, eventProps.get(key));
 		}
 	}
 
@@ -591,6 +616,16 @@ public class WorldScreen extends AbstractScreen {
 		monsters.put(mkey, toSpawn);
 		orderedEntities.add(toSpawn);
 		// no need to sort ordered entities here, will be done at end of update() after this
+	}
+
+	/**
+	 * Puts an event-set property name-value pair into the map of event-driven properties.
+	 *
+	 * @param name property name
+	 * @param value property value
+	 */
+	public void setEventProperty(String name, String value) {
+		eventProps.put(name, value);
 	}
 
 	/**
@@ -760,7 +795,15 @@ public class WorldScreen extends AbstractScreen {
 				if (!event.hasTriggered()) {
 					if (Collisions.collidesShapes(player.getCollisionBounds(), event.getBounds())) {
 						// trigger this event
-						event.trigger(this);
+						if (event.hasRequirement()) {
+							String reqName = event.getRequirementName();
+							String reqValue = event.getRequirementValue();
+							if (reqValue.equals(eventProps.get(reqName))) { // only trigger if requirement satisfied
+								event.trigger(this);
+							}
+						} else {
+							event.trigger(this);
+						}
 					}
 				}
 			}
