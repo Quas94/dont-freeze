@@ -66,6 +66,7 @@ public class WorldScreen extends AbstractScreen {
 	private static final String DIRECTORY = "assets/maps/";
 	private static final String UNDERSCORE = "_";
 	private static final String EXT = ".tmx";
+	private static final String TILED_PROP_ID = "id";
 	private static final String TILED_PROP_X = "x";
 	private static final String TILED_PROP_Y = "y";
 	private static final String TILED_PROP_WIDTH = "width";
@@ -379,20 +380,25 @@ public class WorldScreen extends AbstractScreen {
 		this.events = new ArrayList<Event>();
 		MapObjects eventObjects = tiledMap.getLayers().get(EVENTS_LAYER).getObjects();
 		for (MapObject obj : eventObjects) {
-			String eventName = obj.getName();
-			String eventType = obj.getProperties().get(TILED_PROP_TYPE, String.class);
+			String eventNames = obj.getName();
+			String eventTypes = obj.getProperties().get(TILED_PROP_TYPE, String.class);
+			int eid = obj.getProperties().get(TILED_PROP_ID, Integer.class);
+			System.out.println("eid is " + eid);
 			float ex = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float ey = obj.getProperties().get(TILED_PROP_Y, Float.class);
 			float ew = obj.getProperties().get(TILED_PROP_WIDTH, Float.class);
 			float eh = obj.getProperties().get(TILED_PROP_HEIGHT, Float.class);
-			Event event = new Event(eventName, eventType, (int) ex, (int) ey, ew, eh);
+			Event event = new Event(eid, eventNames, eventTypes, (int) ex, (int) ey, ew, eh);
 			boolean hasReq = obj.getProperties().containsKey(TILED_PROP_EVENT_REQ);
-			if (hasReq) { // check and set requirement if any
-				String req = obj.getProperties().get(TILED_PROP_EVENT_REQ, String.class);
-				String[] split = req.split(Event.EQUALS);
-				String name = split[0];
-				String value = split[1];
-				event.setRequirement(name, value);
+			if (hasReq) { // check and set requirements if any
+				String reqsLine = obj.getProperties().get(TILED_PROP_EVENT_REQ, String.class);
+				String[] reqs = reqsLine.split(Event.COMMA);
+				for (String req : reqs) { // add all requirements
+					String[] split = req.split(Event.EQUALS);
+					String name = split[0];
+					String value = split[1];
+					event.addRequirement(name, value);
+				}
 			}
 			events.add(event);
 		}
@@ -480,7 +486,7 @@ public class WorldScreen extends AbstractScreen {
 
 			// update event triggered flags
 			for (Event event : events) {
-				boolean triggered = saver.getDataValue(chunkId + EVENT + event.getName() + TRIGGERED, Boolean.class);
+				boolean triggered = saver.getDataValue(chunkId + EVENT + event.getId() + TRIGGERED, Boolean.class);
 				event.setTriggered(triggered);
 			}
 
@@ -537,7 +543,7 @@ public class WorldScreen extends AbstractScreen {
 		// save the events
 		for (Event event : events) {
 			// here, active = not triggered
-			saver.setDataValue(chunkId + EVENT + event.getName() + TRIGGERED, event.hasTriggered());
+			saver.setDataValue(chunkId + EVENT + event.getId() + TRIGGERED, event.hasTriggered());
 		}
 		// save event properties
 		for (String key : eventProps.keySet()) {
@@ -795,13 +801,7 @@ public class WorldScreen extends AbstractScreen {
 				if (!event.hasTriggered()) {
 					if (Collisions.collidesShapes(player.getCollisionBounds(), event.getBounds())) {
 						// trigger this event
-						if (event.hasRequirement()) {
-							String reqName = event.getRequirementName();
-							String reqValue = event.getRequirementValue();
-							if (reqValue.equals(eventProps.get(reqName))) { // only trigger if requirement satisfied
-								event.trigger(this);
-							}
-						} else {
+						if (event.satisfiesRequirements(eventProps)) {
 							event.trigger(this);
 						}
 					}

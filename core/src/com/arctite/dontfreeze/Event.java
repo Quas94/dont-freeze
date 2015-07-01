@@ -3,6 +3,9 @@ package com.arctite.dontfreeze;
 import com.arctite.dontfreeze.util.GameMessages;
 import com.badlogic.gdx.math.Rectangle;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 /**
  * Represents objects on the Events layer on the maps.
  *
@@ -14,83 +17,82 @@ public class Event {
 	public static final String TYPE_MESSAGE = "message";
 	public static final String TYPE_SPAWN = "spawn";
 	public static final String TYPE_SET = "set"; // sets event properties
-	/** Custom properties */
-	public static final String REQUIREMENT = "req";
 
 	/** Splitter for set-type event names */
 	public static final String EQUALS = "=";
+	/** Splitter for multipler names/etc */
+	public static final String COMMA = ",";
 
+	/** Unique ID of this event, set by Tiled and unmodifiable */
+	private int id;
 	/** Name of this event, as per Tiled object name property */
-	private String name;
+	private String[] names;
 	/** Type of this event, as per Tiled object type property */
-	private String type;
+	private String[] types;
 	/** Bounds of this Event on the map - player colliding with these bounds triggers this Event */
 	private Rectangle bounds;
 	/** Triggered flag */
 	private boolean triggered;
 	/** Requirements for this event to trigger */
-	private boolean hasReq;
-	private String reqName;
-	private String reqValue;
+	private ArrayList<Requirement> requirements;
 
 	/**
 	 * Creates a new Event trigger object with the given name, type, and bounds, as read from the Tiled map file. The
-	 * requirements flag is set to false by default. If this event needs a requirement set, that must be done through
-	 * calling setRequirement()
+	 * requirements flag is set to false by default. If this event needs requirements set, that must be done through
+	 * calling setRequirements()
 	 *
-	 * @param name name of this event
-	 * @param type type of event
+	 * @param names names of this event, separated by commas
+	 * @param types types of events, separated by commas
 	 * @param x bounds x coordinate (bottom left corner)
 	 * @param y bounds y coordinate (bottom left corner)
 	 * @param width width of the bounds
 	 * @param height height of the bounds
 	 */
-	public Event(String name, String type, int x, int y, float width, float height) {
-		this.name = name;
-		this.type = type;
+	public Event(int id, String names, String types, int x, int y, float width, float height) {
+		this.id = id;
+		this.names = names.split(COMMA);
+		this.types = types.split(COMMA);
 		this.bounds = new Rectangle(x, y, width, height);
 		this.triggered = false; // @TODO load/save for events
 
-		this.hasReq = false;
+		this.requirements = new ArrayList<Requirement>();
 	}
 
 	/**
-	 * Checks whether or not this event has a property requirement to be triggered.
+	 * Gets the unique identifier number for this particular event.
 	 *
-	 * @return whether this event has a property requirement
+	 * @return id of this event
 	 */
-	public boolean hasRequirement() {
-		return hasReq;
+	public int getId() {
+		return id;
 	}
 
 	/**
-	 * Gets this event's requirement name.
+	 * Checks whether or not the given world's event-set properties map contains values that satisfy this event's
+	 * requirements, for this event to be triggered. Returns true if this event has no requirements.
 	 *
-	 * @return requirement name
+	 * @param props the world's event-set properties map
+	 *
+	 * @return whether or not this event's requirements (if any) are satisfied, and this event can be triggered
 	 */
-	public String getRequirementName() {
-		return reqName;
+	public boolean satisfiesRequirements(HashMap<String, String> props) {
+		for (Requirement req : requirements) {
+			if (!req.getValue().equals(props.get(req.getName()))) {
+				return false; // this req not satisfied, event can't trigger
+			}
+		}
+		return true;
 	}
 
 	/**
-	 * Gets this event's requirement value.
+	 * Adds a requirement to this event.
 	 *
-	 * @return
+	 * @param name name of requirement
+	 * @param value value of requirement
 	 */
-	public String getRequirementValue() {
-		return reqValue;
-	}
-
-	/**
-	 * Sets this event to have a requirement, with the given property name and value to satisfy.
-	 *
-	 * @param name name of property
-	 * @param value value of property
-	 */
-	public void setRequirement(String name, String value) {
-		hasReq = true;
-		reqName = name;
-		reqValue = value;
+	public void addRequirement(String name, String value) {
+		Requirement req = new Requirement(name, value);
+		requirements.add(req);
 	}
 
 	/**
@@ -99,19 +101,23 @@ public class Event {
 	public void trigger(WorldScreen world) {
 		triggered = true;
 
-		if (type.equals(TYPE_MESSAGE)) {
-			// get the game message corresponding to this event's name
-			world.getConvoBox().setMessages(GameMessages.getMessage(name));
-		} else if (type.equals(TYPE_SPAWN)) {
-			world.spawn(name);
-		} else if (type.equals(TYPE_SET)) {
-			String[] split = name.split(EQUALS);
-			String propName = split[0];
-			String propValue = split[1];
-			world.setEventProperty(propName, propValue);
-		} else {
-			// we don't have a handler for this type of event yet
-			throw new RuntimeException("unsupported event type: " + type);
+		for (int i = 0; i < types.length; i++) {
+			String name = names[i];
+			String type = types[i];
+			if (type.equals(TYPE_MESSAGE)) {
+				// get the game message corresponding to this event's name
+				world.getConvoBox().setMessages(GameMessages.getMessage(name));
+			} else if (type.equals(TYPE_SPAWN)) {
+				world.spawn(name);
+			} else if (type.equals(TYPE_SET)) {
+				String[] split = name.split(EQUALS);
+				String propName = split[0];
+				String propValue = split[1];
+				world.setEventProperty(propName, propValue);
+			} else {
+				// we don't have a handler for this type of event yet
+				throw new RuntimeException("unsupported event type: " + type);
+			}
 		}
 	}
 
@@ -138,8 +144,8 @@ public class Event {
 	 *
 	 * @return the name of this event
 	 */
-	public String getName() {
-		return name;
+	public String[] getNames() {
+		return names;
 	}
 
 	/**
@@ -147,8 +153,8 @@ public class Event {
 	 *
 	 * @return the type of this event
 	 */
-	public String getType() {
-		return type;
+	public String[] getTypes() {
+		return types;
 	}
 
 	/**
@@ -158,5 +164,27 @@ public class Event {
 	 */
 	public Rectangle getBounds() {
 		return bounds;
+	}
+
+	/**
+	 * Pair of Strings representing a requirement.
+	 */
+	public class Requirement {
+
+		private String name;
+		private String value;
+
+		private Requirement(String name, String value) {
+			this.name = name;
+			this.value = value;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public String getValue() {
+			return value;
+		}
 	}
 }
