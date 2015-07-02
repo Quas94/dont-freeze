@@ -15,6 +15,9 @@ import java.util.List;
  */
 public class Projectile implements Entity {
 
+	/** How deep projectiles can drive into obstacles/monsters, used as param for setCollided() method */
+	public static final int COLLISION_PENETRATION = 20;
+
 	private Entity owner;
 	private float x;
 	private float y;
@@ -28,6 +31,14 @@ public class Projectile implements Entity {
 
 	/** How much longer this projectile can travel before it expires */
 	private float range;
+	/** Whether this projectile has collided with something */
+	private boolean collided;
+	/** Whether or not the update() method has been called on this projectile yet (flag for just created) */
+	private boolean updated;
+	/** Whether or not this projectile was spawned in a colliding obstacle AND has continued to be blocked since */
+	private boolean spawnBlocked;
+	/** Distance travelled since spawning */
+	private float travelled;
 
 	/**
 	 * Creates a new Projectile with the given location, direction and maximum range.
@@ -55,6 +66,16 @@ public class Projectile implements Entity {
 		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, info);
 
 		this.range = range;
+		this.collided = false;
+		this.updated = false;
+		this.spawnBlocked = false;
+
+		// travelled starting value varies with direction (since collision box has coordinates at bottom left corner)
+		this.travelled = 0;
+		float offset = getCollisionBounds().getWidth();
+		if (dir == Direction.RIGHT || dir == Direction.UP) {
+			travelled = -offset; // flip offset for right/up, since they have more distance to cover than the other 2 dirs
+		}
 	}
 
 	/**
@@ -113,6 +134,26 @@ public class Projectile implements Entity {
 	}
 
 	/**
+	 * Notifies this projectile that it has collided with an obstacle or monster. This method just sets range to the
+	 * COLLISION_PENETRATION constant, and the update() method will set action to expiring when that range runs out.
+	 */
+	public void setCollided() {
+		this.collided = true;
+		if (range > COLLISION_PENETRATION) {
+			range = COLLISION_PENETRATION; // don't change if remaining range before the collision was already lower
+		}
+	}
+
+	/**
+	 * Checks whether or not this projectile has collided into something yet.
+	 *
+	 * @return whether this projectile has collided
+	 */
+	public boolean hasCollided() {
+		return collided;
+	}
+
+	/**
 	 * Checks whether or not this Projectile has had enough time to complete its expiry animation. This method returning
 	 * true would indicate that this Projectile should be removed from the world.
 	 *
@@ -167,6 +208,7 @@ public class Projectile implements Entity {
 				// update range
 				float dist = delta * speed;
 				range -= dist;
+				travelled += dist; // update travelled flag as well as range
 				if (range <= 0) {
 					// no range left, start expiring
 					setAction(Action.EXPIRING);
@@ -181,8 +223,26 @@ public class Projectile implements Entity {
 				Rectangle collisionBounds = getCollisionBounds();
 				List<Rectangle> collideRects = Collisions.collidesWithRects(collisionBounds, rects);
 				List<RectangleBoundedPolygon> collidePolys = Collisions.collidesWithPolys(collisionBounds, polys);
-				if (collideRects.size() + collidePolys.size() > 0) { // collision detected
-					setAction(Action.EXPIRING); // end the action
+				boolean collisionDetected = (collideRects.size() + collidePolys.size() > 0);
+				if (dir == Direction.LEFT || dir == Direction.RIGHT) { // only horizontal has the spawnblock checking
+					if (collisionDetected) {
+						if (!updated) {
+							// first update, just set spawnBlocked and updated flags and don't do anything else
+							spawnBlocked = true;
+							updated = true;
+						} else if (spawnBlocked && travelled >= COLLISION_PENETRATION) {
+							// spawned in block and has been blocked fulltime until now, and travelled enough
+							setAction(Action.EXPIRING);
+						} else if (!spawnBlocked) { // if not spawnblocked, set collided (this is a "normal" projectile)
+							setCollided();
+						}
+					} else if (spawnBlocked) { // no collision detected and spawnBlocked
+						spawnBlocked = false; // set spawnBlocked flag to false because we haven't been non-stop blocked
+					}
+				} else { // vertical projectiles is exactly the same as the original algorithm
+					if (collisionDetected) {
+						setAction(Action.EXPIRING); // set expiring immediately - no penetration
+					}
 				}
 			}
 			if (action == Action.INITIALISING && animation.isComplete()) { // check if we should change init to loop

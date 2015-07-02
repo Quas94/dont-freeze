@@ -383,7 +383,6 @@ public class WorldScreen extends AbstractScreen {
 			String eventNames = obj.getName();
 			String eventTypes = obj.getProperties().get(TILED_PROP_TYPE, String.class);
 			int eid = obj.getProperties().get(TILED_PROP_ID, Integer.class);
-			System.out.println("eid is " + eid);
 			float ex = obj.getProperties().get(TILED_PROP_X, Float.class);
 			float ey = obj.getProperties().get(TILED_PROP_Y, Float.class);
 			float ew = obj.getProperties().get(TILED_PROP_WIDTH, Float.class);
@@ -739,13 +738,12 @@ public class WorldScreen extends AbstractScreen {
 				// check for expiry of projectiles, and remove from list if so
 				if (projectile.expireComplete()) {
 					projIterator.remove();
-				} else if (projectile.getAction() == Action.INITIALISING || projectile.getAction() == Action.LOOPING) {
-					// check for player's projectile collision with monsters
+				} else if (!projectile.hasCollided()) { // check if not already collided
 					for (Monster monster : monsters.values()) {
 						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
 							// check for collision between projectile's main bounds and monster's defense bounds
 							if (Collisions.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
-								projectile.setAction(Action.EXPIRING);
+								projectile.setCollided();
 								Direction from = Direction.getOpposite(projectile.getDirection());
 								monster.hit(from);
 								SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_EXPLOSION);
