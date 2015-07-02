@@ -57,6 +57,9 @@ public class Monster implements LiveEntity {
 	private boolean meleeHit;
 	/** Melee attack collision Rectangle */
 	private Rectangle meleeCollisionBounds;
+	/** Melee attack range */
+	private float meleeRangeX;
+	private float meleeRangeY;
 
 	/** Game mechanic related fields */
 	private int maxHealth;
@@ -103,6 +106,12 @@ public class Monster implements LiveEntity {
 		this.meleeTime = 0;
 		this.meleeHit = false;
 		this.meleeCollisionBounds = null;
+		this.meleeRangeX = info.getMeleeRangeX();
+		this.meleeRangeY = info.getMeleeRangeY();
+
+		// add small arbitrary offset
+		meleeRangeX += 5;
+		meleeRangeY += 5;
 
 		// initialise game mechanic related fields
 		this.maxHealth = BASE_HEALTH;
@@ -354,15 +363,12 @@ public class Monster implements LiveEntity {
 				float diffY = pcy - cy; // positive value = player above, negative value = player below
 				float absDiffX = Math.abs(diffX);
 				float absDiffY = Math.abs(diffY);
-				float rangeX = (width / 4) + (pw / 4) + 5; // 5 is just some arbitrary extra distance
-				float rangeY = ph / 3.5F;
-				boolean inRangeX = absDiffX < rangeX;
-				boolean inRangeY = absDiffY < rangeY;
-				// @TODO think of a way to make the monster-chase-player algorithm less rigid (ie. not always prioritize
-				// one orientation over the other)
+				boolean inRangeX = absDiffX < meleeRangeX;
+				boolean inRangeY = absDiffY < meleeRangeY;
 				if (inRangeX && inRangeY) { // within range to start attacking
 					if (lastMeleeTime >= ATTACK_COOLDOWN) { // if attack is off cooldown
-						setAction(Action.MELEE); // assume facing correct direction due to latest moves
+						// actually attack
+						setAction(Action.MELEE);
 						meleeAttack();
 					}
 					// otherwise we just stay in IDLE_MOVE until attack comes off cooldown

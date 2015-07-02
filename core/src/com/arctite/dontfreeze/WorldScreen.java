@@ -393,10 +393,20 @@ public class WorldScreen extends AbstractScreen {
 				String reqsLine = obj.getProperties().get(TILED_PROP_EVENT_REQ, String.class);
 				String[] reqs = reqsLine.split(Event.COMMA);
 				for (String req : reqs) { // add all requirements
-					String[] split = req.split(Event.EQUALS);
+					String[] split;
+					boolean equals;
+					if (req.contains(Event.EQUALS)) {
+						split = req.split(Event.EQUALS);
+						equals = true;
+					} else if (req.contains(Event.DIFFERS)) {
+						split = req.split(Event.DIFFERS);
+						equals = false;
+					} else {
+						throw new RuntimeException("requirement '" + req + "' has no '=' or '<>'");
+					}
 					String name = split[0];
 					String value = split[1];
-					event.addRequirement(name, value);
+					event.addRequirement(equals, name, value);
 				}
 			}
 			events.add(event);

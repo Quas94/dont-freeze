@@ -27,7 +27,7 @@ public class Player implements LiveEntity {
 	private static final int COLLISION_HEIGHT = 10;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	private static final int FIREBALL_RANGE = 200; // how far this Player's fireball can travel before dissipating
-	private static final int BASE_HEALTH = 5;
+	private static final int BASE_HEALTH = 10;
 
 	/** Limits */
 	public static final int RIGHTMOST_X = WorldScreen.CHUNK_WIDTH - ResourceInfo.PLAYER.getWidth();

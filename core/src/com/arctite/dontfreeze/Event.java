@@ -18,8 +18,10 @@ public class Event {
 	public static final String TYPE_SPAWN = "spawn";
 	public static final String TYPE_SET = "set"; // sets event properties
 
-	/** Splitter for set-type event names */
+	/** Splitter for set-type event names, and required prop/value pairs */
 	public static final String EQUALS = "=";
+	/** Splitter for requirements for prop NOT EQUAL to value */
+	public static final String DIFFERS = "&lt;&gt;"; // which is <>
 	/** Splitter for multipler names/etc */
 	public static final String COMMA = ",";
 
@@ -77,7 +79,8 @@ public class Event {
 	 */
 	public boolean satisfiesRequirements(HashMap<String, String> props) {
 		for (Requirement req : requirements) {
-			if (!req.getValue().equals(props.get(req.getName()))) {
+			// LHS and RHS equivalent means requirement satisfied
+			if (req.getEquals() != req.getValue().equals(props.get(req.getName()))) {
 				return false; // this req not satisfied, event can't trigger
 			}
 		}
@@ -87,11 +90,12 @@ public class Event {
 	/**
 	 * Adds a requirement to this event.
 	 *
+	 * @param equals true for '=', false for '<>'
 	 * @param name name of requirement
 	 * @param value value of requirement
 	 */
-	public void addRequirement(String name, String value) {
-		Requirement req = new Requirement(name, value);
+	public void addRequirement(boolean equals, String name, String value) {
+		Requirement req = new Requirement(equals, name, value);
 		requirements.add(req);
 	}
 
@@ -140,24 +144,6 @@ public class Event {
 	}
 
 	/**
-	 * Gets the name of this event, as per defined in the object name property, on the Tiled map.
-	 *
-	 * @return the name of this event
-	 */
-	public String[] getNames() {
-		return names;
-	}
-
-	/**
-	 * Gets the type of this event, as per defined in the object type property, on the Tiled map.
-	 *
-	 * @return the type of this event
-	 */
-	public String[] getTypes() {
-		return types;
-	}
-
-	/**
 	 * Gets the bounds of this event. If the player collides with these bounds, this Event is triggered.
 	 *
 	 * @return the bounds of this event
@@ -171,12 +157,18 @@ public class Event {
 	 */
 	public class Requirement {
 
+		private boolean equals;
 		private String name;
 		private String value;
 
-		private Requirement(String name, String value) {
+		private Requirement(boolean equals, String name, String value) {
+			this.equals = equals;
 			this.name = name;
 			this.value = value;
+		}
+
+		public boolean getEquals() {
+			return equals;
 		}
 
 		public String getName() {

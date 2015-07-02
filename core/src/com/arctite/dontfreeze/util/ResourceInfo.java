@@ -1,5 +1,9 @@
 package com.arctite.dontfreeze.util;
 
+import com.arctite.dontfreeze.entities.Action;
+
+import java.util.HashMap;
+
 /**
  * Details each Collectable, Entity (Monster), and Projectile in the game, containing all relevant information such as
  * file locations, sprite width/height, id numbers, etc.
@@ -12,17 +16,70 @@ package com.arctite.dontfreeze.util;
 public enum ResourceInfo {
 
 	// collectables
-	FIRE(Type.COLLECTABLE, 1, 0, 0.1F, 50, 65),
+	FIRE(Type.COLLECTABLE, 1, 0, 50, 65),
 
 	// live entities (player and monsters)
-	PLAYER(Type.ENTITY, 0, 150, 0.12F, 80, 95),
-	SNOW_BABY(Type.ENTITY, 1, 30, 0.1F, 55, 50), // 55 x 50
-	SNOW_MONSTER(Type.ENTITY, 10, 60, 0.15F, 200, 200), // 200 x 200
+	// NOTE: melee attack ranges are hardcoded in the Monster constructor
+	PLAYER(Type.ENTITY, 0, 150, 80, 95),
+	SNOW_BABY(Type.ENTITY, 1, 30, 55, 50), // 55 x 50
+	SNOW_MONSTER(Type.ENTITY, 10, 60, 200, 200), // 200 x 200
 
 	// projectiles
-	PLAYER_PROJECTILE(Type.PROJECTILE, PLAYER.getId(), 180, 0.1F, 70, 60),
-	SNOW_MONSTER_PROJECTILE(Type.PROJECTILE, SNOW_MONSTER.getId(), 180,  0.1F, 70, 60); // @TODO fix snow monster values
+	PLAYER_PROJECTILE(Type.PROJECTILE, PLAYER.getId(), 180, 70, 60),
+	SNOW_MONSTER_PROJECTILE(Type.PROJECTILE, SNOW_MONSTER.getId(), 180,  70, 60); // @TODO fix snow monster values
 	;
+
+	/**
+	 * Here, set:
+	 * - animation framerates for each relevant Action type
+	 * - melee attack ranges for monsters
+	 */
+	static {
+		// FRAMERATES
+		// collectables
+		// fire
+		FIRE.frameRates.put(Action.IDLE_MOVE, 0.1F);
+
+		// player
+		PLAYER.frameRates.put(Action.IDLE_MOVE, 0.12F);
+		PLAYER.frameRates.put(Action.EXPIRING, 0.12F);
+		PLAYER.frameRates.put(Action.KNOCKBACK, 0.12F);
+		PLAYER.frameRates.put(Action.MELEE, 0.12F);
+		PLAYER.frameRates.put(Action.SPECIAL, 0.12F);
+
+		// monsters
+		// snow baby
+		SNOW_BABY.frameRates.put(Action.IDLE_MOVE, 0.1F);
+		SNOW_BABY.frameRates.put(Action.MELEE, 0.1F);
+		// SNOW_BABY.frameRates.put(Action.SPECIAL, 0.1F); // snow baby has no special attack
+		SNOW_BABY.frameRates.put(Action.KNOCKBACK, 0.1F);
+		SNOW_BABY.frameRates.put(Action.EXPIRING, 0.1F);
+		// snow monster
+		SNOW_MONSTER.frameRates.put(Action.IDLE_MOVE, 0.15F);
+		SNOW_MONSTER.frameRates.put(Action.MELEE, 0.1F);
+		SNOW_MONSTER.frameRates.put(Action.SPECIAL, 0.1F);
+		SNOW_MONSTER.frameRates.put(Action.KNOCKBACK, 0.08F);
+		SNOW_MONSTER.frameRates.put(Action.EXPIRING, 0.15F);
+
+		// projectiles
+		// player projectile
+		PLAYER_PROJECTILE.frameRates.put(Action.INITIALISING, 0.1F);
+		PLAYER_PROJECTILE.frameRates.put(Action.LOOPING, 0.1F);
+		PLAYER_PROJECTILE.frameRates.put(Action.EXPIRING, 0.1F);
+		// monster projectile
+		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.INITIALISING, 0.1F);
+		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.LOOPING, 0.1F);
+		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.EXPIRING, 0.1F);
+
+
+		// MONSTER MELEE ATTACK RANGES
+		// snow baby
+		SNOW_BABY.meleeRangeX = SNOW_BABY.width / 2F;
+		SNOW_BABY.meleeRangeY = SNOW_BABY.height / 2F;
+		// snow monster
+		SNOW_MONSTER.meleeRangeX = SNOW_MONSTER.width / 3F;
+		SNOW_MONSTER.meleeRangeY = SNOW_MONSTER.height / 3F;
+	}
 
 	private static final String EXT = ".atlas";
 
@@ -35,20 +92,23 @@ public enum ResourceInfo {
 	/** Travel speed */
 	private int speed;
 
-	/** Framerate */
-	private float frameRate;
+	/** Framerates mapped by Actions */
+	private HashMap<Action, Float> frameRates;
 
-	/** Height/width for monsters only */
+	/** Height/width/melee-range for monsters only */
 	private int height;
 	private int width;
+	private float meleeRangeX;
+	private float meleeRangeY;
 
-	private ResourceInfo(Type type, int id, int speed, float frameRate, int width, int height) {
+	private ResourceInfo(Type type, int id, int speed, int width, int height) {
 		this.type = type;
 		this.id = id;
 		this.speed = speed;
-		this.frameRate = frameRate;
 		this.width = width;
 		this.height = height;
+
+		this.frameRates = new HashMap<Action, Float>();
 	}
 
 	public Type getType() {
@@ -63,8 +123,21 @@ public enum ResourceInfo {
 		return speed;
 	}
 
-	public float getFrameRate() {
-		return frameRate;
+	/**
+	 * Gets the framerates map
+	 *
+	 * @return the framerates map
+	 */
+	public HashMap<Action, Float> getFrameRates() {
+		return frameRates;
+	}
+
+	public float getMeleeRangeX() {
+		return meleeRangeX;
+	}
+
+	public float getMeleeRangeY() {
+		return meleeRangeY;
 	}
 
 	public String getLocation() {

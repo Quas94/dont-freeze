@@ -33,4 +33,13 @@ public enum Action {
 	public String getPrefix() {
 		return prefix;
 	}
+
+	public static Action getByPrefix(String prefix) {
+		for (Action action : values()) {
+			if (action.getPrefix().equals(prefix)) {
+				return action;
+			}
+		}
+		return null;
+	}
 }

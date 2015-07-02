@@ -63,7 +63,7 @@ public class AnimationManager {
 		TextureAtlas atlas = new TextureAtlas(Gdx.files.internal(info.getLocation()));
 		for (AtlasRegion region : atlas.getRegions()) {
 			// initialise the Array within the HashMap with given key, if it hasn't already been initialised
-			String prefix = region.name.replaceAll("[0-9]", ""); // prefix = type of frame this is, can be 1 or 2 letters
+			String prefix = region.name.replaceAll("[0-9]", ""); // prefix = type of frame this is, 1 or 2 letters
 			if (!loadedFrames.containsKey(prefix)) {
 				loadedFrames.put(prefix, new Array<TextureRegion>());
 			}
@@ -112,8 +112,16 @@ public class AnimationManager {
 			}
 		}
 		for (String prefix : loadedFrames.keySet()) {
-			// @TODO support differing framerates for differing actions
-			Animation anim = new Animation(info.getFrameRate(), loadedFrames.get(prefix));
+			String actionPrefix = new String(prefix);
+			Action action;
+			actionPrefix = actionPrefix.substring(0, 1); // get first letter if prefix is 2 letters (2nd letter is dir)
+			action = Action.getByPrefix(actionPrefix);
+			if (action == null) action = Action.IDLE_MOVE; // u, d, l, r are IDLE_MOVE
+			HashMap<Action, Float> frameRates = info.getFrameRates();
+			if (!frameRates.containsKey(action)) {
+				throw new RuntimeException("frameRates for " + info.toString() + " doesn't contain action " + action);
+			}
+			Animation anim = new Animation(frameRates.get(action), loadedFrames.get(prefix));
 			// @TODO support differing framemode types for differing actions
 			anim.setPlayMode(Animation.PlayMode.LOOP); // loop for majority of animations
 			if (type == MULTI_DIR_CLONE) { // check for non-looping ones
