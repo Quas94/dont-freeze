@@ -2,6 +2,8 @@ package com.arctite.dontfreeze.entities;
 
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -21,12 +23,21 @@ import static com.arctite.dontfreeze.util.SaveManager.*;
  */
 public class Monster implements LiveEntity {
 
-	// timing values for monster random movement
+	/** Timing values for monster random movement */
 	private static final float MIN_RAND_TIME = 1.0F;
 	private static final float MAX_RAND_TIME = 4.0F;
 
+	/** Drop aggressiveness at this distance (between player and the monster) */
+	private static final float AGGRO_DROP_DISTANCE = 500;
+	/** Fade speed */
+	private static final float FADE_SPEED = 0.5F; // 2 seconds to completely fade
+
+	/** Color to tint monster when aggressive */
+	private static final float[] TINT = new float[] { 250 / 255F, 200 / 255F, 200 / 255F };
+
 	private static final int BASE_HEALTH = 3;
-	private static final float ATTACK_COOLDOWN = 1F;
+	private static final float MELEE_COOLDOWN = 1.0F;
+	private static final float SPECIAL_COOLDOWN = 3.0F; // 3 second cooldown
 
 	/** Connection to world */
 	private WorldScreen world;
@@ -40,6 +51,9 @@ public class Monster implements LiveEntity {
 	private Action action;
 	private AnimationManager animations;
 
+	/** Fading status after expiration. Starts off at 1 (fully opaque) and goes to 0 (fully transparent) */
+	private float fade;
+
 	/** Movement "AI" stuff */
 	/** Fields related to randomised movement */
 	private Random random;
@@ -51,6 +65,8 @@ public class Monster implements LiveEntity {
 	private boolean aggressive; // @TODO implement de-aggro if not touched for a long time?
 	/** How long since the last melee attack finished. Used to give monsters a bit of cooldown between attacks */
 	private float lastMeleeTime;
+	/** How long since the last special attack finished */
+	private float lastSpecialTime;
 	/** How long since the start of the latest MELEE Action. Used to delay damage after animation start */
 	private float meleeTime;
 	/** Marks whether or not this melee hit has connected with the Player yet */
@@ -60,6 +76,10 @@ public class Monster implements LiveEntity {
 	/** Melee attack range */
 	private float meleeRangeX;
 	private float meleeRangeY;
+	/** Whether or not this monster has special attack capabilities */
+	private boolean special;
+	/** How long this monster's special attacks can travel */
+	private int specialRange;
 
 	/** Game mechanic related fields */
 	private int maxHealth;
@@ -90,6 +110,7 @@ public class Monster implements LiveEntity {
 
 		this.dir = Direction.LEFT;
 		this.action = Action.IDLE_MOVE;
+		this.fade = 1.0F;
 
 		// create animation manager
 		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, info);
@@ -102,12 +123,15 @@ public class Monster implements LiveEntity {
 		this.timeRemaining = 0;
 
 		this.aggressive = false;
-		this.lastMeleeTime = 0;
+		this.lastMeleeTime = MELEE_COOLDOWN;
+		this.lastSpecialTime = SPECIAL_COOLDOWN;
 		this.meleeTime = 0;
 		this.meleeHit = false;
 		this.meleeCollisionBounds = null;
 		this.meleeRangeX = info.getMeleeRangeX();
 		this.meleeRangeY = info.getMeleeRangeY();
+		this.special = info.canSpecial();
+		this.specialRange = info.getSpecialRange();
 
 		// add small arbitrary offset
 		meleeRangeX += 5;
@@ -198,6 +222,23 @@ public class Monster implements LiveEntity {
 		this.aggressive = aggressive;
 	}
 
+	/**
+	 * Checks the position of the player relative to this monster. If the player is sufficiently far away, this monster
+	 * will drop aggro (only if the monster has aggro).
+	 *
+	 * @param player the player object
+	 */
+	public void updateAggressive(Player player) {
+		if (aggressive) {
+			float px = player.getX();
+			float py = player.getY();
+			double dist = Math.sqrt(Math.pow(px - x, 2) + Math.pow(py - y, 2));
+			if (dist >= AGGRO_DROP_DISTANCE) {
+				aggressive = false;
+			}
+		}
+	}
+
 	public boolean getMeleeHit() {
 		return meleeHit;
 	}
@@ -246,12 +287,35 @@ public class Monster implements LiveEntity {
 	}
 
 	/**
+	 * Performs a special attack at the Player, given the player's centre x and centre y coordinates.
+	 *
+	 * @param pcx player centre x
+	 * @param pcy player centre y
+	 */
+	private void specialAttack(float pcx, float pcy) {
+		Projectile snowball = new Projectile(this, x, y, dir, specialRange);
+		float sbw = snowball.getWidth();
+		float sbh = snowball.getHeight();
+		float sx = x - sbw;
+		float sy = y - sbh;
+		if (dir == Direction.LEFT || dir == Direction.RIGHT) {
+			sy = pcy; // align snowball y with player y
+			sx += 150;
+		} else { // dir == UP/DOWN
+			sx = pcx;
+			sy += 150;
+		}
+		snowball.setPosition(sx, sy);
+		world.addProjectile(snowball);
+	}
+
+	/**
 	 * Checks whether this Monster has completed its expire animation and is ready to be removed from the world
 	 *
 	 * @return if we can remove this monster from the world
 	 */
-	public boolean expireComplete() {
-		return (action == Action.EXPIRING) && (animations.isComplete());
+	public boolean isFadeComplete() {
+		return (action == Action.EXPIRING) && animations.isComplete() && (fade <= 0);
 	}
 
 	@Override
@@ -316,9 +380,11 @@ public class Monster implements LiveEntity {
 
 	@Override
 	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
-		// @TODO remove this if-condition after implementing different speeds for different animation types per manager
-		if (action == Action.EXPIRING) { animations.update(delta / 5);
-		} else if (action == Action.KNOCKBACK) { animations.update(delta / 1.5F); } else
+		// update fade if expiry animation complete
+		if (action == Action.EXPIRING && animations.isComplete()) {
+			fade -= delta * FADE_SPEED;
+			return; // don't do anything else
+		}
 
 		// update animation
 		animations.update(delta);
@@ -326,8 +392,9 @@ public class Monster implements LiveEntity {
 		// add to meleeTime even if paused, since when pausing we allow any attacks already started to be carried out
 		meleeTime += delta;
 
-		if (!paused) { // can't update lastMeleeTime flag if paused
+		if (!paused) { // can't update lastMeleeTime/lastSpecialTime flags if paused
 			lastMeleeTime += delta;
+			lastSpecialTime += delta;
 		}
 
 		// calculate distance we can move, if we choose to move
@@ -347,6 +414,11 @@ public class Monster implements LiveEntity {
 				lastMeleeTime = 0; // time since last melee attack finished: 0 ms
 				setAction(Action.IDLE_MOVE);
 			}
+		} else if (action == Action.SPECIAL) { // this monster is currently firing off special attack
+			if (animations.isComplete()) {
+				lastSpecialTime = 0; // reset flag
+				setAction(Action.IDLE_MOVE);
+			}
 		} else if (action == Action.IDLE_MOVE && !paused) { // update movement if not paused
 			// @TODO make the monster less stupid and not get stuck behind obstacles - pathfinding algorithm
 			if (aggressive) { // aggressive and can attack
@@ -363,10 +435,34 @@ public class Monster implements LiveEntity {
 				float diffY = pcy - cy; // positive value = player above, negative value = player below
 				float absDiffX = Math.abs(diffX);
 				float absDiffY = Math.abs(diffY);
-				boolean inRangeX = absDiffX < meleeRangeX;
-				boolean inRangeY = absDiffY < meleeRangeY;
-				if (inRangeX && inRangeY) { // within range to start attacking
-					if (lastMeleeTime >= ATTACK_COOLDOWN) { // if attack is off cooldown
+				boolean inRangeX = absDiffX < meleeRangeX; // in range x for melee
+				boolean inRangeY = absDiffY < meleeRangeY; // in range y for melee
+
+				Rectangle thisCollision = getDefenseCollisionBounds();
+				float tx = thisCollision.x;
+				float ty = thisCollision.y;
+				float txp = tx + (thisCollision.width * 0.5F);
+				float typ = ty + (thisCollision.height * 0.75F);
+
+				// first check if we can special attack
+				if (special && (lastSpecialTime >= SPECIAL_COOLDOWN) &&
+						((pcx >= tx && pcx <= txp) || (pcy >= ty && pcy <= typ))) {
+					// if player x within monster's x extremities, OR player y within monster's y extremities
+
+					// turn to face correct direction
+					if (pcx >= tx && pcx <= txp) { // face up/down
+						if (diffY < 0) dir = Direction.DOWN;
+						else dir = Direction.UP;
+					} else { // face left/right
+						if (diffX < 0) dir = Direction.LEFT;
+						else dir = Direction.RIGHT;
+					}
+					// start new special attack
+					setAction(Action.SPECIAL);
+					specialAttack(pcx, pcy);
+
+				} else if (inRangeX && inRangeY) { // within range to start melee attack
+					if (lastMeleeTime >= MELEE_COOLDOWN) { // if attack is off cooldown
 						// actually attack
 						setAction(Action.MELEE);
 						meleeAttack();
@@ -499,6 +595,12 @@ public class Monster implements LiveEntity {
 	@Override
 	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animations.getCurrentFrame(dir);
+		if (aggressive) { // tint red if aggro
+			spriteBatch.setColor(TINT[0], TINT[1], TINT[2], fade);
+		} else {
+			spriteBatch.setColor(Color.WHITE.r, Color.WHITE.g, Color.WHITE.b, fade);
+		}
 		spriteBatch.draw(frame, x, y);
+		spriteBatch.setColor(Color.WHITE); // untint
 	}
 }

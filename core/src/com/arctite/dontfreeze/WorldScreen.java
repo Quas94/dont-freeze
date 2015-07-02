@@ -729,7 +729,8 @@ public class WorldScreen extends AbstractScreen {
 			for (String mkey : monsters.keySet()) {
 				Monster monster = monsters.get(mkey);
 				monster.update(DELTA_STEP, effectivePause, allRects, allPolys);
-				if (monster.expireComplete()) {
+				monster.updateAggressive(player); // update aggressiveness (ie. check for aggro drop based on distance)
+				if (monster.isFadeComplete()) {
 					removeKeys.add(mkey);
 					orderedEntities.remove(monster); // remove from orderedEntities as well as monsters list
 				}
@@ -749,15 +750,24 @@ public class WorldScreen extends AbstractScreen {
 				if (projectile.expireComplete()) {
 					projIterator.remove();
 				} else if (!projectile.hasCollided()) { // check if not already collided
-					for (Monster monster : monsters.values()) {
-						if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
-							// check for collision between projectile's main bounds and monster's defense bounds
-							if (Collisions.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
-								projectile.setCollided();
-								Direction from = Direction.getOpposite(projectile.getDirection());
-								monster.hit(from);
-								SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_EXPLOSION);
+					if (projectile.getOwner() == player) { // player-owned projectile, check against monsters
+						for (Monster monster : monsters.values()) {
+							if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
+								// check for collision between projectile's main bounds and monster's defense bounds
+								if (Collisions.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
+									projectile.setCollided();
+									Direction from = Direction.getOpposite(projectile.getDirection());
+									monster.hit(from);
+									SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_EXPLOSION);
+								}
 							}
+						}
+					} else { // monster-owned projectile, check against player
+						if (Collisions.collidesShapes(projectile.getCollisionBounds(), player.getDefenseCollisionBounds())) {
+							projectile.setCollided();
+							Direction from = Direction.getOpposite(projectile.getDirection());
+							player.hit(from);
+							// @TODO play sound
 						}
 					}
 				}

@@ -244,7 +244,7 @@ public class Player implements LiveEntity {
 	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		if (action == Action.EXPIRING) {
 			if (!animations.isComplete()) {
-				animations.update(delta / 2);
+				animations.update(delta);
 			} else {
 				world.notifyPlayerDeathComplete();
 			}
@@ -395,8 +395,6 @@ public class Player implements LiveEntity {
 		Projectile fireball = new Projectile(this, x, y, dir, FIREBALL_RANGE);
 		float fx = x;
 		float fy = y;
-		// float fw = fireball.getWidth();
-		// float fh = fireball.getHeight();
 		if (dir == Direction.RIGHT || dir == Direction.LEFT) {
 			fx -= 5; // shift towards player a bit more
 			fy += height / 3;

@@ -26,7 +26,7 @@ public enum ResourceInfo {
 
 	// projectiles
 	PLAYER_PROJECTILE(Type.PROJECTILE, PLAYER.getId(), 180, 70, 60),
-	SNOW_MONSTER_PROJECTILE(Type.PROJECTILE, SNOW_MONSTER.getId(), 180,  70, 60); // @TODO fix snow monster values
+	SNOW_MONSTER_PROJECTILE(Type.PROJECTILE, SNOW_MONSTER.getId(), 180, 70, 100); // @TODO fix snow monster values
 	;
 
 	/**
@@ -42,24 +42,24 @@ public enum ResourceInfo {
 
 		// player
 		PLAYER.frameRates.put(Action.IDLE_MOVE, 0.12F);
-		PLAYER.frameRates.put(Action.EXPIRING, 0.12F);
-		PLAYER.frameRates.put(Action.KNOCKBACK, 0.12F);
 		PLAYER.frameRates.put(Action.MELEE, 0.12F);
 		PLAYER.frameRates.put(Action.SPECIAL, 0.12F);
+		PLAYER.frameRates.put(Action.KNOCKBACK, 0.12F);
+		PLAYER.frameRates.put(Action.EXPIRING, 0.2F);
 
 		// monsters
 		// snow baby
 		SNOW_BABY.frameRates.put(Action.IDLE_MOVE, 0.1F);
 		SNOW_BABY.frameRates.put(Action.MELEE, 0.1F);
 		// SNOW_BABY.frameRates.put(Action.SPECIAL, 0.1F); // snow baby has no special attack
-		SNOW_BABY.frameRates.put(Action.KNOCKBACK, 0.1F);
-		SNOW_BABY.frameRates.put(Action.EXPIRING, 0.1F);
+		SNOW_BABY.frameRates.put(Action.KNOCKBACK, 0.15F);
+		SNOW_BABY.frameRates.put(Action.EXPIRING, 0.3F);
 		// snow monster
 		SNOW_MONSTER.frameRates.put(Action.IDLE_MOVE, 0.15F);
 		SNOW_MONSTER.frameRates.put(Action.MELEE, 0.1F);
 		SNOW_MONSTER.frameRates.put(Action.SPECIAL, 0.1F);
-		SNOW_MONSTER.frameRates.put(Action.KNOCKBACK, 0.08F);
-		SNOW_MONSTER.frameRates.put(Action.EXPIRING, 0.15F);
+		SNOW_MONSTER.frameRates.put(Action.KNOCKBACK, 0.15F);
+		SNOW_MONSTER.frameRates.put(Action.EXPIRING, 0.2F);
 
 		// projectiles
 		// player projectile
@@ -72,13 +72,16 @@ public enum ResourceInfo {
 		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.EXPIRING, 0.1F);
 
 
-		// MONSTER MELEE ATTACK RANGES
+		// MONSTER ATTACK STUFFS (MELEE RANGE, SPECIAL CAPABILITY
 		// snow baby
 		SNOW_BABY.meleeRangeX = SNOW_BABY.width / 2F;
 		SNOW_BABY.meleeRangeY = SNOW_BABY.height / 2F;
-		// snow monster
+		// snow monster melee range
 		SNOW_MONSTER.meleeRangeX = SNOW_MONSTER.width / 3F;
 		SNOW_MONSTER.meleeRangeY = SNOW_MONSTER.height / 3F;
+		// snow monster special attack
+		SNOW_MONSTER.special = true;
+		SNOW_MONSTER.specialRange = 200;
 	}
 
 	private static final String EXT = ".atlas";
@@ -100,6 +103,8 @@ public enum ResourceInfo {
 	private int width;
 	private float meleeRangeX;
 	private float meleeRangeY;
+	private boolean special;
+	private int specialRange; // range that this entity's projectile can travel
 
 	private ResourceInfo(Type type, int id, int speed, int width, int height) {
 		this.type = type;
@@ -109,6 +114,7 @@ public enum ResourceInfo {
 		this.height = height;
 
 		this.frameRates = new HashMap<Action, Float>();
+		this.special = false;
 	}
 
 	public Type getType() {
@@ -138,6 +144,14 @@ public enum ResourceInfo {
 
 	public float getMeleeRangeY() {
 		return meleeRangeY;
+	}
+
+	public boolean canSpecial() {
+		return special;
+	}
+
+	public int getSpecialRange() {
+		return specialRange;
 	}
 
 	public String getLocation() {

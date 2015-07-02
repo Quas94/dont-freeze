@@ -78,6 +78,10 @@ public class Projectile implements Entity {
 		}
 	}
 
+	public Entity getOwner() {
+		return owner;
+	}
+
 	/**
 	 * Gets the id of this Projectile, which is equivalent to this Projectile's owner Entity's id
 	 *

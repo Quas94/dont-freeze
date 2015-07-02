@@ -124,10 +124,8 @@ public class AnimationManager {
 			Animation anim = new Animation(frameRates.get(action), loadedFrames.get(prefix));
 			// @TODO support differing framemode types for differing actions
 			anim.setPlayMode(Animation.PlayMode.LOOP); // loop for majority of animations
-			if (type == MULTI_DIR_CLONE) { // check for non-looping ones
-				if (prefix.equals(Action.EXPIRING) || prefix.equals(Action.INITIALISING)) {
-					anim.setPlayMode(Animation.PlayMode.NORMAL); // projectile expire/init do not loop
-				}
+			if (prefix.startsWith(Action.EXPIRING.getPrefix()) || prefix.equals(Action.INITIALISING.getPrefix())) {
+				anim.setPlayMode(Animation.PlayMode.NORMAL); // expire/init do not loop
 			}
 			animations.put(prefix, anim);
 		}
