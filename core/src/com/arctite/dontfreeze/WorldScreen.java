@@ -999,8 +999,16 @@ public class WorldScreen extends AbstractScreen {
 			for (Monster m : monsters.values()) {
 				r = m.getDefenseCollisionBounds();
 				debugRender(r);
-				r = m.getCollisionBounds();
-				debugRender(r);
+				if (m.canSpecialAttack()) { // draw special attack box only if it can special attack
+					debugRenderer.end();
+					debugRenderer.setColor(Color.RED);
+					debugRenderer.begin(ShapeType.Line);
+					r = m.getSpecialOriginBounds();
+					debugRender(r);
+					debugRenderer.end();
+					debugRenderer.setColor(Color.BLACK);
+					debugRenderer.begin(ShapeType.Line);
+				}
 				if (m.getAction() == Action.MELEE) {
 					r = m.getAttackCollisionBounds();
 					debugRender(r);

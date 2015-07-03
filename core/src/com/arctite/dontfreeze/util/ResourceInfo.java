@@ -1,6 +1,7 @@
 package com.arctite.dontfreeze.util;
 
 import com.arctite.dontfreeze.entities.Action;
+import com.badlogic.gdx.math.Rectangle;
 
 import java.util.HashMap;
 
@@ -82,6 +83,8 @@ public enum ResourceInfo {
 		// snow monster special attack
 		SNOW_MONSTER.special = true;
 		SNOW_MONSTER.specialRange = 200;
+		// snow monster collision offset
+		SNOW_MONSTER.specialOriginOffset = new Rectangle(0, 30, 0, 20);
 	}
 
 	private static final String EXT = ".atlas";
@@ -105,6 +108,8 @@ public enum ResourceInfo {
 	private float meleeRangeY;
 	private boolean special;
 	private int specialRange; // range that this entity's projectile can travel
+	/** Collision offset */
+	private Rectangle specialOriginOffset;
 
 	private ResourceInfo(Type type, int id, int speed, int width, int height) {
 		this.type = type;
@@ -166,6 +171,10 @@ public enum ResourceInfo {
 	public int getHeight() {
 		if (height == -1) throw new UnsupportedOperationException("id = " + id + ", doesn't have width/height info");
 		return height;
+	}
+
+	public Rectangle getSpecialOriginOffset() {
+		return specialOriginOffset;
 	}
 
 	/**

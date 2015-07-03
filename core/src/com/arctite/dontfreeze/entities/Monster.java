@@ -63,10 +63,12 @@ public class Monster implements LiveEntity {
 	/** Attacking / aggression related stuff */
 	/** Whether or not this Monster is currently aggressive toward the player */
 	private boolean aggressive; // @TODO implement de-aggro if not touched for a long time?
-	/** How long since the last melee attack finished. Used to give monsters a bit of cooldown between attacks */
+	/** How long since the last melee attack started. Used to give monsters a bit of cooldown between attacks */
 	private float lastMeleeTime;
-	/** How long since the last special attack finished */
+	/** How long since the last special attack launched */
 	private float lastSpecialTime;
+	/** How long since the last melee OR special attack started/launched */
+	private float lastAttackTime;
 	/** How long since the start of the latest MELEE Action. Used to delay damage after animation start */
 	private float meleeTime;
 	/** Marks whether or not this melee hit has connected with the Player yet */
@@ -80,6 +82,8 @@ public class Monster implements LiveEntity {
 	private boolean special;
 	/** How long this monster's special attacks can travel */
 	private int specialRange;
+	/** Special origin box's offset as defined in ResourceInfo */
+	private Rectangle specialOriginOffset;
 
 	/** Game mechanic related fields */
 	private int maxHealth;
@@ -125,6 +129,7 @@ public class Monster implements LiveEntity {
 		this.aggressive = false;
 		this.lastMeleeTime = MELEE_COOLDOWN;
 		this.lastSpecialTime = SPECIAL_COOLDOWN;
+		this.lastAttackTime = Math.max(lastMeleeTime, lastSpecialTime);
 		this.meleeTime = 0;
 		this.meleeHit = false;
 		this.meleeCollisionBounds = null;
@@ -132,6 +137,8 @@ public class Monster implements LiveEntity {
 		this.meleeRangeY = info.getMeleeRangeY();
 		this.special = info.canSpecial();
 		this.specialRange = info.getSpecialRange();
+
+		this.specialOriginOffset = info.getSpecialOriginOffset();
 
 		// add small arbitrary offset
 		meleeRangeX += 5;
@@ -284,6 +291,9 @@ public class Monster implements LiveEntity {
 				break;
 		}
 		meleeCollisionBounds = new Rectangle(rx, ry, rw, rh);
+
+		lastMeleeTime = 0; // time since last melee attack finished: 0 ms
+		lastAttackTime = 0;
 	}
 
 	/**
@@ -299,14 +309,17 @@ public class Monster implements LiveEntity {
 		float sx = x - sbw;
 		float sy = y - sbh;
 		if (dir == Direction.LEFT || dir == Direction.RIGHT) {
-			sy = pcy; // align snowball y with player y
+			sy = pcy - (sbh / 2); // align snowball y with player y appropriately
 			sx += 150;
 		} else { // dir == UP/DOWN
-			sx = pcx;
+			sx = pcx - (sbw / 2);
 			sy += 150;
 		}
 		snowball.setPosition(sx, sy);
 		world.addProjectile(snowball);
+
+		lastSpecialTime = 0; // reset flag
+		lastAttackTime = 0;
 	}
 
 	/**
@@ -358,9 +371,12 @@ public class Monster implements LiveEntity {
 		animations.updateAction(action);
 	}
 
+	public boolean canSpecialAttack() {
+		return special;
+	}
+
 	@Override
 	public Rectangle getCollisionBounds() {
-		// collision of snow baby against terrain - use small bounds just like player, near base of snow baby
 		return new Rectangle(x + (width / 4), y, width / 2, height / 4);
 	}
 
@@ -378,6 +394,24 @@ public class Monster implements LiveEntity {
 		return new Rectangle(rx, ry, rw, rh);
 	}
 
+	/**
+	 * Gets the bounds of the Rectangle where the Monster can shoot its projectile. (Works by checking that the
+	 * player is at least either within x-range or y-range before shooting)
+	 *
+	 * @return the bounds of the special projectile origins
+	 */
+	public Rectangle getSpecialOriginBounds() {
+		Rectangle origin = getCollisionBounds();
+		// check if we should offset
+		if (specialOriginOffset != null) {
+			origin.x += specialOriginOffset.x;
+			origin.y += specialOriginOffset.y;
+			origin.width += specialOriginOffset.width;
+			origin.height += specialOriginOffset.height;
+		}
+		return origin;
+	}
+
 	@Override
 	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		// update fade if expiry animation complete
@@ -392,9 +426,10 @@ public class Monster implements LiveEntity {
 		// add to meleeTime even if paused, since when pausing we allow any attacks already started to be carried out
 		meleeTime += delta;
 
-		if (!paused) { // can't update lastMeleeTime/lastSpecialTime flags if paused
+		if (!paused) { // update last melee/special/either attack flags
 			lastMeleeTime += delta;
 			lastSpecialTime += delta;
+			lastAttackTime += delta;
 		}
 
 		// calculate distance we can move, if we choose to move
@@ -402,6 +437,7 @@ public class Monster implements LiveEntity {
 
 		if (health <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
 			setAction(Action.EXPIRING);
+			aggressive = false; // de-aggro upon death
 			SoundManager.playSound(SoundManager.SoundInfo.MONSTER_DEATH);
 		} else if (action == Action.KNOCKBACK) { // update the knockback
 			if (animations.isComplete()) {
@@ -411,12 +447,10 @@ public class Monster implements LiveEntity {
 			}
 		} else if (action == Action.MELEE) { // this monster is currently attacking
 			if (animations.isComplete()) { // we just finished the attack animation
-				lastMeleeTime = 0; // time since last melee attack finished: 0 ms
 				setAction(Action.IDLE_MOVE);
 			}
 		} else if (action == Action.SPECIAL) { // this monster is currently firing off special attack
 			if (animations.isComplete()) {
-				lastSpecialTime = 0; // reset flag
 				setAction(Action.IDLE_MOVE);
 			}
 		} else if (action == Action.IDLE_MOVE && !paused) { // update movement if not paused
@@ -438,14 +472,14 @@ public class Monster implements LiveEntity {
 				boolean inRangeX = absDiffX < meleeRangeX; // in range x for melee
 				boolean inRangeY = absDiffY < meleeRangeY; // in range y for melee
 
-				Rectangle thisCollision = getDefenseCollisionBounds();
+				Rectangle thisCollision = getSpecialOriginBounds();
 				float tx = thisCollision.x;
 				float ty = thisCollision.y;
-				float txp = tx + (thisCollision.width * 0.5F);
-				float typ = ty + (thisCollision.height * 0.75F);
+				float txp = tx + thisCollision.width;
+				float typ = ty + thisCollision.height;
 
 				// first check if we can special attack
-				if (special && (lastSpecialTime >= SPECIAL_COOLDOWN) &&
+				if (special && (lastSpecialTime >= SPECIAL_COOLDOWN) && (lastAttackTime >= MELEE_COOLDOWN) &&
 						((pcx >= tx && pcx <= txp) || (pcy >= ty && pcy <= typ))) {
 					// if player x within monster's x extremities, OR player y within monster's y extremities
 
@@ -462,7 +496,7 @@ public class Monster implements LiveEntity {
 					specialAttack(pcx, pcy);
 
 				} else if (inRangeX && inRangeY) { // within range to start melee attack
-					if (lastMeleeTime >= MELEE_COOLDOWN) { // if attack is off cooldown
+					if (lastMeleeTime >= MELEE_COOLDOWN && lastAttackTime >= MELEE_COOLDOWN) { // if attack is off cooldown
 						// actually attack
 						setAction(Action.MELEE);
 						meleeAttack();
