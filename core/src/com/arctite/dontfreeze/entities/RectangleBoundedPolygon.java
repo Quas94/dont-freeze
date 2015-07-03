@@ -39,7 +39,7 @@ public class RectangleBoundedPolygon implements Shape2D {
 	public RectangleBoundedPolygon(Polygon polygon) {
 		// determine sub-polygons
 		ArrayList<Polygon> initial = new ArrayList<Polygon>();
-		if (GeometryUtils.isConvex(polygon.getVertices())) { // convex
+		if (polygon.getVertices().length == 6 || GeometryUtils.isConvex(polygon.getVertices())) { // triangle or convex
 			initial.add(polygon);
 		} else { // concave - need to decompose into two or more convexes
 			Polygon[] polygons = GeometryUtils.decompose(polygon);

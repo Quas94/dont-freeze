@@ -27,8 +27,8 @@ public class HorizontalMapRenderer extends OrthogonalTiledMapRenderer {
 	public static final String EVENTS_LAYER = "events";
 
 	/** Static constants for the renderSpriteLayerInternal() method */
-	public static final int MAX_SPRITE_WIDTH = 300;
-	public static final int MAX_SPRITE_HEIGHT = 300;
+	public static final int MAX_SPRITE_WIDTH = 700;
+	public static final int MAX_SPRITE_HEIGHT = 700;
 
 	public HorizontalMapRenderer(TiledMap tiledMap, SpriteBatch spriteBatch) {
 		super(tiledMap, spriteBatch);

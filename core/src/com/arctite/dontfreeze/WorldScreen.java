@@ -628,6 +628,7 @@ public class WorldScreen extends AbstractScreen {
 		Monster toSpawn = spawnableMonsters.get(mkey);
 		if (toSpawn == null) throw new RuntimeException("attempting to spawn monster '" + mkey + "' failed");
 		spawnableMonsters.remove(mkey); // remove from spawnable
+		toSpawn.setAggressive(true); // monster is aggro on spawn
 		monsters.put(mkey, toSpawn);
 		orderedEntities.add(toSpawn);
 		// no need to sort ordered entities here, will be done at end of update() after this
@@ -758,7 +759,7 @@ public class WorldScreen extends AbstractScreen {
 									projectile.setCollided();
 									Direction from = Direction.getOpposite(projectile.getDirection());
 									monster.hit(from);
-									SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_EXPLOSION);
+									SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_HIT);
 								}
 							}
 						}
@@ -767,7 +768,7 @@ public class WorldScreen extends AbstractScreen {
 							projectile.setCollided();
 							Direction from = Direction.getOpposite(projectile.getDirection());
 							player.hit(from);
-							// @TODO play sound
+							SoundManager.playSound(SoundManager.SoundInfo.MONSTER_SPECIAL_HIT);
 						}
 					}
 				}

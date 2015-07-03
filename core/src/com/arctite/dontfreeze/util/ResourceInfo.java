@@ -84,7 +84,7 @@ public enum ResourceInfo {
 		SNOW_MONSTER.special = true;
 		SNOW_MONSTER.specialRange = 200;
 		// snow monster collision offset
-		SNOW_MONSTER.specialOriginOffset = new Rectangle(0, 30, 0, 20);
+		SNOW_MONSTER.specialOriginOffset = new Rectangle(15, 30, -30, 20);
 	}
 
 	private static final String EXT = ".atlas";

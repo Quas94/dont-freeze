@@ -22,14 +22,16 @@ public class SoundManager {
 
 		MENU_CLICK(1, "menu_click"),
 
-		MONSTER_MELEE(2, "monster_melee"),
-		MONSTER_DEATH(3, "monster_death"),
+		MONSTER_MELEE(21, "monster_melee"),
+		MONSTER_SPECIAL(22, "monster_special"),
+		MONSTER_SPECIAL_HIT(23, "monster_special_hit"),
+		MONSTER_DEATH(23, "monster_death"),
 
-		PLAYER_MELEE(4, "player_melee"),
-		PLAYER_SPECIAL(5, "player_special"),
-		PLAYER_SPECIAL_EXPLOSION(6, "player_special_hit"),
-		PLAYER_DEATH(7, "player_death"),
-		PLAYER_PICKUP_FIRE(8, "player_pickup_fire"),
+		PLAYER_MELEE(94, "player_melee"),
+		PLAYER_SPECIAL(95, "player_special"),
+		PLAYER_SPECIAL_HIT(96, "player_special_hit"),
+		PLAYER_DEATH(97, "player_death"),
+		PLAYER_PICKUP_FIRE(98, "player_pickup_fire"),
 		;
 
 		private int id;

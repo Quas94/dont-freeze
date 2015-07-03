@@ -320,6 +320,7 @@ public class Monster implements LiveEntity {
 
 		lastSpecialTime = 0; // reset flag
 		lastAttackTime = 0;
+		SoundManager.playSound(SoundManager.SoundInfo.MONSTER_SPECIAL);
 	}
 
 	/**
