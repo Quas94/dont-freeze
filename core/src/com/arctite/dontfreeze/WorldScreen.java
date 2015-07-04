@@ -98,6 +98,8 @@ public class WorldScreen extends AbstractScreen {
 	private boolean paused;
 	/** Scene2d UI fields */
 	private Stage stage;
+	/** Stage for world-coordinate camera */
+	private Stage worldStage;
 	private TextButton endGameButton;
 	private TextButton resumeButton;
 	private TextButton saveAndExitButton;
@@ -172,6 +174,7 @@ public class WorldScreen extends AbstractScreen {
 		this.paused = false;
 		// intialise scene2d and related ui fields
 		this.stage = new Stage();
+		this.worldStage = new Stage();
 		Skin menuButtonSkin = SkinManager.getSkin(SkinManager.MENU_BUTTON_SKIN);
 
 		// conversation box style
@@ -239,6 +242,8 @@ public class WorldScreen extends AbstractScreen {
 			this.player = p;
 			player.setWorld(this, worldInputHandler);
 		}
+		// add player health bar to the stage
+		stage.addActor(player.getHealthBar());
 		// initialise event property settings hashmap
 		this.eventProps = new HashMap<String, String>();
 
@@ -332,6 +337,8 @@ public class WorldScreen extends AbstractScreen {
 			int id = Integer.parseInt(obj.getProperties().get(TILED_PROP_TYPE, String.class));
 			boolean hasDefault = obj.getProperties().containsKey(TILED_PROP_DEFAULT);
 			Monster monster = new Monster(this, id, mx, my);
+			// add monster to world stage because health bars should follow them
+			worldStage.addActor(monster.getHealthBar());
 			if (hasDefault) {
 				String defaultValue = obj.getProperties().get(TILED_PROP_DEFAULT, String.class);
 				if (!defaultValue.equals(DEFAULT_NOT_SPAWNED)) {
@@ -523,7 +530,7 @@ public class WorldScreen extends AbstractScreen {
 		// now write the updated values in
 		for (String mkey : monsters.keySet()) {
 			Monster m = monsters.get(mkey);
-			if (m.getHealth() > 0) { // excludes expiring monsters
+			if (m.getHealthBar().getHealth() > 0) { // excludes expiring monsters
 				// firstly: set this monster as active (active means alive, not necessarily spawned)
 				saver.setDataValue(chunkId + MONSTER + mkey + ACTIVE, true);
 				// set default=notSpawned as false
@@ -663,6 +670,15 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	/**
+	 * Gets the camera of the world
+	 *
+	 * @return the OrthographicCamera object controlling the world view
+	 */
+	public OrthographicCamera getCamera() {
+		return camera;
+	}
+
+	/**
 	 * Adds a given Projectile to this world's current list of Projectiles.
 	 *
 	 * @param projectile The projectile to add
@@ -692,6 +708,7 @@ public class WorldScreen extends AbstractScreen {
 	public void update(float delta) {
 		// update scene2d first regardless of this world's pause status
 		stage.act(delta);
+		worldStage.act(delta);
 
 		// check toggle sound
 		getGame().checkToggleSound();
@@ -940,9 +957,7 @@ public class WorldScreen extends AbstractScreen {
 				}
 			}
 			// lastly, render from lowestRenderedEntityY to bottom of screen
-			//if (screenBot >= lowestRenderedEntityY - 1) {
-				mapRenderer.renderSpriteLayer(lowestRenderedEntityY - 1, screenBot, true);
-			//}
+			mapRenderer.renderSpriteLayer(lowestRenderedEntityY - 1, screenBot, true);
 		} else {
 			// no entities, this shouldn't really happen but just in case - render everything
 			mapRenderer.renderSpriteLayer(screenTop, screenBot, true);
@@ -957,20 +972,26 @@ public class WorldScreen extends AbstractScreen {
 		}
 		spriteBatch.end();
 
+		// render world stage second-last
+		worldStage.getCamera().position.set(cameraPos);
+		worldStage.draw();
 		// render UI last (excluding debug stuff)
 		stage.draw();
 
-		// debug stuff
+		// @TODO figure out why putting the projection matrix change line into debug if-condition block makes the menu
+		// all black when going back to it
 		spriteBatch.setProjectionMatrix(fixedCamera.combined);
-		spriteBatch.begin();
-		font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
-		font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
-		font.draw(spriteBatch, "Current Map: (" + chunkX + ", " + chunkY + ")", 20, winHeight - 50);
-		font.draw(spriteBatch, "HP: " + player.getHealth(), 20, winHeight - 65);
-		font.draw(spriteBatch, "Sound: " + (SoundManager.isEnabled() ? "On" : "Off"), 20, winHeight - 80);
-		spriteBatch.end();
-		// draw hitboxes and stuff here
+		// render debug stuff here
 		if (debugMode) {
+			// debug text
+			spriteBatch.begin();
+			font.draw(spriteBatch, "Camera: (" + camera.position.x + ", " + camera.position.y + ")", 20, winHeight - 35);
+			font.draw(spriteBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, winHeight - 20);
+			font.draw(spriteBatch, "Current Map: (" + chunkX + ", " + chunkY + ")", 20, winHeight - 50);
+			font.draw(spriteBatch, "Sound: " + (SoundManager.isEnabled() ? "On" : "Off"), 20, winHeight - 65);
+			spriteBatch.end();
+
+			// debug shapes
 			debugRenderer.setProjectionMatrix(camera.combined);
 			debugRenderer.setColor(Color.BLACK);
 			debugRenderer.begin(ShapeType.Line);

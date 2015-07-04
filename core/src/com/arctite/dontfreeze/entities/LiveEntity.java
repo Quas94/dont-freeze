@@ -15,16 +15,6 @@ public interface LiveEntity extends Entity {
 	public static final float MELEE_ATTACK_DELAY = 0.2F;
 
 	/**
-	 * Gets this LiveEntity's maximum health.
-	 */
-	public int getMaxHealth();
-
-	/**
-	 * Gets this LiveEntity's current health.
-	 */
-	public int getHealth();
-
-	/**
 	 * Strikes this monster, dealing damage and potentially putting it into an Action = KNOCKBACK state.
 	 *
 	 * @param from The direction that the hit is coming from

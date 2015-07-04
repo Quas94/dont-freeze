@@ -1,7 +1,10 @@
 package com.arctite.dontfreeze.entities.player;
 
 import com.arctite.dontfreeze.GameMain;
+import com.arctite.dontfreeze.ui.HealthBar;
 import com.arctite.dontfreeze.util.*;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -9,6 +12,7 @@ import com.badlogic.gdx.math.Shape2D;
 import com.arctite.dontfreeze.WorldScreen;
 import com.arctite.dontfreeze.entities.*;
 import com.arctite.dontfreeze.entities.Collisions;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +31,8 @@ public class Player implements LiveEntity {
 	private static final int COLLISION_HEIGHT = 10;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
 	private static final int FIREBALL_RANGE = 200; // how far this Player's fireball can travel before dissipating
-	private static final int BASE_HEALTH = 10;
+	private static final int HEALTH_BAR_WIDTH = 180;
+	private static final int HEALTH_BAR_HEIGHT = 20;
 
 	/** Limits */
 	public static final int RIGHTMOST_X = WorldScreen.CHUNK_WIDTH - ResourceInfo.PLAYER.getWidth();
@@ -60,8 +65,7 @@ public class Player implements LiveEntity {
 	private Rectangle meleeCollisionBounds;
 
 	/** Gameplay fields */
-	private int maxHealth;
-	private int health;
+	private HealthBar healthBar;
 	private int fires;
 
 	public Player(WorldScreen world, WorldInputHandler inputHandler, float x, float y) {
@@ -82,8 +86,11 @@ public class Player implements LiveEntity {
 		this.meleeTime = 0;
 		this.meleeCollisionBounds = null;
 
-		this.maxHealth = BASE_HEALTH;
-		this.health = maxHealth;
+		// setup health bar
+		int maxHealth = SaveManager.getSettings().getDataValue(SaveManager.PLAYER_MAX_HEALTH, Integer.class);
+		this.healthBar = new HealthBar(this, 10, GameMain.GAME_WINDOW_HEIGHT - HEALTH_BAR_HEIGHT - 10, HEALTH_BAR_WIDTH,
+				HEALTH_BAR_HEIGHT, maxHealth, maxHealth);
+
 		this.fires = 0;
 	}
 
@@ -120,7 +127,8 @@ public class Player implements LiveEntity {
 
 		x = saver.getDataValue(PLAYER + POSITION_X, Float.class);
 		y = saver.getDataValue(PLAYER + POSITION_Y, Float.class);
-		health = saver.getDataValue(PLAYER + HEALTH, Integer.class);
+		int health = saver.getDataValue(PLAYER + HEALTH, Integer.class);
+		healthBar.setHealth(health);
 		int di = saver.getDataValue(PLAYER + DIR_IDX, Integer.class);
 		dir = Direction.getByIndex(di);
 
@@ -138,7 +146,7 @@ public class Player implements LiveEntity {
 
 		saver.setDataValue(PLAYER + POSITION_X, x);
 		saver.setDataValue(PLAYER + POSITION_Y, y);
-		saver.setDataValue(PLAYER + HEALTH, health);
+		saver.setDataValue(PLAYER + HEALTH, (int) healthBar.getHealth());
 		saver.setDataValue(PLAYER + DIR_IDX, dir.getIdx());
 		saver.setDataValue(PLAYER + FIRES, fires);
 	}
@@ -156,19 +164,18 @@ public class Player implements LiveEntity {
 		this.chunkY = chunkY;
 	}
 
-	@Override
-	public int getMaxHealth() {
-		return maxHealth;
-	}
-
-	@Override
-	public int getHealth() {
-		return health;
+	/**
+	 * Gets the health bar UI object of this player. The health bar is also linked to the World's stage.
+	 *
+	 * @return the player's health bar object
+	 */
+	public HealthBar getHealthBar() {
+		return healthBar;
 	}
 
 	@Override
 	public void hit(Direction from) {
-		health--; // take damage
+		healthBar.decrementHealth(1); // take 1 damage @TODO different damage amounts
 		dir = from; // change direction to from
 		// check for death upon finishing knockback animation, in update method
 		if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
@@ -277,7 +284,7 @@ public class Player implements LiveEntity {
 			}
 		}
 
-		if (health <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
+		if (healthBar.getHealth() <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
 			setAction(Action.EXPIRING);
 			dir = Direction.DOWN; // player death frames are down only
 			world.deaggroMonsters();

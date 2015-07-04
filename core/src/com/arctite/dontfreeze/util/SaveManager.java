@@ -13,7 +13,8 @@ import java.util.List;
 /**
  * Manages game saving and loading.
  *
- * Also manages game settings that aren't save-file-specific.
+ * Also manages game settings that aren't save-file-specific. Default game settings are hard-coded in the SaveManager
+ * constructor (see below).
  *
  * Created by Quasar on 24/06/2015.
  */
@@ -45,6 +46,8 @@ public class SaveManager {
 	/** Settings constants */
 	// NOTE: when adding something here the default value must be specified in settings constructor (see below)
 	public static final String VOLUME = "volume";
+	/** Default max health for player */
+	public static final String PLAYER_MAX_HEALTH = "playermaxhp";
 	/** New game stuff */
 	public static final String NEW_GAME_CHUNK_X = "newgamechunkx";
 	public static final String NEW_GAME_CHUNK_Y = "newgamechunky";
@@ -113,6 +116,7 @@ public class SaveManager {
 			setDataValue(NEW_GAME_CHUNK_Y, 5);
 			setDataValue(NEW_GAME_PLAYER_X, 270);
 			setDataValue(NEW_GAME_PLAYER_Y, 940);
+			setDataValue(PLAYER_MAX_HEALTH, 15);
 		}
 	}
 

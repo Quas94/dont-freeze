@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.entities;
 
+import com.arctite.dontfreeze.ui.HealthBar;
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -86,8 +87,7 @@ public class Monster implements LiveEntity {
 	private Rectangle specialOriginOffset;
 
 	/** Game mechanic related fields */
-	private int maxHealth;
-	private int health;
+	private HealthBar healthBar;
 
 	/**
 	 * Constructs a new Monster with the given position. The animation state of the m
@@ -144,14 +144,18 @@ public class Monster implements LiveEntity {
 		meleeRangeX += 5;
 		meleeRangeY += 5;
 
-		// initialise game mechanic related fields
-		this.maxHealth = BASE_HEALTH;
-		this.health = maxHealth;
+		// initialise health bar
+		this.healthBar = new HealthBar(this, x, y, width, 5, BASE_HEALTH, BASE_HEALTH);
+		healthBar.setVisible(false); // invisible to begin with
 	}
 
 	@Override
 	public int getId() {
 		return id;
+	}
+
+	public WorldScreen getWorld() {
+		return world;
 	}
 
 	/**
@@ -166,10 +170,12 @@ public class Monster implements LiveEntity {
 		x = saver.getDataValue(chunkId + MONSTER + name + POSITION_X, Float.class);
 		y = saver.getDataValue(chunkId + MONSTER + name + POSITION_Y, Float.class);
 		int di = saver.getDataValue(chunkId + MONSTER + name + DIR_IDX, Integer.class);
-		health = saver.getDataValue(chunkId + MONSTER + name + HEALTH, Integer.class);
+		int health = saver.getDataValue(chunkId + MONSTER + name + HEALTH, Integer.class);
+		healthBar.setHealth(health);
 		dir = Direction.getByIndex(di);
 
-		aggressive = saver.getDataValue(chunkId + MONSTER + name + AGGRO, Boolean.class);
+		boolean aggro = saver.getDataValue(chunkId + MONSTER + name + AGGRO, Boolean.class);
+		setAggressive(aggro);
 	}
 
 	/**
@@ -183,20 +189,19 @@ public class Monster implements LiveEntity {
 
 		saver.setDataValue(chunkId + MONSTER + name + POSITION_X, x);
 		saver.setDataValue(chunkId + MONSTER + name + POSITION_Y, y);
-		saver.setDataValue(chunkId + MONSTER + name + HEALTH, health);
+		saver.setDataValue(chunkId + MONSTER + name + HEALTH, healthBar.getHealth());
 		saver.setDataValue(chunkId + MONSTER + name + DIR_IDX, dir.getIdx());
 
 		saver.setDataValue(chunkId + MONSTER+ name + AGGRO, aggressive);
 	}
 
-	@Override
-	public int getMaxHealth() {
-		return maxHealth;
-	}
-
-	@Override
-	public int getHealth() {
-		return health;
+	/**
+	 * Gets the health bar UI object of this monster. The health bar is also linked to the World's stage.
+	 *
+	 * @return the monster's health bar object
+	 */
+	public HealthBar getHealthBar() {
+		return healthBar;
 	}
 
 	/**
@@ -208,11 +213,11 @@ public class Monster implements LiveEntity {
 	@Override
 	public void hit(Direction from) {
 		// deal 1 point of damage
-		health--;
+		healthBar.decrementHealth(1);
 		// change direction to 'from' direction, to make recoil animation make sense
 		dir = from;
 		// set aggressive flag to true since this monster's gonna want payback
-		aggressive = true;
+		setAggressive(true);
 		// check for monster expire when recovering from knockback state, in update method
 		if (action == Action.IDLE_MOVE) {
 			// set action to knocked back
@@ -225,6 +230,11 @@ public class Monster implements LiveEntity {
 		// both quite long in comparison to the monster's knockback animation
 	}
 
+	/**
+	 * Sets the aggressiveness of this monster.
+	 *
+	 * @param aggressive whether or not this monster is being set to aggressive
+	 */
 	public void setAggressive(boolean aggressive) {
 		this.aggressive = aggressive;
 	}
@@ -241,9 +251,13 @@ public class Monster implements LiveEntity {
 			float py = player.getY();
 			double dist = Math.sqrt(Math.pow(px - x, 2) + Math.pow(py - y, 2));
 			if (dist >= AGGRO_DROP_DISTANCE) {
-				aggressive = false;
+				setAggressive(false);
 			}
 		}
+	}
+
+	public boolean isAggressive() {
+		return aggressive;
 	}
 
 	public boolean getMeleeHit() {
@@ -436,9 +450,9 @@ public class Monster implements LiveEntity {
 		// calculate distance we can move, if we choose to move
 		float dist = delta * speed;
 
-		if (health <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
+		if (healthBar.getHealth() <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
 			setAction(Action.EXPIRING);
-			aggressive = false; // de-aggro upon death
+			setAggressive(false); // de-aggro upon death
 			SoundManager.playSound(SoundManager.SoundInfo.MONSTER_DEATH);
 		} else if (action == Action.KNOCKBACK) { // update the knockback
 			if (animations.isComplete()) {
