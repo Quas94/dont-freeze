@@ -23,7 +23,7 @@ public enum ResourceInfo {
 	// NOTE: melee attack ranges are hardcoded in the Monster constructor
 	PLAYER(Type.ENTITY, 0, 150, 80, 95),
 	SNOW_BABY(Type.ENTITY, 1, 30, 55, 50), // 55 x 50
-	SNOW_MONSTER(Type.ENTITY, 10, 60, 200, 200), // 200 x 200
+	SNOW_MONSTER(Type.ENTITY, 10, 90, 200, 200), // 200 x 200
 
 	// projectiles
 	PLAYER_PROJECTILE(Type.PROJECTILE, PLAYER.getId(), 180, 70, 60),

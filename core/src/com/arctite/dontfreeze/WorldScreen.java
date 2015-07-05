@@ -1067,6 +1067,15 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	/**
+	 * Gets whether or not the game is currently in debug mode.
+	 *
+	 * @return whether it is in debug mode
+	 */
+	public boolean isDebugMode() {
+		return debugMode;
+	}
+
+	/**
 	 * Causes the debug renderer to draw the given Rectangle. This method does not handle the debug render start or end.
 	 *
 	 * @param r the Rectangle to draw

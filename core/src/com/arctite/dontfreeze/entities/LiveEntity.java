@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.entities;
 
+import com.arctite.dontfreeze.WorldScreen;
 import com.badlogic.gdx.math.Rectangle;
 
 /**
@@ -13,6 +14,13 @@ public interface LiveEntity extends Entity {
 
 	/** Melee attacks are delayed by this many seconds before actually affecting targets */
 	public static final float MELEE_ATTACK_DELAY = 0.2F;
+
+	/**
+	 * Gets the WorldScreen object that this live entity resides within.
+	 *
+	 * @return the WorldScreen object
+	 */
+	public WorldScreen getWorld();
 
 	/**
 	 * Strikes this monster, dealing damage and potentially putting it into an Action = KNOCKBACK state.

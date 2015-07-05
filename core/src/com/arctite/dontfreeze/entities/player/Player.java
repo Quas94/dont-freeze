@@ -26,6 +26,9 @@ import static com.arctite.dontfreeze.util.SaveManager.*;
  */
 public class Player implements LiveEntity {
 
+	/** Maximum health percent */
+	private static final int FULL_HEALTH_PERCENT = 100;
+
 	/** Sprite constants and other constants. @TODO: don't hardcode this stuff */
 	private static final int COLLISION_WIDTH = 20;
 	private static final int COLLISION_HEIGHT = 10;
@@ -87,11 +90,15 @@ public class Player implements LiveEntity {
 		this.meleeCollisionBounds = null;
 
 		// setup health bar
-		int maxHealth = SaveManager.getSettings().getDataValue(SaveManager.PLAYER_MAX_HEALTH, Integer.class);
 		this.healthBar = new HealthBar(this, 10, GameMain.GAME_WINDOW_HEIGHT - HEALTH_BAR_HEIGHT - 10, HEALTH_BAR_WIDTH,
-				HEALTH_BAR_HEIGHT, maxHealth, maxHealth);
+				HEALTH_BAR_HEIGHT, FULL_HEALTH_PERCENT, FULL_HEALTH_PERCENT);
 
 		this.fires = 0;
+	}
+
+	@Override
+	public WorldScreen getWorld() {
+		return world;
 	}
 
 	/**
@@ -175,7 +182,7 @@ public class Player implements LiveEntity {
 
 	@Override
 	public void hit(Direction from) {
-		healthBar.decrementHealth(1); // take 1 damage @TODO different damage amounts
+		healthBar.decrementHealth(10); // take 1 damage @TODO different damage amounts
 		dir = from; // change direction to from
 		// check for death upon finishing knockback animation, in update method
 		if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
@@ -424,6 +431,9 @@ public class Player implements LiveEntity {
 								boolean downPressed, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 
 		float dist = delta * speed;
+
+		// if debug mode, move 4 times as fast
+		if (world.isDebugMode()) dist *= 4;
 
 		float oldX = x;
 		float oldY = y;

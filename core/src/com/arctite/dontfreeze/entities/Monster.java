@@ -36,7 +36,7 @@ public class Monster implements LiveEntity {
 	/** Color to tint monster when aggressive */
 	private static final float[] TINT = new float[] { 250 / 255F, 200 / 255F, 200 / 255F };
 
-	private static final int BASE_HEALTH = 3;
+	private static final int BASE_HEALTH = 10;
 	private static final float MELEE_COOLDOWN = 1.0F;
 	private static final float SPECIAL_COOLDOWN = 3.0F; // 3 second cooldown
 

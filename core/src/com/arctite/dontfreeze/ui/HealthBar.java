@@ -1,11 +1,9 @@
 package com.arctite.dontfreeze.ui;
 
-import com.arctite.dontfreeze.entities.Entity;
 import com.arctite.dontfreeze.entities.LiveEntity;
 import com.arctite.dontfreeze.entities.Monster;
 import com.arctite.dontfreeze.entities.player.Player;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -26,12 +24,15 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
  */
 public class HealthBar extends Group {
 
+	/** ShapeRenderer that will render outline for the player health bar */
+	private static ShapeRenderer playerSrend;
+	/** ShapeRenderer that will render outline for monster health bars */
+	private static ShapeRenderer monsterSrend;
+
 	/** Progress Bar object that this class wraps around */
 	private ProgressBar progressBar;
 	/** Rectangle that defines the outline of this bar */
 	private Rectangle outline;
-	/** ShapeRenderer that will render the outline */
-	private ShapeRenderer srend;
 	/** Label containing the text inside this health bar */
 	private Label label;
 	/** Entity that this health bar is a part of */
@@ -50,6 +51,16 @@ public class HealthBar extends Group {
 	private int health;
 
 	/**
+	 * Initialise shape renderers in static block
+	 */
+	static {
+		playerSrend = new ShapeRenderer();
+		playerSrend.setColor(Color.BLACK);
+		monsterSrend = new ShapeRenderer();
+		monsterSrend.setColor(Color.BLACK);
+	}
+
+	/**
 	 * Creates a health bar to be displayed on the screen at the given location, with the given settings.
 	 *
 	 * @param entity the Entity that this health bar is a part of
@@ -64,17 +75,11 @@ public class HealthBar extends Group {
 		this.entity = entity;
 		this.isPlayer = (entity instanceof Player);
 
-		this.x = x;
-		this.y = y;
 		this.width = width;
 		this.height = height;
 
 		this.maxHealth = maxHealth;
 		this.health = health;
-
-		this.srend = new ShapeRenderer();
-		srend.setColor(Color.BLACK);
-		this.outline = new Rectangle(x, y, width - 1, height - 1);
 
 		ProgressBar.ProgressBarStyle style = new ProgressBar.ProgressBarStyle();
 		Pixmap white = new Pixmap(1, height, Pixmap.Format.RGB888); // outline
@@ -101,6 +106,9 @@ public class HealthBar extends Group {
 		progressBar.setAnimateDuration(0.333F);
 		progressBar.setAnimateInterpolation(Interpolation.linear);
 		addActor(progressBar);
+
+		// set position now that everything required is initialised
+		setPosition(x, y);
 
 		// add text label after to render on top
 		if (isPlayer) {
@@ -161,7 +169,7 @@ public class HealthBar extends Group {
 
 		// update label text, width and position for player health bar, but not monsters
 		if (isPlayer) {
-			label.setText(health + " / " + maxHealth);
+			label.setText((int) (progressBar.getVisualPercent() * 100) + "%");
 			float prefWidth = label.getPrefWidth();
 			label.setWidth(prefWidth); // set preferred width with the new text
 			float newX = (width - prefWidth) / 2 + x;
@@ -190,17 +198,26 @@ public class HealthBar extends Group {
 	public void draw(Batch batch, float parentAlpha) {
 		// draw bar and text
 		super.draw(batch, parentAlpha);
-		if (isPlayer) { // only draw outline for player health bar @TODO fix for monsters
-			// draw outline (will override edge pixels of the bar)
-			srend.begin(ShapeRenderer.ShapeType.Line);
-			// the 0.5 offset is to correct missing corner pixels
-			srend.rect(outline.x, outline.y, outline.width + 0.5F, outline.height + 0.5F);
-			srend.end();
+
+		// use appropriate shape renderer
+		ShapeRenderer srend;
+		if (isPlayer) {
+			srend = playerSrend;
+		} else {
+			srend = monsterSrend;
+			srend.setProjectionMatrix(entity.getWorld().getCamera().combined);
 		}
+
+		// draw outline (will override edge pixels of the bar)
+		srend.begin(ShapeRenderer.ShapeType.Line);
+		// the 0.5 offset is to correct missing corner pixels
+		srend.rect(outline.x, outline.y, outline.width + 0.5F, outline.height + 0.5F);
+		srend.end();
 	}
 
 	@Override
 	public void setPosition(float x, float y){
+		outline = new Rectangle(x, y, width - 1, height - 1);
 		this.x = x;
 		this.y = y;
 		progressBar.setPosition(x, y);
