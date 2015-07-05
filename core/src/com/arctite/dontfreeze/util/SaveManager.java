@@ -33,7 +33,6 @@ public class SaveManager {
 	public static final String ACTIVE = "active"; // whether this monster/collectable is still alive/not-picked-up
 	public static final String TRIGGERED = "trig"; // whether this event has been triggered yet
 	public static final String PLAYER = "player";
-	public static final String FIRES = "f"; // player only, but still need PLAYER prefix
 	public static final String MONSTER = "m";
 	public static final String AGGRO = "a"; // monster only, but still need MONSTER prefix
 	public static final String COLLECTABLE = "c";

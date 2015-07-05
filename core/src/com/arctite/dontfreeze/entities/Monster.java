@@ -31,7 +31,8 @@ public class Monster implements LiveEntity {
 	/** Drop aggressiveness at this distance (between player and the monster) */
 	private static final float AGGRO_DROP_DISTANCE = 500;
 	/** Fade speed */
-	private static final float FADE_SPEED = 0.5F; // 2 seconds to completely fade
+	private static final float FADE_IN_SPEED = 1.0F; // 1 second to completely fade in
+	private static final float FADE_OUT_SPEED = 0.5F; // 2 seconds to completely fade out
 
 	/** Color to tint monster when aggressive */
 	private static final float[] TINT = new float[] { 250 / 255F, 200 / 255F, 200 / 255F };
@@ -51,9 +52,8 @@ public class Monster implements LiveEntity {
 	private Direction dir;
 	private Action action;
 	private AnimationManager animations;
-
-	/** Fading status after expiration. Starts off at 1 (fully opaque) and goes to 0 (fully transparent) */
-	private float fade;
+	private boolean spawning; // whether this monster is spawning (fading in)
+	private float alpha; // for fading in (spawning) and out (expiring)
 
 	/** Movement "AI" stuff */
 	/** Fields related to randomised movement */
@@ -114,7 +114,8 @@ public class Monster implements LiveEntity {
 
 		this.dir = Direction.LEFT;
 		this.action = Action.IDLE_MOVE;
-		this.fade = 1.0F;
+		this.alpha = 1.0F;
+		this.spawning = false;
 
 		// create animation manager
 		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, info);
@@ -213,7 +214,7 @@ public class Monster implements LiveEntity {
 	@Override
 	public void hit(Direction from) {
 		// deal 1 point of damage
-		healthBar.decrementHealth(1);
+		healthBar.changeHealth(-1);
 		// change direction to 'from' direction, to make recoil animation make sense
 		dir = from;
 		// set aggressive flag to true since this monster's gonna want payback
@@ -258,6 +259,11 @@ public class Monster implements LiveEntity {
 
 	public boolean isAggressive() {
 		return aggressive;
+	}
+
+	public void setSpawning(boolean spawning) {
+		this.spawning = spawning;
+		alpha = 0;
 	}
 
 	public boolean getMeleeHit() {
@@ -342,8 +348,8 @@ public class Monster implements LiveEntity {
 	 *
 	 * @return if we can remove this monster from the world
 	 */
-	public boolean isFadeComplete() {
-		return (action == Action.EXPIRING) && animations.isComplete() && (fade <= 0);
+	public boolean isFadeOutComplete() {
+		return (action == Action.EXPIRING) && animations.isComplete() && (alpha <= 0);
 	}
 
 	@Override
@@ -369,6 +375,25 @@ public class Monster implements LiveEntity {
 	@Override
 	public Direction getDirection() {
 		return dir;
+	}
+
+	/**
+	 * Changes this monster's direction to face at the player.
+	 *
+	 * @param player the player object
+	 */
+	public void face(Player player) {
+		float diffX = x - player.getX();
+		float diffY = y - player.getY();
+		float absDiffX = Math.abs(diffX);
+		float absDiffY = Math.abs(diffY);
+		if (absDiffX >= absDiffY) { // difference is bigger horizontally, face horizontally
+			if (diffX >= 0) dir = Direction.LEFT;
+			else dir = Direction.RIGHT;
+		} else { // difference is bigger vertically, face vertically
+			if (diffY >= 0) dir = Direction.DOWN;
+			else dir = Direction.UP;
+		}
 	}
 
 	@Override
@@ -429,10 +454,16 @@ public class Monster implements LiveEntity {
 
 	@Override
 	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
-		// update fade if expiry animation complete
+		// update fade
 		if (action == Action.EXPIRING && animations.isComplete()) {
-			fade -= delta * FADE_SPEED;
+			alpha -= delta * FADE_OUT_SPEED;
 			return; // don't do anything else
+		} else if (spawning) {
+			alpha += delta * FADE_IN_SPEED;
+			if (alpha >= 1) {
+				alpha = 1;
+				spawning = false; // finished spawning
+			}
 		}
 
 		// update animation
@@ -645,9 +676,9 @@ public class Monster implements LiveEntity {
 	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animations.getCurrentFrame(dir);
 		if (aggressive) { // tint red if aggro
-			spriteBatch.setColor(TINT[0], TINT[1], TINT[2], fade);
+			spriteBatch.setColor(TINT[0], TINT[1], TINT[2], alpha);
 		} else {
-			spriteBatch.setColor(Color.WHITE.r, Color.WHITE.g, Color.WHITE.b, fade);
+			spriteBatch.setColor(Color.WHITE.r, Color.WHITE.g, Color.WHITE.b, alpha);
 		}
 		spriteBatch.draw(frame, x, y);
 		spriteBatch.setColor(Color.WHITE); // untint

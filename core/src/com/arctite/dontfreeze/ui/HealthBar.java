@@ -162,10 +162,10 @@ public class HealthBar extends Group {
 	/**
 	 * Decrements the current health by the given value.
 	 *
-	 * @param damage about to decrease current health by
+	 * @param change amount to increase (or decrease, if negative) current health by
 	 */
-	public void decrementHealth(int damage) {
-		setHealth(health - damage);
+	public void changeHealth(int change) {
+		setHealth(health + change);
 	}
 
 	/**

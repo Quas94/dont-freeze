@@ -1,7 +1,6 @@
 package com.arctite.dontfreeze;
 
 import com.arctite.dontfreeze.ui.ConversationBox;
-import com.arctite.dontfreeze.ui.HealthBar;
 import com.arctite.dontfreeze.ui.SkinManager;
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
@@ -639,7 +638,9 @@ public class WorldScreen extends AbstractScreen {
 		Monster toSpawn = spawnableMonsters.get(mkey);
 		if (toSpawn == null) throw new RuntimeException("attempting to spawn monster '" + mkey + "' failed");
 		spawnableMonsters.remove(mkey); // remove from spawnable
+		toSpawn.setSpawning(true); // set spawn flag to true
 		toSpawn.setAggressive(true); // monster is aggro on spawn
+		toSpawn.face(player); // set direction to face player
 		monsters.put(mkey, toSpawn);
 		orderedEntities.add(toSpawn);
 		// no need to sort ordered entities here, will be done at end of update() after this
@@ -752,7 +753,7 @@ public class WorldScreen extends AbstractScreen {
 				Monster monster = monsters.get(mkey);
 				monster.update(DELTA_STEP, effectivePause, allRects, allPolys);
 				monster.updateAggressive(player); // update aggressiveness (ie. check for aggro drop based on distance)
-				if (monster.isFadeComplete()) {
+				if (monster.isFadeOutComplete()) {
 					removeKeys.add(mkey);
 					orderedEntities.remove(monster); // remove from orderedEntities as well as monsters list
 				}

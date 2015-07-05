@@ -69,7 +69,6 @@ public class Player implements LiveEntity {
 
 	/** Gameplay fields */
 	private HealthBar healthBar;
-	private int fires;
 
 	public Player(WorldScreen world, WorldInputHandler inputHandler, float x, float y) {
 		this.world = world;
@@ -92,8 +91,6 @@ public class Player implements LiveEntity {
 		// setup health bar
 		this.healthBar = new HealthBar(this, 10, GameMain.GAME_WINDOW_HEIGHT - HEALTH_BAR_HEIGHT - 10, HEALTH_BAR_WIDTH,
 				HEALTH_BAR_HEIGHT, FULL_HEALTH_PERCENT, FULL_HEALTH_PERCENT);
-
-		this.fires = 0;
 	}
 
 	@Override
@@ -138,8 +135,6 @@ public class Player implements LiveEntity {
 		healthBar.setHealth(health);
 		int di = saver.getDataValue(PLAYER + DIR_IDX, Integer.class);
 		dir = Direction.getByIndex(di);
-
-		fires = saver.getDataValue(PLAYER + FIRES, Integer.class);
 	}
 
 	/**
@@ -153,9 +148,8 @@ public class Player implements LiveEntity {
 
 		saver.setDataValue(PLAYER + POSITION_X, x);
 		saver.setDataValue(PLAYER + POSITION_Y, y);
-		saver.setDataValue(PLAYER + HEALTH, (int) healthBar.getHealth());
+		saver.setDataValue(PLAYER + HEALTH, healthBar.getHealth());
 		saver.setDataValue(PLAYER + DIR_IDX, dir.getIdx());
-		saver.setDataValue(PLAYER + FIRES, fires);
 	}
 
 	public int getChunkX() {
@@ -182,7 +176,7 @@ public class Player implements LiveEntity {
 
 	@Override
 	public void hit(Direction from) {
-		healthBar.decrementHealth(10); // take 1 damage @TODO different damage amounts
+		healthBar.changeHealth(-10); // take 1 damage @TODO different damage amounts
 		dir = from; // change direction to from
 		// check for death upon finishing knockback animation, in update method
 		if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
@@ -190,15 +184,11 @@ public class Player implements LiveEntity {
 		}
 	}
 
-	public int getFireCount() {
-		return fires;
-	}
-
 	public void collectFire() {
 		// play pickup fire sound
 		SoundManager.playSound(SoundManager.SoundInfo.PLAYER_PICKUP_FIRE);
 
-		fires++;
+		healthBar.changeHealth(5);
 	}
 
 	@Override
