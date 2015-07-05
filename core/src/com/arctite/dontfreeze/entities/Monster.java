@@ -170,9 +170,9 @@ public class Monster implements LiveEntity {
 		x = saver.getDataValue(chunkId + MONSTER + name + POSITION_X, Float.class);
 		y = saver.getDataValue(chunkId + MONSTER + name + POSITION_Y, Float.class);
 		int di = saver.getDataValue(chunkId + MONSTER + name + DIR_IDX, Integer.class);
+		dir = Direction.getByIndex(di);
 		int health = saver.getDataValue(chunkId + MONSTER + name + HEALTH, Integer.class);
 		healthBar.setHealth(health);
-		dir = Direction.getByIndex(di);
 
 		boolean aggro = saver.getDataValue(chunkId + MONSTER + name + AGGRO, Boolean.class);
 		setAggressive(aggro);

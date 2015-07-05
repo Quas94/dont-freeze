@@ -3,6 +3,8 @@ package com.arctite.dontfreeze.ui;
 import com.arctite.dontfreeze.entities.LiveEntity;
 import com.arctite.dontfreeze.entities.Monster;
 import com.arctite.dontfreeze.entities.player.Player;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -71,7 +73,7 @@ public class HealthBar extends Group {
 	 * @param maxHealth maximum health of this bar
 	 * @param health current health of this bar
 	 */
-	public HealthBar(LiveEntity entity, float x, float y, int width, int height, int maxHealth, int health) {
+	public HealthBar(final LiveEntity entity, float x, float y, int width, int height, int maxHealth, int health) {
 		this.entity = entity;
 		this.isPlayer = (entity instanceof Player);
 
@@ -99,11 +101,19 @@ public class HealthBar extends Group {
 		style.knobAfter = whiteDraw;
 		style.background = blackDraw;
 
-		this.progressBar = new ProgressBar(0, maxHealth, 1, false, style);
+		this.progressBar = new ProgressBar(0, maxHealth, 1, false, style) {
+			@Override
+			public void draw(Batch batch, float pa) {
+				super.draw(batch, pa);
+				if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+					System.out.println("drawing visual value of " + getVisualValue());
+				}
+			}
+		};
 		progressBar.setValue(health); // set to current health
 		progressBar.setPosition(x, y);
-		progressBar.setSize(width, progressBar.getPrefHeight());
-		progressBar.setAnimateDuration(0.333F);
+		progressBar.setSize(width, height);
+		progressBar.setAnimateDuration(0.3333F);
 		progressBar.setAnimateInterpolation(Interpolation.linear);
 		addActor(progressBar);
 
@@ -128,6 +138,15 @@ public class HealthBar extends Group {
 	 */
 	public int getHealth() {
 		return health;
+	}
+
+	/**
+	 * Gets the health currently being displayed on the health bar (can be interpolated values).
+	 *
+	 * @return current value being displayed on health
+	 */
+	public float getDisplayedHealth() {
+		return progressBar.getVisualValue();
 	}
 
 	/**
@@ -174,7 +193,7 @@ public class HealthBar extends Group {
 			label.setWidth(prefWidth); // set preferred width with the new text
 			float newX = (width - prefWidth) / 2 + x;
 			label.setPosition(newX, label.getY());
-		} else { // can only be monster
+		} else if (entity != null) { // can only be monster
 			Monster monster = (Monster) entity;
 			boolean aggro = monster.isAggressive();
 			setVisible(aggro);
@@ -207,12 +226,13 @@ public class HealthBar extends Group {
 			srend = monsterSrend;
 			srend.setProjectionMatrix(entity.getWorld().getCamera().combined);
 		}
-
+		batch.end(); // need to end batch before using shaperenderer otherwise other actors in same stage get missed
 		// draw outline (will override edge pixels of the bar)
 		srend.begin(ShapeRenderer.ShapeType.Line);
 		// the 0.5 offset is to correct missing corner pixels
 		srend.rect(outline.x, outline.y, outline.width + 0.5F, outline.height + 0.5F);
 		srend.end();
+		batch.begin();
 	}
 
 	@Override

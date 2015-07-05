@@ -133,7 +133,8 @@ public class MenuScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
-				getGame().setWorldLoadGame();
+				setTransitioning(false, GameMain.ChangeType.WORLD_LOAD_GAME);
+				///getGame().setWorldLoadGame();
 			}
 		});
 		TextButton newGameButton = buttons.get(NEW_GAME);
@@ -141,7 +142,7 @@ public class MenuScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
-				getGame().setWorldNewGame();
+				setTransitioning(false, GameMain.ChangeType.WORLD_NEW_GAME);
 			}
 		});
 		TextButton quitGameButton = buttons.get(QUIT_GAME);
@@ -206,16 +207,20 @@ public class MenuScreen extends AbstractScreen {
 
 	@Override
 	public void update(float delta) {
-		// check toggle sound
-		getGame().checkToggleSound();
-
-		// update UI
-		stage.act(delta);
 		// update logo fire
 		logoFireStateTime += delta;
 		// update decoration monsters
 		for (Monster dec : decorations) {
 			dec.updateAsDecoration(delta, DECORATION_Y_BOUND);
+		}
+
+		// check toggle sound
+		getGame().checkToggleSound();
+
+		// UI not updated if transitioning
+		if (!isTransitioning()) {
+			// update UI
+			stage.act(delta);
 		}
 	}
 
@@ -255,6 +260,8 @@ public class MenuScreen extends AbstractScreen {
 
 	@Override
 	public void show() {
+		super.show();
+
 		// set input processor to menu's one
 		Gdx.input.setInputProcessor(stage);
 

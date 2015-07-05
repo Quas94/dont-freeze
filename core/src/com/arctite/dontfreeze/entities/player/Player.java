@@ -291,7 +291,7 @@ public class Player implements LiveEntity {
 			}
 		}
 
-		if (healthBar.getHealth() <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
+		if (healthBar.getHealth() <= 0 && action != Action.KNOCKBACK && action != Action.EXPIRING) {
 			setAction(Action.EXPIRING);
 			dir = Direction.DOWN; // player death frames are down only
 			world.deaggroMonsters();
@@ -565,21 +565,29 @@ public class Player implements LiveEntity {
 			// lastRenderedDir is used so that the screen displays the player facing the correct dir before map change
 			if (x < 0) {
 				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X || lastRenderedDir != dir) x = 0;
-				else game.setWorldChangeMap(Direction.LEFT);
+				else changeMap();
 			}
 			if (x >= RIGHTMOST_X) {
 				if (chunkX == WorldScreen.RIGHTMOST_CHUNK_X || lastRenderedDir != dir) x = RIGHTMOST_X;
-				else game.setWorldChangeMap(Direction.RIGHT);
+				else changeMap();
 			}
 			if (y < 0) {
 				if (chunkY == WorldScreen.LOWEST_CHUNK_Y || lastRenderedDir != dir) y = 0;
-				else game.setWorldChangeMap(Direction.DOWN);
+				else changeMap();
 			}
 			if (y >= HIGHEST_Y) {
 				if (chunkY == WorldScreen.HIGHEST_CHUNK_Y || lastRenderedDir != dir) y = HIGHEST_Y;
-				else game.setWorldChangeMap(Direction.UP);
+				else changeMap();
 			}
 		}
+	}
+
+	/**
+	 * Shorthand for changing maps. Called from updateMovement() (see above)
+	 */
+	private void changeMap() {
+		world.getGame().setWorldChangeMapDirection(dir);
+		world.setTransitioning(false, GameMain.ChangeType.WORLD_CHANGE_MAP);
 	}
 
 	@Override

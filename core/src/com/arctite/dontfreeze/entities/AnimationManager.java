@@ -200,11 +200,11 @@ public class AnimationManager {
 	 */
 	public TextureRegion getCurrentFrame(Direction dir) {
 		prefix = lastAction.getPrefix() + dir.getChar();
-		//if(entity instanceof Player)prefix = prefix.replaceAll("s", "z").replaceAll("k", "s").replaceAll("z", "k");
 		try {
 			return animations.get(prefix).getKeyFrame(stateTime);
 		} catch (NullPointerException npe) {
-			System.out.println("prefix = " + prefix + ", animations.get(prefix) = " + animations.get(prefix));
+			System.err.println("entity = " + entity.toString() + "prefix = " + prefix + ", animations.get(prefix) = " +
+					animations.get(prefix));
 			throw new RuntimeException("missing frame - see above line");
 		}
 	}

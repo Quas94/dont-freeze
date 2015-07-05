@@ -39,14 +39,27 @@ public class GameMain extends Game {
 	/** The single SpriteBatch which renders the entire game, all the screens */
 	private SpriteBatch spriteBatch;
 
-	/** Settings */
-
 	/** The menu screen, handling new games, saving/loading, credits, pausing, etc */
 	private MenuScreen menu;
 	/** Screen representing the game world, where the majority of the game will be played */
 	private WorldScreen world;
 	/** WorldInputHandler which should stay the same throughout the entire game application */
 	private WorldInputHandler worldInputHandler;
+
+	/** Direction flag for use by the setWorldChangeMap method */
+	private Direction changeMapDir;
+
+	/**
+	 * Enum used to decide which method to call after a fade out of an AbstractScreen.
+	 */
+	public static enum ChangeType {
+
+		WORLD_NEW_GAME,
+		WORLD_CHANGE_MAP,
+		WORLD_LOAD_GAME,
+		MENU,
+		;
+	}
 
 	/**
 	 * Creates a new instance of GameMain.
@@ -67,7 +80,7 @@ public class GameMain extends Game {
 	/**
 	 * Initialises a new WorldScreen and transitions to that screen.
 	 */
-	public void setWorldNewGame() {
+	private void setWorldNewGame() {
 		world = new WorldScreen(this, worldInputHandler, null, spriteBatch);
 		// new game, so clear save manager
 		SaveManager.getSaveManager().clearAll();
@@ -75,11 +88,25 @@ public class GameMain extends Game {
 	}
 
 	/**
-	 * Initialises a new WorldScreen with the direction to go from that map
+	 * Sets the direction for use by the setWorldChangeMap() method.
 	 *
-	 * @param dir the direction to move from the current WorldScreen
+	 * @param dir the direction to change maps to
 	 */
-	public void setWorldChangeMap(Direction dir) {
+	public void setWorldChangeMapDirection(Direction dir) {
+		changeMapDir = dir;
+	}
+
+	/**
+	 * Initialises a new WorldScreen and changes over to it.
+	 *
+	 * The direction pre-load method setWorldChangeMapDirection() MUST be called before invoking setTransitioning() to
+	 * this method.
+	 */
+	private void setWorldChangeMap() {
+		if (changeMapDir == null) {
+			throw new IllegalStateException("setWorldChangeMapDirection() must be called before setWorldChangeMap()");
+		}
+
 		// de-aggro monsters in from-chunk
 		world.deaggroMonsters();
 		// save from-chunk's values
@@ -91,16 +118,16 @@ public class GameMain extends Game {
 		float playerY = player.getY();
 		int mapX = world.getChunkX();
 		int mapY = world.getChunkY();
-		if (dir == Direction.LEFT) {
+		if (changeMapDir == Direction.LEFT) {
 			playerX = Player.RIGHTMOST_X - 1;
 			mapX--;
-		} else if (dir == Direction.RIGHT) {
+		} else if (changeMapDir == Direction.RIGHT) {
 			playerX = 0;
 			mapX++;
-		} else if (dir == Direction.DOWN) {
+		} else if (changeMapDir == Direction.DOWN) {
 			playerY = Player.HIGHEST_Y - 1;
 			mapY--;
-		} else if (dir == Direction.UP) {
+		} else if (changeMapDir == Direction.UP) {
 			playerY = 0;
 			mapY++;
 		}
@@ -122,7 +149,7 @@ public class GameMain extends Game {
 	/**
 	 * Loads a WorldScreen from the save file and transitions to that screen.
 	 */
-	public void setWorldLoadGame() {
+	private void setWorldLoadGame() {
 		// load save manager and get the map chunk to load
 		SaveManager.getSaveManager().load();
 		// load player info first
@@ -138,8 +165,30 @@ public class GameMain extends Game {
 	/**
 	 * Transitions to the menu screen.
 	 */
-	public void setMenu() {
+	private void setMenu() {
 		setScreen(menu);
+	}
+
+	/**
+	 * Calls the corresponding change method, given the type enum.
+	 *
+	 * @param type the type which defines which method to call
+	 */
+	public void setScreen(ChangeType type) {
+		switch (type) {
+			case WORLD_CHANGE_MAP:
+				setWorldChangeMap();
+				break;
+			case WORLD_LOAD_GAME:
+				setWorldLoadGame();
+				break;
+			case WORLD_NEW_GAME:
+				setWorldNewGame();
+				break;
+			case MENU:
+				setMenu();
+				break;
+		}
 	}
 
 	/**

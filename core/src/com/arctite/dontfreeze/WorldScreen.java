@@ -1,6 +1,7 @@
 package com.arctite.dontfreeze;
 
 import com.arctite.dontfreeze.ui.ConversationBox;
+import com.arctite.dontfreeze.ui.HealthBar;
 import com.arctite.dontfreeze.ui.SkinManager;
 import com.arctite.dontfreeze.util.*;
 import com.badlogic.gdx.Gdx;
@@ -191,7 +192,7 @@ public class WorldScreen extends AbstractScreen {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
 				SoundManager.playClick();
-				getGame().setMenu();
+				setTransitioning(false, GameMain.ChangeType.MENU);
 			}
 		});
 		endGameButton.setVisible(false);
@@ -217,7 +218,7 @@ public class WorldScreen extends AbstractScreen {
 				saveValues(); // save the game and save player too
 				player.save();
 				SaveManager.getSaveManager().saveToJson();
-				getGame().setMenu();
+				setTransitioning(false, GameMain.ChangeType.MENU);
 			}
 		});
 		saveAndExitButton.setVisible(false);
@@ -350,6 +351,9 @@ public class WorldScreen extends AbstractScreen {
 				orderedEntities.add(monster);
 			}
 		}
+		//Monster test = new Monster(this, 1, 0, 0);
+		//test.setAggressive(true);
+		//stage.addActor(new HealthBar(test, 100, 100, 100, 20, 3, 5));
 		// sort ordered entities list
 		sortOrderedEntities();
 
@@ -720,9 +724,9 @@ public class WorldScreen extends AbstractScreen {
 			}
 		}
 
-		// either esc-pause or convobox active are effectively pauses for game logic update purposes
+		// esc-pause, convobox active, or transitioning are all effectively pauses for game logic update purposes
 		boolean convoActive = convoBox.isVisible();
-		boolean effectivePause = paused || convoActive;
+		boolean effectivePause = paused || convoActive || isTransitioning();
 
 		// toggle paused mode if player isn't dead
 		if (!playerExpireComplete && !convoActive && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -1086,6 +1090,8 @@ public class WorldScreen extends AbstractScreen {
 
 	@Override
 	public void show() {
+		super.show();
+
 		// set input handler since it will be menuscreen's handler before this
 		Gdx.input.setInputProcessor(inputMultiplexer);
 	}
