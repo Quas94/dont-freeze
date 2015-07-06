@@ -380,6 +380,7 @@ public class WorldScreen extends AbstractScreen {
 				spawnableCollectables.put(name, collectable); // add collectable to hashmap by key = unique name
 			} else {
 				collectables.put(name, collectable);
+				orderedEntities.add(collectable);
 			}
 		}
 
@@ -501,6 +502,7 @@ public class WorldScreen extends AbstractScreen {
 				boolean active = saver.hasDataValue(chunkId + COLLECTABLE + ckey + ACTIVE);
 				if (!active) {
 					removeKeys.add(ckey);
+					orderedEntities.remove(collectables.get(ckey)); // remove from ordered entities also
 				}
 			}
 			// remove collectables that weren't found in save file
@@ -651,9 +653,9 @@ public class WorldScreen extends AbstractScreen {
 	 *
 	 * If the monster name is invalid (or otherwise unsuccessful at spawning), an exception will be thrown.
 	 *
-	 * @param mkey the monster name
+	 * @param mkey the monster name, as defined in the Tiled map
 	 */
-	public void spawn(String mkey) {
+	public void spawnMonster(String mkey) {
 		Monster toSpawn = spawnableMonsters.get(mkey);
 		if (toSpawn == null) throw new RuntimeException("attempting to spawn monster '" + mkey + "' failed");
 		spawnableMonsters.remove(mkey); // remove from spawnable
@@ -663,6 +665,21 @@ public class WorldScreen extends AbstractScreen {
 		monsters.put(mkey, toSpawn);
 		orderedEntities.add(toSpawn);
 		// no need to sort ordered entities here, will be done at end of update() after this
+	}
+
+	/**
+	 * Spawns the collectable with the given name, ie. moves it from the spawnableCollectables map into the normal
+	 * collectables map (as well as orderedEntities list).
+	 *
+	 * @param ckey the collectable name, as defined in the Tiled map
+	 */
+	public void spawnCollectable(String ckey) {
+		Collectable toSpawn = spawnableCollectables.get(ckey);
+		if (toSpawn == null) throw new RuntimeException("attempting to spawn collectable '" + ckey + "' failed");
+		spawnableCollectables.remove(ckey); // remove from spawnable
+		toSpawn.setSpawning(); // set spawning to fade in
+		collectables.put(ckey, toSpawn);
+		orderedEntities.add(toSpawn); // add to collectables and orderedEntities collections
 	}
 
 	/**
@@ -837,6 +854,7 @@ public class WorldScreen extends AbstractScreen {
 				if (Collisions.collidesShapes(player.getCollisionBounds(), c.getCollisionBounds())) {
 					// remove from the map, because we picked it up
 					removeKeys.add(ckey);
+					orderedEntities.remove(c);
 					// increment our collected counter
 					player.collect(c);
 				}
@@ -1001,10 +1019,7 @@ public class WorldScreen extends AbstractScreen {
 			mapRenderer.renderSpriteLayer(screenTop, screenBot, true);
 		}
 
-		// collectables and projectiles always rendered on the very top
-		for (Collectable collectable : collectables.values()) {
-			collectable.render(spriteBatch);
-		}
+		// projectiles always rendered on the very top
 		for (Projectile projectile : projectiles) {
 			projectile.render(spriteBatch);
 		}

@@ -18,7 +18,7 @@ public enum ResourceInfo {
 
 	// collectables
 	FIRE(Type.COLLECTABLE, 1, 0, 50, 65),
-	FIRE_CORE(Type.COLLECTABLE, 10, 0, 60, 60),
+	FIRE_CORE(Type.COLLECTABLE, 10, 0, 70, 70),
 
 	// animated obstacles
 	GEYSER(Type.ANIMATED_OBSTACLE, 1, 0, 130, 200),

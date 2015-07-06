@@ -15,7 +15,8 @@ public class Event {
 
 	/** Types */
 	public static final String TYPE_MESSAGE = "message";
-	public static final String TYPE_SPAWN = "spawn";
+	public static final String TYPE_SPAWN_MONSTER = "spawn";
+	public static final String TYPE_SPAWN_COLLECTABLE = "spawnc";
 	public static final String TYPE_SET = "set"; // sets event properties
 	public static final String TYPE_ANIMATE = "animate"; // activate an AnimatedObstacle
 
@@ -118,8 +119,10 @@ public class Event {
 			if (type.equals(TYPE_MESSAGE)) {
 				// get the game message corresponding to this event's name
 				world.getConvoBox().setMessages(GameMessages.getMessage(name));
-			} else if (type.equals(TYPE_SPAWN)) {
-				world.spawn(name);
+			} else if (type.equals(TYPE_SPAWN_MONSTER)) {
+				world.spawnMonster(name);
+			} else if (type.equals(TYPE_SPAWN_COLLECTABLE)) {
+				world.spawnCollectable(name);
 			} else if (type.equals(TYPE_SET)) {
 				String[] split = name.split(EQUALS);
 				String propName = split[0];

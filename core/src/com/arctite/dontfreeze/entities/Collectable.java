@@ -1,6 +1,7 @@
 package com.arctite.dontfreeze.entities;
 
 import com.arctite.dontfreeze.util.ResourceInfo;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
@@ -16,6 +17,9 @@ import java.util.List;
  */
 public class Collectable implements Entity {
 
+	/** Fade speed */
+	private static final float FADE_IN_SPEED = 1.0F; // 1 second to completely fade in
+
 	/** Technical fields */
 	private WorldScreen world;
 	private int id;
@@ -24,6 +28,11 @@ public class Collectable implements Entity {
 	private int width;
 	private int height;
 	private AnimationManager animation;
+
+	/** Whether this collectable is spawning in */
+	private boolean spawning;
+	/** When spawning, alpha value of the collectable */
+	private float alpha;
 
 	public Collectable(WorldScreen world, int id, float x, float y) {
 		this.world = world;
@@ -37,6 +46,17 @@ public class Collectable implements Entity {
 
 		// getDirection() always returns down
 		this.animation = new AnimationManager(AnimationManager.UNI_DIR, this, info);
+
+		this.spawning = false;
+		this.alpha = 0;
+	}
+
+	/**
+	 * Sets this collectable to start spawning.
+	 */
+	public void setSpawning() {
+		this.spawning = true;
+		alpha = 0;
 	}
 
 	@Override
@@ -88,11 +108,25 @@ public class Collectable implements Entity {
 	@Override
 	public void update(float delta, boolean paused, List<Rectangle> rects, List<RectangleBoundedPolygon> polys) {
 		animation.update(delta);
+
+		if (spawning) { // update spawning alpha and status
+			alpha += delta * FADE_IN_SPEED;
+			if (alpha >= 1.0F) {
+				alpha = 1.0F;
+				spawning = false; // finished spawning
+			}
+		}
 	}
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
 		TextureRegion frame = animation.getCurrentFrame(getDirection());
-		spriteBatch.draw(frame, x, y);
+		if (spawning) { // if spawning, tint
+			spriteBatch.setColor(Color.WHITE.r, Color.WHITE.g, Color.WHITE.b, alpha);
+		}
+		spriteBatch.draw(frame, x, y); // actually draw collectable
+		if (spawning) { // untint
+			spriteBatch.setColor(Color.WHITE);
+		}
 	}
 }
