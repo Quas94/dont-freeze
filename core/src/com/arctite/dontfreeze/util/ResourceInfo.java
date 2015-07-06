@@ -18,6 +18,10 @@ public enum ResourceInfo {
 
 	// collectables
 	FIRE(Type.COLLECTABLE, 1, 0, 50, 65),
+	FIRE_CORE(Type.COLLECTABLE, 10, 0, 60, 60),
+
+	// animated obstacles
+	GEYSER(Type.ANIMATED_OBSTACLE, 1, 0, 130, 200),
 
 	// live entities (player and monsters)
 	// NOTE: melee attack ranges are hardcoded in the Monster constructor
@@ -40,6 +44,11 @@ public enum ResourceInfo {
 		// collectables
 		// fire
 		FIRE.frameRates.put(Action.IDLE_MOVE, 0.1F);
+		FIRE_CORE.frameRates.put(Action.IDLE_MOVE, 0.1F);
+
+		// animated obstacles
+		GEYSER.frameRates.put(Action.IDLE_MOVE, 0.2F);
+		GEYSER.frameRates.put(Action.ANIMATING, 0.15F);
 
 		// player
 		PLAYER.frameRates.put(Action.IDLE_MOVE, 0.12F);
@@ -197,6 +206,7 @@ public enum ResourceInfo {
 		COLLECTABLE("collectables"),
 		ENTITY("entities"), // refers to both player entity and monster entities
 		PROJECTILE("projectiles"),
+		ANIMATED_OBSTACLE("animated"), // geyser
 		;
 
 		private static final String ASSETS = "assets/";

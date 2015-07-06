@@ -17,6 +17,7 @@ public class Event {
 	public static final String TYPE_MESSAGE = "message";
 	public static final String TYPE_SPAWN = "spawn";
 	public static final String TYPE_SET = "set"; // sets event properties
+	public static final String TYPE_ANIMATE = "animate"; // activate an AnimatedObstacle
 
 	/** Splitter for set-type event names, and required prop/value pairs */
 	public static final String EQUALS = "=";
@@ -33,6 +34,8 @@ public class Event {
 	private String[] types;
 	/** Bounds of this Event on the map - player colliding with these bounds triggers this Event */
 	private Rectangle bounds;
+	/** Repeatable flag (which works by forcing the triggered flag to stay false) */
+	private boolean repeatable;
 	/** Triggered flag */
 	private boolean triggered;
 	/** Requirements for this event to trigger */
@@ -49,13 +52,15 @@ public class Event {
 	 * @param y bounds y coordinate (bottom left corner)
 	 * @param width width of the bounds
 	 * @param height height of the bounds
+	 * @param repeatable whether this event is repeatable
 	 */
-	public Event(int id, String names, String types, int x, int y, float width, float height) {
+	public Event(int id, String names, String types, int x, int y, float width, float height, boolean repeatable) {
 		this.id = id;
 		this.names = names.split(COMMA);
 		this.types = types.split(COMMA);
 		this.bounds = new Rectangle(x, y, width, height);
-		this.triggered = false; // @TODO load/save for events
+		this.triggered = false;
+		this.repeatable = repeatable;
 
 		this.requirements = new ArrayList<Requirement>();
 	}
@@ -103,7 +108,9 @@ public class Event {
 	 * Fires off this event, does NOT check requirements.
 	 */
 	public void trigger(WorldScreen world) {
-		triggered = true;
+		if (!repeatable) { // only set triggered flag if not repeatable
+			triggered = true;
+		}
 
 		for (int i = 0; i < types.length; i++) {
 			String name = names[i];
@@ -118,6 +125,8 @@ public class Event {
 				String propName = split[0];
 				String propValue = split[1];
 				world.setEventProperty(propName, propValue);
+			} else if (type.equals(TYPE_ANIMATE)) {
+				world.animate(name);
 			} else {
 				// we don't have a handler for this type of event yet
 				throw new RuntimeException("unsupported event type: " + type);

@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze.util;
 
+import com.arctite.dontfreeze.entities.AnimatedObstacle;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.MapLayer;
@@ -9,6 +10,8 @@ import com.badlogic.gdx.maps.tiled.TiledMapTile;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
+
+import java.util.HashMap;
 
 /**
  * Extension of the OrthogonalTiledMapRenderer.
@@ -25,6 +28,7 @@ public class HorizontalMapRenderer extends OrthogonalTiledMapRenderer {
 	public static final String GROUNDLESS_LAYER = "groundless";
 	public static final String BACKGROUND_LAYER = "background";
 	public static final String EVENTS_LAYER = "events";
+	public static final String ANIMATED_OBSTACLES_LAYER = "animated";
 
 	/** Static constants for the renderSpriteLayerInternal() method */
 	public static final int MAX_SPRITE_WIDTH = 700;

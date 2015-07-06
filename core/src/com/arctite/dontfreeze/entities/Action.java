@@ -2,7 +2,7 @@ package com.arctite.dontfreeze.entities;
 
 /**
  * Enumeration of possible actions an Entity can currently be undertaking, some of which can only be applicable to
- * certain Entity implementations (eg. special attacks are player only)
+ * certain Entity implementations (eg. attacks are player/monsters only)
  *
  * Created by Quasar on 20/06/2015.
  */
@@ -22,6 +22,8 @@ public enum Action {
 	INITIALISING("i"),
 	/** Looping - projectile only */
 	LOOPING("p"),
+	/** Animating - animated obstacles only */
+	ANIMATING("a"),
 	;
 
 	private String prefix;

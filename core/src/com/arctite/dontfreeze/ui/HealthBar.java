@@ -155,6 +155,12 @@ public class HealthBar extends Group {
 	 * @param health current health to set to
 	 */
 	public void setHealth(int health) {
+		// force within bounds before setting to field
+		if (health < 0) {
+			health = 0;
+		} else if (health > maxHealth) {
+			health = maxHealth;
+		}
 		this.health = health;
 		progressBar.setValue(health);
 	}

@@ -76,6 +76,8 @@ public class WorldScreen extends AbstractScreen {
 	private static final String TILED_PROP_EVENT_REQ = "req";
 	/** Monster default spawn status (property name is default in tiled) */
 	private static final String DEFAULT_NOT_SPAWNED = "notSpawned";
+	/** Event repeatable */
+	private static final String TILED_PROP_REPEAT = "repeat";
 	/** MapLoader that loads Tiled maps */
 	private static final TmxMapLoader MAP_LOADER = new TmxMapLoader();
 	/** Map dimensions */
@@ -136,15 +138,16 @@ public class WorldScreen extends AbstractScreen {
 	private Player player;
 	private HashMap<String, String> eventProps; // event-set properties (with set-type events)
 	private boolean playerExpireComplete;
-	// NOTE: all monster add/remove methods must be done on both orderedEntities and monsters
-	private ArrayList<LiveEntity> orderedEntities; // (sorted by y-coord) list of all active monsters and the player
-	private Comparator<LiveEntity> orderedEntitiesComp;
+	// all monster/animated entity add/remove methods must be done on both orderedEntities and their own collection
+	private ArrayList<Entity> orderedEntities; // (sorted by y-coord) list of all active monsters, player, animated
+	private Comparator<Entity> orderedEntitiesComp;
 	private HashMap<String, Monster> monsters; // hashmap of <name, monsterobj>
 	private HashMap<String, Monster> spawnableMonsters; // monsters that have default=notSpawned
 	private HashMap<String, Collectable> collectables;
 	private HashMap<String, Collectable> spawnableCollectables; // collectables that have default=notSpawned
 	private ArrayList<Projectile> projectiles;
 	private ArrayList<Event> events;
+	private HashMap<String, AnimatedObstacle> animatedObstacles;
 
 	/**
 	 * Creates a new WorldScreen. Initialises all fields, initialises and sets an InputHandler.
@@ -248,10 +251,10 @@ public class WorldScreen extends AbstractScreen {
 		this.eventProps = new HashMap<String, String>();
 
 		// ordered entities list (player + monsters)
-		this.orderedEntities = new ArrayList<LiveEntity>();
-		this.orderedEntitiesComp = new Comparator<LiveEntity>() {
+		this.orderedEntities = new ArrayList<Entity>();
+		this.orderedEntitiesComp = new Comparator<Entity>() {
 			@Override
-			public int compare(LiveEntity e1, LiveEntity e2) {
+			public int compare(Entity e1, Entity e2) {
 				float y1 = e1.getY();
 				float y2 = e2.getY();
 				if (y1 < y2) {
@@ -350,9 +353,6 @@ public class WorldScreen extends AbstractScreen {
 				orderedEntities.add(monster);
 			}
 		}
-		//Monster test = new Monster(this, 1, 0, 0);
-		//test.setAggressive(true);
-		//stage.addActor(new HealthBar(test, 100, 100, 100, 20, 3, 5));
 		// sort ordered entities list
 		sortOrderedEntities();
 
@@ -386,6 +386,23 @@ public class WorldScreen extends AbstractScreen {
 		// initialise projectiles
 		this.projectiles = new ArrayList<Projectile>();
 
+		// load animated obstacle objects layer
+		this.animatedObstacles = new HashMap<String, AnimatedObstacle>();
+		// check if layer is present
+		if (tiledMap.getLayers().get(ANIMATED_OBSTACLES_LAYER) != null) {
+			MapObjects animobs = tiledMap.getLayers().get(ANIMATED_OBSTACLES_LAYER).getObjects();
+			for (MapObject obj : animobs) {
+				String sid = obj.getProperties().get(TILED_PROP_TYPE, String.class);
+				int id = Integer.parseInt(sid);
+				String name = obj.getName();
+				float x = obj.getProperties().get(TILED_PROP_X, Float.class);
+				float y = obj.getProperties().get(TILED_PROP_Y, Float.class);
+				AnimatedObstacle obstacle = new AnimatedObstacle(id, x, y);
+				animatedObstacles.put(name, obstacle);
+				orderedEntities.add(obstacle);
+			}
+		}
+
 		// load in event objects
 		this.events = new ArrayList<Event>();
 		MapObjects eventObjects = tiledMap.getLayers().get(EVENTS_LAYER).getObjects();
@@ -397,7 +414,9 @@ public class WorldScreen extends AbstractScreen {
 			float ey = obj.getProperties().get(TILED_PROP_Y, Float.class);
 			float ew = obj.getProperties().get(TILED_PROP_WIDTH, Float.class);
 			float eh = obj.getProperties().get(TILED_PROP_HEIGHT, Float.class);
-			Event event = new Event(eid, eventNames, eventTypes, (int) ex, (int) ey, ew, eh);
+			String sr = obj.getProperties().get(TILED_PROP_REPEAT, String.class);
+			boolean repeat = Boolean.parseBoolean(sr);
+			Event event = new Event(eid, eventNames, eventTypes, (int) ex, (int) ey, ew, eh, repeat);
 			boolean hasReq = obj.getProperties().containsKey(TILED_PROP_EVENT_REQ);
 			if (hasReq) { // check and set requirements if any
 				String reqsLine = obj.getProperties().get(TILED_PROP_EVENT_REQ, String.class);
@@ -647,6 +666,15 @@ public class WorldScreen extends AbstractScreen {
 	}
 
 	/**
+	 * Activates an AnimatedObstacle.
+	 *
+	 * @param name name of the AnimatedObstacle
+	 */
+	public void animate(String name) {
+		animatedObstacles.get(name).setAction(Action.ANIMATING);
+	}
+
+	/**
 	 * Puts an event-set property name-value pair into the map of event-driven properties.
 	 *
 	 * @param name property name
@@ -719,7 +747,7 @@ public class WorldScreen extends AbstractScreen {
 		getGame().checkToggleSound();
 
 		// enter = next message, if convo box is active
-		if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
 			if (convoBox.isVisible()) {
 				convoBox.next();
 			}
@@ -727,7 +755,7 @@ public class WorldScreen extends AbstractScreen {
 
 		// esc-pause, convobox active, or transitioning are all effectively pauses for game logic update purposes
 		boolean convoActive = convoBox.isVisible();
-		boolean effectivePause = paused || convoActive || isTransitioning();
+		boolean effectivePause = (paused || convoActive || isTransitioning());
 
 		// toggle paused mode if player isn't dead
 		if (!playerExpireComplete && !convoActive && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -795,6 +823,12 @@ public class WorldScreen extends AbstractScreen {
 					}
 				}
 			}
+
+			// update animated obstacles
+			for (AnimatedObstacle obstacle : animatedObstacles.values()) {
+				obstacle.update(delta, effectivePause, null, null); // collision bounds not required, since stationary
+			}
+
 			// update player collision stuff last, after both player and entities have had a chance to move
 			// process collectables collision
 			removeKeys.clear(); // prep remove keys list for removal from collectables hashmap
@@ -804,14 +838,13 @@ public class WorldScreen extends AbstractScreen {
 					// remove from the map, because we picked it up
 					removeKeys.add(ckey);
 					// increment our collected counter
-					player.collectFire();
+					player.collect(c);
 				}
 			}
 			for (String ckey : removeKeys) {
 				collectables.remove(ckey);
 			}
 
-			// @TODO process player and enemy projectile collision, once that is implemented
 			// player's projectile collision with monsters is done in projectiles update above
 			// player melee attack collision with monsters
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
@@ -943,7 +976,7 @@ public class WorldScreen extends AbstractScreen {
 			// loop and interchangeably render sprites and map layers
 			int i = 0;
 			while (i < numEntities) {
-				LiveEntity e = orderedEntities.get(i);
+				Entity e = orderedEntities.get(i);
 				int thisY = (int) e.getY();
 				if (thisY < screenBot - HorizontalMapRenderer.MAX_SPRITE_HEIGHT) {
 					// we're low enough to ignore everything from here on, break out of loop
@@ -1066,6 +1099,12 @@ public class WorldScreen extends AbstractScreen {
 			debugRenderer.begin(ShapeType.Line);
 			for (Event event : events) {
 				if (event.hasTriggered()) debugRender(event.getBounds()); // draw already-triggered events in red
+			}
+			debugRenderer.end();
+			debugRenderer.setColor(Color.BLUE);
+			debugRenderer.begin(ShapeType.Line);
+			for (AnimatedObstacle o : animatedObstacles.values()) {
+				debugRender(o.getCollisionBounds()); // draw already-triggered events in red
 			}
 			debugRenderer.end();
 		}

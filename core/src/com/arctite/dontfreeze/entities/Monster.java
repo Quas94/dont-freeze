@@ -128,9 +128,10 @@ public class Monster implements LiveEntity {
 		this.timeRemaining = 0;
 
 		this.aggressive = false;
-		this.lastMeleeTime = MELEE_COOLDOWN;
-		this.lastSpecialTime = SPECIAL_COOLDOWN;
-		this.lastAttackTime = Math.max(lastMeleeTime, lastSpecialTime);
+		// set attack on cooldown upon creation, so monsters can't instantly attack when event spawn + message occur
+		this.lastMeleeTime = 0;
+		this.lastSpecialTime = 0;
+		this.lastAttackTime = 0;
 		this.meleeTime = 0;
 		this.meleeHit = false;
 		this.meleeCollisionBounds = null;

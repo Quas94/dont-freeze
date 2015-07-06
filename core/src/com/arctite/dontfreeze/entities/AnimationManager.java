@@ -43,6 +43,7 @@ public class AnimationManager {
 	 * NOTE: Entity's direction and action MUST be set BEFORE calling this constructor.
 	 *
 	 * @TODO make this entire constructor cleaner - really messy right now
+	 * @TODO stop loading from file every time a new AnimationManager is constructed (ie. when an entity is constructed)
 	 *
 	 * @param type The type of animation sequence it is (see this class' constants)
 	 * @param entity The Entity that this Animation is rendering for
@@ -70,7 +71,7 @@ public class AnimationManager {
 			Array<TextureRegion> array = loadedFrames.get(prefix);
 
 			if (type == UNI_DIR) { // only one direction for uni dir type animations
-				// all UNI_DIR typed animations should have region prefixes of only 'd' (DOWN)
+				// UNI_DIR animations must have region prefixes of either 'd' or 'a' ('a' only for animated obstacles)
 				loadedFrames.get(prefix).add(region);
 			} else if (type == MULTI_DIR) {
 				// add this region to the array with appropriate prefix

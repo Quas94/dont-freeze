@@ -184,11 +184,15 @@ public class Player implements LiveEntity {
 		}
 	}
 
-	public void collectFire() {
-		// play pickup fire sound
-		SoundManager.playSound(SoundManager.SoundInfo.PLAYER_PICKUP_FIRE);
+	public void collect(Collectable item) {
+		if (item.getId() == ResourceInfo.FIRE.getId()) {
+			// play pickup fire sound
+			SoundManager.playSound(SoundManager.SoundInfo.PLAYER_PICKUP_FIRE);
 
-		healthBar.changeHealth(5);
+			healthBar.changeHealth(5);
+		} else {
+			// @TODO support fire core picking up
+		}
 	}
 
 	@Override
