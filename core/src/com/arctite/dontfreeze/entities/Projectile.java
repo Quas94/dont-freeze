@@ -27,6 +27,9 @@ public class Projectile implements Entity {
 	private Direction dir;
 	private Action action;
 
+	/** Amount of damage this projectile deals */
+	private int damage;
+
 	private AnimationManager animation;
 
 	/** How much longer this projectile can travel before it expires */
@@ -65,6 +68,8 @@ public class Projectile implements Entity {
 		// only 1 direction for projectiles in the Animation sequence
 		this.animation = new AnimationManager(AnimationManager.MULTI_DIR_CLONE, this, info);
 
+		this.damage = owner.getSpecialDamage();
+
 		this.range = range;
 		this.collided = false;
 		this.updated = false;
@@ -83,6 +88,10 @@ public class Projectile implements Entity {
 	}
 
 	/**
+	 * Gets the amount of damage that this projectile deals.
+	 */
+
+	/**
 	 * Gets the id of this Projectile, which is equivalent to this Projectile's owner Entity's id
 	 *
 	 * @return the id of this projectile
@@ -90,6 +99,10 @@ public class Projectile implements Entity {
 	@Override
 	public int getId() {
 		return owner.getId();
+	}
+
+	public int getDamage() {
+		return damage;
 	}
 
 	@Override

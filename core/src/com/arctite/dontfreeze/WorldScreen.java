@@ -818,6 +818,7 @@ public class WorldScreen extends AbstractScreen {
 				if (projectile.expireComplete()) {
 					projIterator.remove();
 				} else if (!projectile.hasCollided()) { // check if not already collided
+					int damage = projectile.getDamage();
 					if (projectile.getOwner() == player) { // player-owned projectile, check against monsters
 						for (Monster monster : monsters.values()) {
 							if (monster.getAction() != Action.EXPIRING) { // ignore already-expiring monsters
@@ -825,7 +826,7 @@ public class WorldScreen extends AbstractScreen {
 								if (Collisions.collidesShapes(projectile.getCollisionBounds(), monster.getDefenseCollisionBounds())) {
 									projectile.setCollided();
 									Direction from = Direction.getOpposite(projectile.getDirection());
-									monster.hit(from);
+									monster.hit(damage, from);
 									SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL_HIT);
 								}
 							}
@@ -834,7 +835,7 @@ public class WorldScreen extends AbstractScreen {
 						if (Collisions.collidesShapes(projectile.getCollisionBounds(), player.getDefenseCollisionBounds())) {
 							projectile.setCollided();
 							Direction from = Direction.getOpposite(projectile.getDirection());
-							player.hit(from);
+							player.hit(damage, from);
 							SoundManager.playSound(SoundManager.SoundInfo.MONSTER_SPECIAL_HIT);
 						}
 					}
@@ -863,7 +864,6 @@ public class WorldScreen extends AbstractScreen {
 				collectables.remove(ckey);
 			}
 
-			// player's projectile collision with monsters is done in projectiles update above
 			// player melee attack collision with monsters
 			if (player.getAction() == Action.MELEE && !player.getMeleeHit() && player.getMeleeCanHit()) {
 				for (Monster monster : monsters.values()) {
@@ -871,7 +871,7 @@ public class WorldScreen extends AbstractScreen {
 						if (Collisions.collidesShapes(player.getAttackCollisionBounds(), monster.getDefenseCollisionBounds())) {
 							player.setMeleeHit(); // set hit flag, so this melee hit won't be able to hit anything else now
 							Direction from = Direction.getOpposite(player.getDirection());
-							monster.hit(from);
+							monster.hit(player.getMeleeDamage(), from);
 						}
 					}
 				}
@@ -882,7 +882,7 @@ public class WorldScreen extends AbstractScreen {
 					if (Collisions.collidesShapes(player.getDefenseCollisionBounds(), monster.getAttackCollisionBounds())) {
 						monster.setMeleeHit();
 						Direction from = Direction.getOpposite(monster.getDirection());
-						player.hit(from);
+						player.hit(monster.getMeleeDamage(), from);
 						SoundManager.playSound(SoundManager.SoundInfo.MONSTER_MELEE);
 					}
 				}
@@ -1074,7 +1074,7 @@ public class WorldScreen extends AbstractScreen {
 			for (Monster m : monsters.values()) {
 				r = m.getDefenseCollisionBounds();
 				debugRender(r);
-				if (m.canSpecialAttack()) { // draw special attack box only if it can special attack
+				if (m.getSpecialDamage() != 0) { // draw special attack box only if it can special attack
 					debugRenderer.end();
 					debugRenderer.setColor(Color.RED);
 					debugRenderer.begin(ShapeType.Line);

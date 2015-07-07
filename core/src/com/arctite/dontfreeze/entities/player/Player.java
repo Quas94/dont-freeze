@@ -29,7 +29,7 @@ public class Player implements LiveEntity {
 	/** Maximum health percent */
 	private static final int FULL_HEALTH_PERCENT = 100;
 
-	/** Sprite constants and other constants. @TODO: don't hardcode this stuff */
+	/** Sprite constants and other constants. */
 	private static final int COLLISION_WIDTH = 20;
 	private static final int COLLISION_HEIGHT = 10;
 	private static final float DIAGONAL_MOVE_RATIO = 0.765F;
@@ -61,6 +61,10 @@ public class Player implements LiveEntity {
 	private int height;
 
 	/** Combat */
+	/** Amount of damage a fireball deals */
+	private int specialDamage;
+	/** Amount of damage a melee attack deals */
+	private int meleeDamage;
 	/** The amount of time that has elapsed since the start of the melee attack animation */
 	private float meleeTime;
 	/** Whether the current melee attack has hit something yet (limits to 1 target hit per melee swing) */
@@ -85,6 +89,8 @@ public class Player implements LiveEntity {
 		this.action = Action.IDLE_MOVE; // only exception where we don't use setAction()
 		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, ResourceInfo.PLAYER);
 
+		this.meleeDamage = ResourceInfo.PLAYER.getMeleeDamage();
+		this.specialDamage = ResourceInfo.PLAYER.getSpecialDamage();
 		this.meleeTime = 0;
 		this.meleeCollisionBounds = null;
 
@@ -93,6 +99,11 @@ public class Player implements LiveEntity {
 				HEALTH_BAR_HEIGHT, FULL_HEALTH_PERCENT, FULL_HEALTH_PERCENT);
 	}
 
+	/**
+	 * Gets the WorldScreen object this Player resides in.
+	 *
+	 * @return the world screen object
+	 */
 	@Override
 	public WorldScreen getWorld() {
 		return world;
@@ -117,6 +128,16 @@ public class Player implements LiveEntity {
 	@Override
 	public int getId() {
 		return ResourceInfo.PLAYER.getId();
+	}
+
+	@Override
+	public int getMeleeDamage() {
+		return meleeDamage;
+	}
+
+	@Override
+	public int getSpecialDamage() {
+		return specialDamage;
 	}
 
 	/**
@@ -174,9 +195,15 @@ public class Player implements LiveEntity {
 		return healthBar;
 	}
 
+	/**
+	 * Notifies this player that it was hit by a projectile.
+	 *
+	 * @param damage the amount of damage that the projectile causes
+	 * @param from The direction that the projectile hit from
+	 */
 	@Override
-	public void hit(Direction from) {
-		healthBar.changeHealth(-10); // take 1 damage @TODO different damage amounts
+	public void hit(int damage, Direction from) {
+		healthBar.changeHealth(-damage); // deal damage to health
 		dir = from; // change direction to from
 		// check for death upon finishing knockback animation, in update method
 		if (action == Action.IDLE_MOVE) { // start knockback, from idle/move state only
@@ -244,8 +271,7 @@ public class Player implements LiveEntity {
 		float ry = y + (height / 5);
 		float rw = width / 2;
 		float rh = height / 5 * 3;
-		Rectangle rect = new Rectangle(rx, ry, rw, rh);
-		return rect;
+		return new Rectangle(rx, ry, rw, rh);
 	}
 
 	@Override
@@ -395,8 +421,6 @@ public class Player implements LiveEntity {
 
 	/**
 	 * Launches the Player's special attack (a fireball) and adds it to the game world.
-	 *
-	 * @TODO tidy this up
 	 */
 	private void specialAttack() {
 		// create fireball object first with incorrect x, y values - just so we can pull the width and height
@@ -555,7 +579,6 @@ public class Player implements LiveEntity {
 			// check for map change or in bounds
 			int chunkX = world.getChunkX();
 			int chunkY = world.getChunkY();
-			GameMain game = world.getGame();
 			// lastRenderedDir is used so that the screen displays the player facing the correct dir before map change
 			if (x < 0) {
 				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X || lastRenderedDir != dir) x = 0;

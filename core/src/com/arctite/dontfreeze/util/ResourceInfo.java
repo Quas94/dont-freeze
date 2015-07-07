@@ -81,16 +81,23 @@ public enum ResourceInfo {
 		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.LOOPING, 0.1F);
 		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.EXPIRING, 0.1F);
 
+		// PLAYER ATTACK STUFFS
+		PLAYER.meleeDamage = 1;
+		PLAYER.specialDamage = 1;
 
 		// MONSTER ATTACK STUFFS (MELEE RANGE, SPECIAL CAPABILITY
-		// snow baby
+		// snow baby melee damage
+		SNOW_BABY.meleeDamage = 3;
+		// snow baby melee range
 		SNOW_BABY.meleeRangeX = SNOW_BABY.width / 2F;
 		SNOW_BABY.meleeRangeY = SNOW_BABY.height / 2F;
+		// snow monster
+		SNOW_MONSTER.meleeDamage = 10;
+		SNOW_MONSTER.specialDamage = 10;
 		// snow monster melee range
 		SNOW_MONSTER.meleeRangeX = SNOW_MONSTER.width / 3F;
 		SNOW_MONSTER.meleeRangeY = SNOW_MONSTER.height / 3F;
 		// snow monster special attack
-		SNOW_MONSTER.special = true;
 		SNOW_MONSTER.specialRange = 200;
 		// snow monster collision offset
 		SNOW_MONSTER.specialOriginOffset = new Rectangle(15, 30, -30, 20);
@@ -115,7 +122,8 @@ public enum ResourceInfo {
 	private int width;
 	private float meleeRangeX;
 	private float meleeRangeY;
-	private boolean special;
+	private int meleeDamage;
+	private int specialDamage;
 	private int specialRange; // range that this entity's projectile can travel
 	/** Collision offset */
 	private Rectangle specialOriginOffset;
@@ -128,7 +136,7 @@ public enum ResourceInfo {
 		this.height = height;
 
 		this.frameRates = new HashMap<Action, Float>();
-		this.special = false;
+		this.specialDamage = 0;
 	}
 
 	public Type getType() {
@@ -160,8 +168,17 @@ public enum ResourceInfo {
 		return meleeRangeY;
 	}
 
-	public boolean canSpecial() {
-		return special;
+	public int getMeleeDamage() {
+		return meleeDamage;
+	}
+
+	/**
+	 * Gets the amount of damage that can be done via special attack (projectile). Zero if unable to special attack.
+	 *
+	 * @return amount of damage done with special attack, or 0 if can't special
+	 */
+	public int getSpecialDamage() {
+		return specialDamage;
 	}
 
 	public int getSpecialRange() {

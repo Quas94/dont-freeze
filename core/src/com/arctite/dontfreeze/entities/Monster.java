@@ -79,8 +79,10 @@ public class Monster implements LiveEntity {
 	/** Melee attack range */
 	private float meleeRangeX;
 	private float meleeRangeY;
-	/** Whether or not this monster has special attack capabilities */
-	private boolean special;
+	/** How much damage this monster's melee attacks deal */
+	private int meleeDamage;
+	/** How much damage this monster's special attacks deal. Zero if cannot fire projectiles at all */
+	private int specialDamage;
 	/** How long this monster's special attacks can travel */
 	private int specialRange;
 	/** Special origin box's offset as defined in ResourceInfo */
@@ -137,7 +139,8 @@ public class Monster implements LiveEntity {
 		this.meleeCollisionBounds = null;
 		this.meleeRangeX = info.getMeleeRangeX();
 		this.meleeRangeY = info.getMeleeRangeY();
-		this.special = info.canSpecial();
+		this.meleeDamage = info.getMeleeDamage();
+		this.specialDamage = info.getSpecialDamage();
 		this.specialRange = info.getSpecialRange();
 
 		this.specialOriginOffset = info.getSpecialOriginOffset();
@@ -210,12 +213,13 @@ public class Monster implements LiveEntity {
 	 * Inflicts a hit on this monster, dealing damage and possibly putting it into recoil (knockback) mode. Whether the
 	 * recoil occurs depends on what action the monster is currently performing: idle - yes, melee attacking - no
 	 *
+	 * @param damage the amount of damage the striking projectile deals
 	 * @param from The direction that the hit is coming from
 	 */
 	@Override
-	public void hit(Direction from) {
-		// deal 1 point of damage
-		healthBar.changeHealth(-1);
+	public void hit(int damage, Direction from) {
+		// deal damage to health
+		healthBar.changeHealth(-damage);
 		// change direction to 'from' direction, to make recoil animation make sense
 		dir = from;
 		// set aggressive flag to true since this monster's gonna want payback
@@ -412,8 +416,14 @@ public class Monster implements LiveEntity {
 		animations.updateAction(action);
 	}
 
-	public boolean canSpecialAttack() {
-		return special;
+	@Override
+	public int getMeleeDamage() {
+		return meleeDamage;
+	}
+
+	@Override
+	public int getSpecialDamage() {
+		return specialDamage;
 	}
 
 	@Override
@@ -526,7 +536,7 @@ public class Monster implements LiveEntity {
 				float typ = ty + thisCollision.height;
 
 				// first check if we can special attack
-				if (special && (lastSpecialTime >= SPECIAL_COOLDOWN) && (lastAttackTime >= MELEE_COOLDOWN) &&
+				if (specialDamage != 0 && (lastSpecialTime >= SPECIAL_COOLDOWN) && (lastAttackTime >= MELEE_COOLDOWN) &&
 						((pcx >= tx && pcx <= txp) || (pcy >= ty && pcy <= typ))) {
 					// if player x within monster's x extremities, OR player y within monster's y extremities
 

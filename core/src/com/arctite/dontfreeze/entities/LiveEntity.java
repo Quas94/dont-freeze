@@ -25,9 +25,25 @@ public interface LiveEntity extends Entity {
 	/**
 	 * Strikes this monster, dealing damage and potentially putting it into an Action = KNOCKBACK state.
 	 *
+	 * @param damage the amount of damage the projectile deals
 	 * @param from The direction that the hit is coming from
 	 */
-	public void hit(Direction from);
+	public void hit(int damage, Direction from);
+
+	/**
+	 * Gets the amount of damage this live entity's special attacks (projectiles) deal upon impact. Returns 0 if the
+	 * monster can't deal special attacks.
+	 *
+	 * @return amount of damage this entity's special attacks do
+	 */
+	public int getSpecialDamage();
+
+	/**
+	 * Gets the amount of damage this live entity's melee attacks deal upon contact.
+	 *
+	 * @return amount of damage this entity's melee attacks do
+	 */
+	public int getMeleeDamage();
 
 	/**
 	 * Gets this Entity's melee attack collision bounds.
