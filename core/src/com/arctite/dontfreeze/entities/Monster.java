@@ -40,6 +40,7 @@ public class Monster implements LiveEntity {
 	private static final int BASE_HEALTH = 10;
 	private static final float MELEE_COOLDOWN = 1.0F;
 	private static final float SPECIAL_COOLDOWN = 3.0F; // 3 second cooldown
+	private static final float SPECIAL_COOLDOWN_BOSS = 2.0F;
 
 	/** Connection to world */
 	private WorldScreen world;
@@ -493,6 +494,7 @@ public class Monster implements LiveEntity {
 		float dist = delta * speed;
 
 		if (healthBar.getHealth() <= 0 && action!= Action.KNOCKBACK && action != Action.EXPIRING) {
+			if (id == ResourceInfo.ICE_ELEMENTAL.getId()) dir = Direction.DOWN;
 			setAction(Action.EXPIRING);
 			setAggressive(false); // de-aggro upon death
 			SoundManager.playSound(SoundManager.SoundInfo.MONSTER_DEATH);
@@ -536,7 +538,8 @@ public class Monster implements LiveEntity {
 				float typ = ty + thisCollision.height;
 
 				// first check if we can special attack
-				if (specialDamage != 0 && (lastSpecialTime >= SPECIAL_COOLDOWN) && (lastAttackTime >= MELEE_COOLDOWN) &&
+				float specialCd = (id == ResourceInfo.ICE_ELEMENTAL.getId()) ? SPECIAL_COOLDOWN_BOSS : SPECIAL_COOLDOWN;
+				if (specialDamage != 0 && (lastSpecialTime >= specialCd) && (lastAttackTime >= MELEE_COOLDOWN) &&
 						((pcx >= tx && pcx <= txp) || (pcy >= ty && pcy <= typ))) {
 					// if player x within monster's x extremities, OR player y within monster's y extremities
 
@@ -552,7 +555,7 @@ public class Monster implements LiveEntity {
 					setAction(Action.SPECIAL);
 					specialAttack(pcx, pcy);
 
-				} else if (inRangeX && inRangeY) { // within range to start melee attack
+				} else if (inRangeX && inRangeY && meleeDamage != 0) { // within range to melee, and can melee attack
 					if (lastMeleeTime >= MELEE_COOLDOWN && lastAttackTime >= MELEE_COOLDOWN) { // if attack is off cooldown
 						// actually attack
 						setAction(Action.MELEE);

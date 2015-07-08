@@ -25,13 +25,15 @@ public enum ResourceInfo {
 
 	// live entities (player and monsters)
 	// NOTE: melee attack ranges are hardcoded in the Monster constructor
-	PLAYER(Type.ENTITY, 0, 220, 80, 95),
+	PLAYER(Type.ENTITY, 0, 200, 80, 95),
 	SNOW_BABY(Type.ENTITY, 1, 30, 55, 50), // 55 x 50
 	SNOW_MONSTER(Type.ENTITY, 10, 120, 200, 200), // 200 x 200
+	ICE_ELEMENTAL(Type.ENTITY, 20, 160, 150, 140), // final boss
 
 	// projectiles
 	PLAYER_PROJECTILE(Type.PROJECTILE, PLAYER.getId(), 180, 70, 60),
-	SNOW_MONSTER_PROJECTILE(Type.PROJECTILE, SNOW_MONSTER.getId(), 180, 70, 100); // @TODO fix snow monster values
+	SNOW_MONSTER_PROJECTILE(Type.PROJECTILE, SNOW_MONSTER.getId(), 180, 70, 100),
+	ICE_ELEMENTAL_PROJECTILE(Type.PROJECTILE, ICE_ELEMENTAL.getId(), 180, 140, 100),
 	;
 
 	/**
@@ -70,6 +72,12 @@ public enum ResourceInfo {
 		SNOW_MONSTER.frameRates.put(Action.SPECIAL, 0.1F);
 		SNOW_MONSTER.frameRates.put(Action.KNOCKBACK, 0.15F);
 		SNOW_MONSTER.frameRates.put(Action.EXPIRING, 0.2F);
+		// ice elemental
+		ICE_ELEMENTAL.frameRates.put(Action.IDLE_MOVE, 0.15F);
+		ICE_ELEMENTAL.frameRates.put(Action.MELEE, 0.15F);
+		ICE_ELEMENTAL.frameRates.put(Action.SPECIAL, 0.15F);
+		ICE_ELEMENTAL.frameRates.put(Action.KNOCKBACK, 0.15F);
+		ICE_ELEMENTAL.frameRates.put(Action.EXPIRING, 0.15F);
 
 		// projectiles
 		// player projectile
@@ -80,27 +88,37 @@ public enum ResourceInfo {
 		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.INITIALISING, 0.1F);
 		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.LOOPING, 0.1F);
 		SNOW_MONSTER_PROJECTILE.frameRates.put(Action.EXPIRING, 0.1F);
+		// ice elemental projectile
+		ICE_ELEMENTAL_PROJECTILE.frameRates.put(Action.INITIALISING, 0.1F);
+		ICE_ELEMENTAL_PROJECTILE.frameRates.put(Action.LOOPING, 0.1F);
+		ICE_ELEMENTAL_PROJECTILE.frameRates.put(Action.EXPIRING, 0.1F);
 
 		// PLAYER ATTACK STUFFS
 		PLAYER.meleeDamage = 1;
 		PLAYER.specialDamage = 1;
 
 		// MONSTER ATTACK STUFFS (MELEE RANGE, SPECIAL CAPABILITY
-		// snow baby melee damage
+		// snow baby
 		SNOW_BABY.meleeDamage = 3;
-		// snow baby melee range
 		SNOW_BABY.meleeRangeX = SNOW_BABY.width / 2F;
 		SNOW_BABY.meleeRangeY = SNOW_BABY.height / 2F;
 		// snow monster
 		SNOW_MONSTER.meleeDamage = 10;
 		SNOW_MONSTER.specialDamage = 10;
-		// snow monster melee range
 		SNOW_MONSTER.meleeRangeX = SNOW_MONSTER.width / 3F;
 		SNOW_MONSTER.meleeRangeY = SNOW_MONSTER.height / 3F;
-		// snow monster special attack
 		SNOW_MONSTER.specialRange = 200;
 		// snow monster collision offset
 		SNOW_MONSTER.specialOriginOffset = new Rectangle(15, 30, -30, 20);
+
+		// ice elemental
+		ICE_ELEMENTAL.meleeDamage = 20;
+		ICE_ELEMENTAL.specialDamage = 20;
+		ICE_ELEMENTAL.meleeRangeX = SNOW_MONSTER.width / 3F;
+		ICE_ELEMENTAL.meleeRangeY = SNOW_MONSTER.height / 3F;
+		ICE_ELEMENTAL.specialRange = 250;
+		// ice elemental collision offset
+		ICE_ELEMENTAL.specialOriginOffset = new Rectangle(10, 30, -20, 30);
 	}
 
 	private static final String EXT = ".atlas";
