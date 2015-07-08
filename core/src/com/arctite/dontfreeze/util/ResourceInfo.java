@@ -118,7 +118,7 @@ public enum ResourceInfo {
 		ICE_ELEMENTAL.meleeRangeY = SNOW_MONSTER.height / 3F;
 		ICE_ELEMENTAL.specialRange = 250;
 		// ice elemental collision offset
-		ICE_ELEMENTAL.specialOriginOffset = new Rectangle(10, 30, -20, 30);
+		ICE_ELEMENTAL.specialOriginOffset = new Rectangle(10, 20, -20, 60);
 	}
 
 	private static final String EXT = ".atlas";

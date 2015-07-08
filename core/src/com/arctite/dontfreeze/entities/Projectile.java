@@ -183,34 +183,73 @@ public class Projectile implements Entity {
 	/**
 	 * Gets the Rectangle bounding the collision area of this Projectile.
 	 *
+	 * Warning: here be some extremely ugly and lazy code.
+	 *
 	 * @return the Rectangle bounding the collision area
 	 */
 	@Override
 	public Rectangle getCollisionBounds() {
 		float rx = x;
 		float ry = y;
-		int rw = width / 3;
-		int rh = height / 4;
-		switch (dir) {
-			case RIGHT:
-				rx += width / 2;
-				ry += height / 4;
-				break;
-			case LEFT:
-				rx += width / 6;
-				ry += height / 4;
-				break;
-			case UP:
-				rx += 20;
-				ry += 35;
-				rw = height / 4;
-				rh = width / 3;
-				break;
-			case DOWN:
-				rx += 20;
-				rw = height / 4;
-				rh = width / 3;
-				break;
+		float rw = width / 3;
+		float rh = height / 4;
+		if (owner.getId() == ResourceInfo.PLAYER.getId()) {
+			switch (dir) {
+				case RIGHT:
+					rx += width / 2;
+					ry += height / 4;
+					break;
+				case LEFT:
+					rx += width / 6;
+					ry += height / 4;
+					break;
+				case UP:
+					rx += 20;
+					ry += 35;
+					rw = height / 4;
+					rh = width / 3;
+					break;
+				case DOWN:
+					rx += 20;
+					rw = height / 4;
+					rh = width / 3;
+					break;
+			}
+		} else {
+			ry += 20;
+			rw = width / 2.25F;
+			switch (dir) {
+				case RIGHT:
+					rx += width / 2;
+					ry += height / 4;
+					break;
+				case LEFT:
+					rx += 5;
+					ry += height / 4;
+					break;
+				case UP:
+					rx += 65;
+					ry += 35;
+					rw = height / 4;
+					rh = width / 2.25F;
+					break;
+				case DOWN:
+					rx += 65;
+					rw = height / 4;
+					rh = width / 2.25F;
+					ry -= 35;
+					break;
+			}
+			if (owner.getId() == ResourceInfo.SNOW_MONSTER.getId()) {
+				if (dir == Direction.RIGHT || dir == Direction.LEFT) {
+					ry -= 8;
+				} else { // up/down
+					rx -= 45;
+					if (dir == Direction.DOWN) {
+						ry += 40;
+					}
+				}
+			}
 		}
 		return new Rectangle(rx, ry, rw, rh);
 	}

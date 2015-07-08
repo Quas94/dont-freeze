@@ -478,7 +478,9 @@ public class WorldScreen extends AbstractScreen {
 				if (active) {
 					boolean notSpawned = saver.getDataValue(chunkId + MONSTER + mkey + DEFAULT_NOT_SPAWNED, Boolean.class);
 					if (!notSpawned) {
-						// this monster has been spawned, so remove from spawnable and add to monsters
+						// this monster has been spawned, load from save file
+						monster.load(chunkId, mkey);
+						// so remove from spawnable and add to monsters
 						removeKeys.add(mkey);
 						monsters.put(mkey, monster);
 						orderedEntities.add(monster); // add to both monsters and orderedEntities

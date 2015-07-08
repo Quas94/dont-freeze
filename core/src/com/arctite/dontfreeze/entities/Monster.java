@@ -439,6 +439,14 @@ public class Monster implements LiveEntity {
 
 	@Override
 	public Rectangle getDefenseCollisionBounds() {
+		if (id == ResourceInfo.ICE_ELEMENTAL.getId()) { // ice elemental only
+			float rx = x + width / 3;
+			float ry = y + 20;
+			float rw = width / 3;
+			float rh = height / 10 * 7;
+			return new Rectangle(rx, ry, rw, rh);
+		}
+
 		float rx = x + width / 4;
 		float ry = y;
 		int rw = width / 2;
