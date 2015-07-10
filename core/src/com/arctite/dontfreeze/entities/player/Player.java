@@ -51,7 +51,6 @@ public class Player implements LiveEntity {
 
 	/** Position and dimensions of the player */
 	private Direction dir;
-	private Direction lastRenderedDir; // flag for map changing, so map will only change if player facing correct dir
 	private int chunkX;
 	private int chunkY;
 	private float x;
@@ -85,7 +84,6 @@ public class Player implements LiveEntity {
 		this.height = ResourceInfo.PLAYER.getHeight();
 
 		this.dir = Direction.DOWN;
-		this.lastRenderedDir = null;
 		this.action = Action.IDLE_MOVE; // only exception where we don't use setAction()
 		this.animations = new AnimationManager(AnimationManager.MULTI_DIR, this, ResourceInfo.PLAYER);
 
@@ -581,19 +579,36 @@ public class Player implements LiveEntity {
 			int chunkY = world.getChunkY();
 			// lastRenderedDir is used so that the screen displays the player facing the correct dir before map change
 			if (x < 0) {
-				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X || lastRenderedDir != dir) x = 0;
+				if (chunkX == WorldScreen.LEFTMOST_CHUNK_X || dir != Direction.LEFT) {
+					x = 0;
+					dir = Direction.LEFT;
+					inputHandler.clear();
+					inputHandler.keyDown(Key.LEFT.getCode());
+				}
 				else changeMap();
-			}
-			if (x >= RIGHTMOST_X) {
-				if (chunkX == WorldScreen.RIGHTMOST_CHUNK_X || lastRenderedDir != dir) x = RIGHTMOST_X;
+			} else if (x >= RIGHTMOST_X) {
+				if (chunkX == WorldScreen.RIGHTMOST_CHUNK_X || dir != Direction.RIGHT) {
+					x = RIGHTMOST_X;
+					dir = Direction.RIGHT;
+					inputHandler.clear();
+					inputHandler.keyDown(Key.RIGHT.getCode());
+				}
 				else changeMap();
-			}
-			if (y < 0) {
-				if (chunkY == WorldScreen.LOWEST_CHUNK_Y || lastRenderedDir != dir) y = 0;
+			} else if (y < 0) {
+				if (chunkY == WorldScreen.LOWEST_CHUNK_Y || dir != Direction.DOWN) {
+					y = 0;
+					dir = Direction.DOWN;
+					inputHandler.clear();
+					inputHandler.keyDown(Key.DOWN.getCode());
+				}
 				else changeMap();
-			}
-			if (y >= HIGHEST_Y) {
-				if (chunkY == WorldScreen.HIGHEST_CHUNK_Y || lastRenderedDir != dir) y = HIGHEST_Y;
+			} else if (y >= HIGHEST_Y) {
+				if (chunkY == WorldScreen.HIGHEST_CHUNK_Y || dir != Direction.UP) {
+					y = HIGHEST_Y;
+					dir = Direction.UP;
+					inputHandler.clear();
+					inputHandler.keyDown(Key.UP.getCode());
+				}
 				else changeMap();
 			}
 		}
@@ -609,7 +624,6 @@ public class Player implements LiveEntity {
 
 	@Override
 	public void render(SpriteBatch spriteBatch) {
-		lastRenderedDir = dir; // update flag
 		TextureRegion frame = animations.getCurrentFrame(dir);
 		spriteBatch.draw(frame, x, y);
 	}
