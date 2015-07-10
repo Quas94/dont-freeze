@@ -1,5 +1,6 @@
 package com.arctite.dontfreeze;
 
+import com.arctite.dontfreeze.util.SoundManager;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
@@ -17,8 +18,10 @@ public abstract class AbstractScreen implements Screen {
 	/** Fade image */
 	private static final String TRANSITION_TEXTURE_LOCATION = "assets/menu/fade.png";
 
-	/** Transition speed */
+	/** Transition speed for alpha */
 	private static final float TRANSITION_SPEED = 1.5F;
+	/** Music fade in/out speed */
+	private static final float MUSIC_TRANSITION_SPEED = 0.5F;
 
 	/** If delta exceeds this limit in seconds, update is skipped */
 	protected static final float DELTA_LIMIT = 0.25F; // quarter of a second
@@ -113,7 +116,7 @@ public abstract class AbstractScreen implements Screen {
 			return;
 		}
 
-		// check the transition
+		// check transition and update alpha and sound/music volume
 		if (transitioning) {
 			if (transitionIn && transitionAlpha <= 0.0F) { // faded in: stop transitioning
 				transitioning = false;
@@ -124,6 +127,7 @@ public abstract class AbstractScreen implements Screen {
 				transitionAlpha = 1.0F;
 				game.setScreen(transitionOutType);
 			}
+			SoundManager.setVolume(1.0F - transitionAlpha);
 		}
 
 		update(delta);

@@ -90,6 +90,18 @@ public class SoundManager {
 	}
 
 	/**
+	 * Sets the volume of the current music. Used in very short time periods (transitions).
+	 *
+	 * @param v the volume to set to
+	 */
+	public static void setVolume(float v) {
+		volume = v;
+		if (currentMusic != null) {
+			currentMusic.setVolume(volume);
+		}
+	}
+
+	/**
 	 * Stops the current music which is playing and disposes of the resources.
 	 */
 	public static void stopCurrentMusic() {
