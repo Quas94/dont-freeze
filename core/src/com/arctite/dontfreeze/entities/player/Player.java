@@ -309,7 +309,7 @@ public class Player implements LiveEntity {
 			}
 		}
 
-		if (healthBar.getHealth() <= 0 && action != Action.KNOCKBACK && action != Action.EXPIRING) {
+		if (healthBar.getHealth() <= 0 && !recoiling && action != Action.EXPIRING) {
 			setAction(Action.EXPIRING);
 			dir = Direction.DOWN; // player death frames are down only
 			world.deaggroMonsters();
@@ -332,7 +332,6 @@ public class Player implements LiveEntity {
 				SoundManager.playSound(SoundManager.SoundInfo.PLAYER_MELEE);
 			} else if (specialAttackPressed) {
 				// launch special attack
-				// @TODO delay fireball generation by a bit
 				setAction(Action.SPECIAL);
 				specialAttack();
 				SoundManager.playSound(SoundManager.SoundInfo.PLAYER_SPECIAL);

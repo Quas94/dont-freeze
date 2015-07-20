@@ -642,6 +642,8 @@ public class WorldScreen extends AbstractScreen {
 	 * Also enables the end game button.
 	 */
 	public void notifyPlayerDeathComplete() {
+		// deaggro monsters again as a hacky fix to the bug where monsters occasionally don't de-aggro properly
+		deaggroMonsters();
 		playerExpireComplete = true;
 		// in case player paused during the final hit
 		resumeButton.setVisible(false);

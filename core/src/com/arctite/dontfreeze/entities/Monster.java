@@ -37,7 +37,6 @@ public class Monster implements LiveEntity {
 	/** Color to tint monster when aggressive */
 	private static final float[] TINT = new float[] { 250 / 255F, 200 / 255F, 200 / 255F };
 
-	private static final int BASE_HEALTH = 10;
 	private static final float MELEE_COOLDOWN = 1.0F;
 	private static final float SPECIAL_COOLDOWN = 3.0F; // 3 second cooldown
 	private static final float SPECIAL_COOLDOWN_BOSS = 2.0F;
@@ -151,7 +150,11 @@ public class Monster implements LiveEntity {
 		meleeRangeY += 5;
 
 		// initialise health bar
-		this.healthBar = new HealthBar(this, x, y, width, 5, BASE_HEALTH, BASE_HEALTH);
+		int maxHealth = info.getMaxHealth();
+		if (maxHealth == 0) {
+			throw new RuntimeException("Monster (id = " + id + ") doesn't have maxHealth property set");
+		}
+		this.healthBar = new HealthBar(this, x, y, width, 5, maxHealth, maxHealth);
 		healthBar.setVisible(false); // invisible to begin with
 	}
 

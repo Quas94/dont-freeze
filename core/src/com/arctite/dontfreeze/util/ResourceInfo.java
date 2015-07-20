@@ -26,11 +26,11 @@ public enum ResourceInfo {
 	// live entities (player and monsters)
 	// NOTE: melee attack ranges are hardcoded in the Monster constructor
 	PLAYER(Type.ENTITY, 0, 200, 80, 95),
-	SNOW_BABY(Type.ENTITY, 1, 30, 55, 50), // 55 x 50
-	SNOW_BRO(Type.ENTITY, 2, 60, 120, 100),
-	SNOW_RABBIT(Type.ENTITY, 3, 90, 100, 100),
-	SNOW_MONSTER(Type.ENTITY, 10, 120, 200, 200), // 200 x 200
-	ICE_ELEMENTAL(Type.ENTITY, 20, 160, 150, 140), // final boss
+	SNOW_BABY(Type.ENTITY, 1, 30, 55, 50, 3), // 55 x 50
+	SNOW_BRO(Type.ENTITY, 2, 60, 120, 100, 5),
+	SNOW_RABBIT(Type.ENTITY, 3, 90, 100, 100, 8),
+	SNOW_MONSTER(Type.ENTITY, 10, 120, 200, 200, 10), // 200 x 200
+	ICE_ELEMENTAL(Type.ENTITY, 20, 160, 150, 140, 15), // final boss
 
 	// projectiles
 	PLAYER_PROJECTILE(Type.PROJECTILE, PLAYER.getId(), 180, 70, 60),
@@ -152,6 +152,7 @@ public enum ResourceInfo {
 	/** Height/width/melee-range for monsters only */
 	private int height;
 	private int width;
+	private int maxHealth;
 	private float meleeRangeX;
 	private float meleeRangeY;
 	private int meleeDamage;
@@ -160,7 +161,14 @@ public enum ResourceInfo {
 	/** Collision offset */
 	private Rectangle specialOriginOffset;
 
+	/**
+	 * Constructor for things without health (calls complete constructor with health = 0)
+	 */
 	private ResourceInfo(Type type, int id, int speed, int width, int height) {
+		this(type, id, speed, width, height, 0);
+	}
+
+	private ResourceInfo(Type type, int id, int speed, int width, int height, int maxHealth) {
 		this.type = type;
 		this.id = id;
 		this.speed = speed;
@@ -169,6 +177,7 @@ public enum ResourceInfo {
 
 		this.frameRates = new HashMap<Action, Float>();
 		this.specialDamage = 0;
+		this.maxHealth = maxHealth;
 	}
 
 	public Type getType() {
@@ -181,6 +190,10 @@ public enum ResourceInfo {
 
 	public int getSpeed() {
 		return speed;
+	}
+
+	public int getMaxHealth() {
+		return maxHealth;
 	}
 
 	/**
