@@ -28,8 +28,10 @@ public class Monster implements LiveEntity {
 	private static final float MIN_RAND_TIME = 1.0F;
 	private static final float MAX_RAND_TIME = 4.0F;
 
+	/** Start aggressiveness at this distance (between player and the monster) */
+	private static final float AGGRO_PICKUP_DISTANCE = 150;
 	/** Drop aggressiveness at this distance (between player and the monster) */
-	private static final float AGGRO_DROP_DISTANCE = 500;
+	private static final float AGGRO_DROP_DISTANCE = 550;
 	/** Fade speed */
 	private static final float FADE_IN_SPEED = 1.0F; // 1 second to completely fade in
 	private static final float FADE_OUT_SPEED = 0.5F; // 2 seconds to completely fade out
@@ -250,19 +252,20 @@ public class Monster implements LiveEntity {
 	}
 
 	/**
-	 * Checks the position of the player relative to this monster. If the player is sufficiently far away, this monster
-	 * will drop aggro (only if the monster has aggro).
+	 * Checks the position of the player relative to this monster.
+	 * If the distance is small enough, the monster aggros.
+	 * On the contrary, the player is sufficiently far away, this monster will drop aggro (if aggro'd).
 	 *
 	 * @param player the player object
 	 */
 	public void updateAggressive(Player player) {
-		if (aggressive) {
-			float px = player.getX();
-			float py = player.getY();
-			double dist = Math.sqrt(Math.pow(px - x, 2) + Math.pow(py - y, 2));
-			if (dist >= AGGRO_DROP_DISTANCE) {
-				setAggressive(false);
-			}
+		float px = player.getX();
+		float py = player.getY();
+		double dist = Math.sqrt(Math.pow(px - x, 2) + Math.pow(py - y, 2));
+		if (aggressive && dist >= AGGRO_DROP_DISTANCE) {
+			setAggressive(false);
+		} else if (!aggressive && dist <= AGGRO_PICKUP_DISTANCE) {
+			setAggressive(true);
 		}
 	}
 
