@@ -244,11 +244,13 @@ public class Monster implements LiveEntity {
 
 	/**
 	 * Sets the aggressiveness of this monster.
+	 * Also sets the visibility of this monster's health bar accordingly.
 	 *
 	 * @param aggressive whether or not this monster is being set to aggressive
 	 */
 	public void setAggressive(boolean aggressive) {
 		this.aggressive = aggressive;
+		healthBar.setVisible(aggressive);
 	}
 
 	/**
@@ -483,6 +485,7 @@ public class Monster implements LiveEntity {
 		// update fade
 		if (action == Action.EXPIRING && animations.isComplete()) {
 			alpha -= delta * FADE_OUT_SPEED;
+			healthBar.setVisible(false);
 			return; // don't do anything else
 		} else if (spawning) {
 			alpha += delta * FADE_IN_SPEED;

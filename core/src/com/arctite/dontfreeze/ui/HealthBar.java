@@ -202,7 +202,6 @@ public class HealthBar extends Group {
 		} else if (entity != null) { // can only be monster
 			Monster monster = (Monster) entity;
 			boolean aggro = monster.isAggressive();
-			setVisible(aggro);
 			if (aggro) {
 				// update position
 				setPosition(monster.getX(), monster.getY() + (monster.getHeight() * 0.9F));

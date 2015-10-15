@@ -804,6 +804,7 @@ public class WorldScreen extends AbstractScreen {
 				monster.updateAggressive(player); // update aggressiveness (ie. check for aggro drop based on distance)
 				if (monster.isFadeOutComplete()) {
 					removeKeys.add(mkey);
+					monster.getHealthBar().setVisible(false);
 					orderedEntities.remove(monster); // remove from orderedEntities as well as monsters list
 				}
 			}
